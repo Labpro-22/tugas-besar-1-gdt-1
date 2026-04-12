@@ -13,6 +13,7 @@ enum PlayerStatus {
 }
 
 class Property
+abstract class SkillCard
 
 class Player {
     - username : string
@@ -61,5 +62,6 @@ class Player {
 
 Player --> PlayerStatus : uses
 Player "0..1" -- "0..*" Property : owns
+Player "0..1" -- "0..3" SkillCard : holds
 
 @enduml

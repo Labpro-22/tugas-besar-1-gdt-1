@@ -1,0 +1,92 @@
+@startuml GameEngine
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+skinparam linetype ortho
+skinparam nodesep 50
+skinparam ranksep 30
+
+title Diagram Kelas GameEngine (Controller)
+
+class GameEngine {
+    - game : Game*
+    - turnManager : TurnManager*
+    - diceManager : DiceManager*
+    - auctionManager : AuctionManager*
+    - bankruptcyManager : BankruptcyManager*
+    - commandProcessor : CommandProcessor*
+    - configLoader : ConfigLoader*
+    - saveLoadManager : SaveLoadManager*
+    - logger : TransactionLogger*
+    - gui : IGUI*
+    __
+    + GameEngine(gui : IGUI*)
+    + ~GameEngine()
+    + run() : void
+    __
+    - initNewGame() : void
+    - initLoadGame() : void
+    - gameLoop() : void
+    - processPlayerTurn(player : Player&) : void
+    __
+    - handleTileLanding(player : Player&, tile : Tile*) : void
+    - handlePropertyLanding(player : Player&, tile : PropertyTile*) : void
+    - handleActionLanding(player : Player&, tile : ActionTile*) : void
+    - handleSpecialLanding(player : Player&, tile : SpecialTile*) : void
+    - handleStreetLanding(player : Player&, tile : StreetTile*) : void
+    - handleRailroadLanding(player : Player&, tile : RailroadTile*) : void
+    - handleUtilityLanding(player : Player&, tile : UtilityTile*) : void
+    - handleChanceLanding(player : Player&, tile : ChanceTile*) : void
+    - handleCommunityChestLanding(player : Player&, tile : CommunityChestTile*) : void
+    - handleFestivalLanding(player : Player&, tile : FestivalTile*) : void
+    - handleTaxLanding(player : Player&, tile : TaxTile*) : void
+    - handleGoToJailLanding(player : Player&) : void
+    __
+    - executePayment(from : Player&, to : Player*, amount : int) : bool
+    - checkWinCondition() : bool
+    - endGame() : void
+    - executeGadai(player : Player&) : void
+    - executeTebus(player : Player&) : void
+    - executeBangun(player : Player&) : void
+    - executeGunakanKemampuan(player : Player&) : void
+}
+
+' Komponen yang dimiliki
+class Game <<Engine>> {
+}
+class TurnManager <<Engine>> {
+}
+class DiceManager <<Engine>> {
+}
+class AuctionManager <<Engine>> {
+}
+class BankruptcyManager <<Engine>> {
+}
+class CommandProcessor <<Engine>> {
+}
+class ConfigLoader <<Data>> {
+}
+class SaveLoadManager <<Data>> {
+}
+class TransactionLogger <<Data>> {
+}
+
+interface IGUI <<interface>> {
+}
+
+' Relasi komposisi (GameEngine memiliki)
+GameEngine *-down- Game
+GameEngine *-down- TurnManager
+GameEngine *-down- DiceManager
+GameEngine *-down- AuctionManager
+GameEngine *-down- BankruptcyManager
+GameEngine *-down- CommandProcessor
+GameEngine *-down- ConfigLoader
+GameEngine *-down- SaveLoadManager
+GameEngine *-down- TransactionLogger
+
+' Dependency injection
+GameEngine -right-> IGUI : uses >
+
+
+@enduml

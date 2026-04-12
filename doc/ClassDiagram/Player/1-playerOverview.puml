@@ -13,6 +13,7 @@ enum PlayerStatus {
 }
 
 class Property
+abstract class SkillCard
 
 class Player {
     - username : string
@@ -20,6 +21,7 @@ class Player {
     - position : int
     - status : PlayerStatus
     - ownedProperties : vector<Property*>
+    - handCards : vector<SkillCard*>
     - consecutiveDoubles : int
     - jailAttempts : int
     - hasRolledThisTurn : bool
@@ -53,6 +55,10 @@ class Player {
     + markSkillUsed() : void
     + hasRolled() : bool
     + hasUsedSkill() : bool
+    + addCard(card : SkillCard*) : bool
+    + removeCard(card : SkillCard*) : void
+    + getHandCards() : vector<SkillCard*>
+    + getCardCount() : int
     + operator+=(amount : int) : Player
     + operator-=(amount : int) : Player
     + operator>(other : Player) : bool
@@ -61,5 +67,6 @@ class Player {
 
 Player --> PlayerStatus : uses
 Player "0..1" -- "0..*" Property : owns
+Player "0..1" -- "0..3" SkillCard : holds
 
 @enduml

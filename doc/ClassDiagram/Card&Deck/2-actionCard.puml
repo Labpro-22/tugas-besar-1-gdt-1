@@ -18,20 +18,31 @@ enum CommunityType {
     CAMPAIGN_FEE
 }
 
+enum CardCategory {
+    CHANCE
+    COMMUNITY
+    SKILL
+}
+
 abstract class ActionCard {
     --
+    + {abstract} getCategory() : CardCategory
     + {abstract} execute(player : Player&, game : Game&) : void
 }
 
 class ChanceCard {
     - type : ChanceType
     --
+    + getCardName() : string
+    + getCategory() : CardCategory
     + execute(player : Player&, game : Game&) : void
 }
 
 class CommunityChestCard {
     - type : CommunityType
     --
+    + getCardName() : string
+    + getCategory() : CardCategory
     + execute(player : Player&, game : Game&) : void
 }
 
@@ -39,5 +50,6 @@ ActionCard <|-- ChanceCard
 ActionCard <|-- CommunityChestCard
 ChanceCard ..> ChanceType : uses
 CommunityChestCard ..> CommunityType : uses
+ActionCard ..> CardCategory : uses
 
 @enduml

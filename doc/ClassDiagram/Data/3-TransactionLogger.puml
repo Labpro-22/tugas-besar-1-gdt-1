@@ -1,0 +1,40 @@
+@startuml TransactionLogger
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+skinparam linetype ortho
+skinparam nodesep 50
+skinparam ranksep 30
+
+title Diagram Kelas TransactionLogger & LogEntry
+
+class TransactionLogger {
+    - entries : vector<LogEntry>
+    __
+    + TransactionLogger()
+    + log(turn : int, username : string, actionType : string, detail : string) : void
+    + getFullLog() : const vector<LogEntry>&
+    + getRecentLog(n : int) : vector<LogEntry>
+    + getEntryCount() : int
+    + clear() : void
+    + loadEntries(entries : vector<LogEntry>) : void
+}
+
+class LogEntry {
+    - turn : int
+    - username : string
+    - actionType : string
+    - detail : string
+    __
+    + LogEntry(turn : int, username : string, actionType : string, detail : string)
+    + getTurn() : int
+    + getUsername() : string
+    + getActionType() : string
+    + getDetail() : string
+    + toString() : string
+}
+
+' Relasi
+TransactionLogger *-- "0..*" LogEntry : stores >
+
+@enduml

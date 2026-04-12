@@ -10,6 +10,8 @@ abstract class Card {
     # description : string
     --
     + getDescription() : string
+    + {abstract} getCardName() : string
+    + {abstract} getCategory() : CardCategory
     + {abstract} execute(player : Player&, game : Game&) : void
     + {abstract} clone() : Card*
 }

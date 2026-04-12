@@ -1,5 +1,5 @@
-@startuml CardOverview
-title Overview Card & Deck
+@startuml CardsOverview
+title Overview Cards & Deck
 
 skinparam classAttributeIconSize 0
 skinparam classFontSize 13
@@ -18,80 +18,35 @@ enum CommunityType {
     CAMPAIGN_FEE
 }
 
+enum CardCategory {
+    CHANCE
+    COMMUNITY
+    SKILL
+}
+
 abstract class Card {
     # description : string
     --
     + getDescription() : string
+    + {abstract} getCardName() : string
+    + {abstract} getCategory() : CardCategory
     + {abstract} execute(player : Player&, game : Game&) : void
     + {abstract} clone() : Card*
 }
 
 abstract class ActionCard {
     --
+    + {abstract} getCategory() : CardCategory
     + {abstract} execute(player : Player&, game : Game&) : void
 }
 
 abstract class SkillCard {
     # remainingUses : int
     --
+    + getCategory() : CardCategory
     + {abstract} execute(player : Player&, game : Game&) : void
     + isUsable() : bool
 }
-
-package "Action Card" {
-    class ChanceCard {
-        - type : ChanceType
-        --
-        + execute(player : Player&, game : Game&) : void
-    }
-
-    class CommunityChestCard {
-        - type : CommunityType
-        --
-        + execute(player : Player&, game : Game&) : void
-    }
-}
-
-package "Skill Card" {
-    class MoveCard {
-        - steps : int
-        --
-        + execute(player : Player&, game : Game&) : void
-        + getSteps() : int
-    }
-
-    class DiscountCard {
-        - discountPercent : int
-        - duration : int
-        --
-        + execute(player : Player&, game : Game&) : void
-        + getDiscount() : int
-        + decrementDuration() : void
-    }
-
-    class ShieldCard {
-        - duration : int
-        --
-        + execute(player : Player&, game : Game&) : void
-        + decrementDuration() : void
-    }
-
-    class TeleportCard {
-        --
-        + execute(player : Player&, game : Game&) : void
-    }
-
-    class LassoCard {
-        --
-        + execute(player : Player&, game : Game&) : void
-    }
-
-    class DemolitionCard {
-        --
-        + execute(player : Player&, game : Game&) : void
-    }
-}
-
 
 class CardDeck<T> {
     - drawPile : vector<T*>
@@ -103,6 +58,70 @@ class CardDeck<T> {
     + reshuffleIfEmpty() : void
     + isEmpty() : bool
     + size() : int
+}
+
+package "Action Cards" {
+    class ChanceCard {
+        - type : ChanceType
+        --
+        + getCardName() : string
+        + getCategory() : CardCategory
+        + execute(player : Player&, game : Game&) : void
+    }
+
+    class CommunityChestCard {
+        - type : CommunityType
+        --
+        + getCardName() : string
+        + getCategory() : CardCategory
+        + execute(player : Player&, game : Game&) : void
+    }
+}
+
+package "Skill Cards" {
+    class MoveCard {
+        - steps : int
+        --
+        + getCardName() : string
+        + execute(player : Player&, game : Game&) : void
+        + getSteps() : int
+    }
+
+    class DiscountCard {
+        - discountPercent : int
+        - duration : int
+        --
+        + getCardName() : string
+        + execute(player : Player&, game : Game&) : void
+        + getDiscount() : int
+        + decrementDuration() : void
+    }
+
+    class ShieldCard {
+        - duration : int
+        --
+        + getCardName() : string
+        + execute(player : Player&, game : Game&) : void
+        + decrementDuration() : void
+    }
+
+    class TeleportCard {
+        --
+        + getCardName() : string
+        + execute(player : Player&, game : Game&) : void
+    }
+
+    class LassoCard {
+        --
+        + getCardName() : string
+        + execute(player : Player&, game : Game&) : void
+    }
+
+    class DemolitionCard {
+        --
+        + getCardName() : string
+        + execute(player : Player&, game : Game&) : void
+    }
 }
 
 Card <|-- ActionCard
@@ -120,5 +139,6 @@ CardDeck "1" o-- "0..*" Card : aggregates
 
 ChanceCard ..> ChanceType : uses
 CommunityChestCard ..> CommunityType : uses
+Card ..> CardCategory : uses
 
 @enduml

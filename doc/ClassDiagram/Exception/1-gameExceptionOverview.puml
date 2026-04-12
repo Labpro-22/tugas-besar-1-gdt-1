@@ -28,6 +28,7 @@ abstract SkillTurnException {
 } 
 
 abstract InvalidEntryInputException {
+
 }
 
 
@@ -107,11 +108,11 @@ GameException <|-- InvalidFileException
 PlayerTurnException <|-- PropertyManagmentException
 PlayerTurnException <|-- SkillTurnException
 PlayerTurnException <|-- InvalidTurnException
+PlayerTurnException <|-- NoMortgagedPropertyException
 
 PropertyManagmentException <|-- InsufficientMoneyException
 PropertyManagmentException <|-- InsufficientOwnedColorException
 PropertyManagmentException <|-- ExistingHotelException
-PropertyManagmentException <|-- NoMortgagedPropertyException
 
 SkillTurnException <|-- SkillCardUsedException
 SkillTurnException <|-- DiceAlreadyRolledException

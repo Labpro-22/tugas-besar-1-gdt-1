@@ -21,6 +21,7 @@ class Player {
     - position : int
     - status : PlayerStatus
     - ownedProperties : vector<Property*>
+    - handCards : vector<SkillCard*>
     - consecutiveDoubles : int
     - jailAttempts : int
     - hasRolledThisTurn : bool
@@ -54,6 +55,10 @@ class Player {
     + markSkillUsed() : void
     + hasRolled() : bool
     + hasUsedSkill() : bool
+    + addCard(card : SkillCard*) : bool
+    + removeCard(card : SkillCard*) : void
+    + getHandCards() : vector<SkillCard*>
+    + getCardCount() : int
     + operator+=(amount : int) : Player
     + operator-=(amount : int) : Player
     + operator>(other : Player) : bool

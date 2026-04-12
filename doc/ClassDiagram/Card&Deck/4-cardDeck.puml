@@ -1,0 +1,33 @@
+@startuml CardDeck
+title CardDeck
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam classFontStyle Bold
+skinparam classAttributeFontSize 12
+
+abstract class Card {
+    # description : string
+    --
+    + getDescription() : string
+    + {abstract} getCardName() : string
+    + {abstract} getCategory() : CardCategory
+    + {abstract} execute(player : Player&, game : Game&) : void
+    + {abstract} clone() : Card*
+}
+
+class CardDeck<T> {
+    - drawPile : vector<T*>
+    - discardPile : vector<T*>
+    --
+    + draw() : T*
+    + discard(card : T*) : void
+    + shuffle() : void
+    + reshuffleIfEmpty() : void
+    + isEmpty() : bool
+    + size() : int
+}
+
+CardDeck "1" o-- "0..*" Card : aggregates
+
+@enduml

@@ -1,0 +1,118 @@
+@startuml PropertyDomain
+title Property Domain
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam classFontStyle Bold
+skinparam classAttributeFontSize 12
+
+enum PropertyStatus {
+    BANK
+    OWNED
+    MORTGAGED
+}
+
+enum PropertyType {
+    STREET
+    RAILROAD
+    UTILITY
+}
+
+enum BuildingState {
+    NONE
+    HOUSE_1
+    HOUSE_2
+    HOUSE_3
+    HOUSE_4
+    HOTEL
+}
+
+class Player {
+    - username : string
+    --
+    + getUsername() : string
+    + countOwnedRailroads() : int
+    + countOwnedUtilities() : int
+    + ownsFullColorGroup(colorGroup : string) : bool
+}
+
+abstract class Property {
+    - code : string
+    - name : string
+    - type : PropertyType
+    - purchasePrice : int
+    - mortgageValue : int
+    - owner : Player*
+    - status : PropertyStatus
+    - festivalMultiplier : int
+    - festivalDuration : int
+    --
+    + Property(code : string, name : string, type : PropertyType, purchasePrice : int, mortgageValue : int)
+    + getCode() : string
+    + getName() : string
+    + getType() : PropertyType
+    + getOwner() : Player*
+    + getStatus() : PropertyStatus
+    + getPurchasePrice() : int
+    + getMortgageValue() : int
+    + getFestivalMultiplier() : int
+    + getFestivalDuration() : int
+    + setOwner(owner : Player*) : void
+    + clearOwner() : void
+    + setStatus(status : PropertyStatus) : void
+    + isOwned() : bool
+    + isMortgaged() : bool
+    + activateFestival() : void
+    + decrementFestivalDuration() : void
+    + {abstract} calculateRent(diceValue : int = 0) : int
+    + {abstract} getAssetValue() : int
+}
+
+class StreetProperty {
+    - colorGroup : string
+    - houseBuildCost : int
+    - hotelBuildCost : int
+    - rentLevels : vector<int>
+    - buildingState : BuildingState
+    --
+    + StreetProperty(code : string, name : string, purchasePrice : int, mortgageValue : int, colorGroup : string, houseBuildCost : int, hotelBuildCost : int, rentLevels : vector<int>)
+    + getColorGroup() : string
+    + getBuildingState() : BuildingState
+    + hasHotel() : bool
+    + canBuildHouse() : bool
+    + canBuildHotel() : bool
+    + buildHouse() : bool
+    + buildHotel() : bool
+    + clearBuildings() : void
+    + sellBuildingValue() : int
+    + calculateRent(diceValue : int = 0) : int
+    + getAssetValue() : int
+}
+
+class RailroadProperty {
+    - rentTable : map<int, int>
+    --
+    + RailroadProperty(code : string, name : string, purchasePrice : int, mortgageValue : int, rentTable : map<int, int>)
+    + calculateRent(diceValue : int = 0) : int
+    + getAssetValue() : int
+}
+
+class UtilityProperty {
+    - multiplierTable : map<int, int>
+    --
+    + UtilityProperty(code : string, name : string, purchasePrice : int, mortgageValue : int, multiplierTable : map<int, int>)
+    + calculateRent(diceValue : int = 0) : int
+    + getAssetValue() : int
+}
+
+Property <|-- StreetProperty
+Property <|-- RailroadProperty
+Property <|-- UtilityProperty
+
+Property ..> PropertyStatus : uses
+Property ..> PropertyType : uses
+StreetProperty ..> BuildingState : uses
+
+Player "0..1" -- "0..*" Property : owns
+
+@enduml

@@ -1,0 +1,43 @@
+@startuml SpecialTile
+title SpecialTile
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam classFontStyle Bold
+skinparam classAttributeFontSize 12
+
+abstract class SpecialTile {
+    --
+    + getCategory() : TileCategory
+    + {abstract} onLanded(player : Player&, game : Game&) : void
+}
+
+class GoTile {
+    - salary : int
+    --
+    + getSalary() : int
+    + onLanded(player : Player&, game : Game&) : void
+    + onPassed(player : Player&, game : Game&) : void
+}
+
+class JailTile {
+    --
+    + onLanded(player : Player&, game : Game&) : void
+}
+
+class FreeParkingTile {
+    --
+    + onLanded(player : Player&, game : Game&) : void
+}
+
+class GoToJailTile {
+    --
+    + onLanded(player : Player&, game : Game&) : void
+}
+
+SpecialTile <|-- GoTile
+SpecialTile <|-- JailTile
+SpecialTile <|-- FreeParkingTile
+SpecialTile <|-- GoToJailTile
+
+@enduml

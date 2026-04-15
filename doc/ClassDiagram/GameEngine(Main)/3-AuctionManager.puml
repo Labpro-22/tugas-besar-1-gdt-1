@@ -1,0 +1,70 @@
+@startuml AuctionManager
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+skinparam linetype ortho
+skinparam nodesep 50
+skinparam ranksep 30
+
+title Diagram Kelas AuctionManager
+
+enum AuctionAction {
+    BID
+    PASS
+}
+
+class AuctionManager {
+    - game : Game*
+    - logger : TransactionLogger*
+    - gui : IGUI*
+    __
+    + AuctionManager(game : Game*, logger : TransactionLogger*, gui : IGUI*)
+    + runAuction(property : Property*, triggeringPlayer : Player*) : Player*
+    __
+    - buildAuctionOrder(triggeringPlayer : Player*) : vector<Player*>
+    - collectBidOrPass(player : Player&, currentHighBid : int) : pair<AuctionAction, int>
+    - validateBid(player : const Player&, amount : int, currentHighBid : int) : bool
+    - finalizeAuction(winner : Player*, property : Property*, bidAmount : int) : void
+}
+
+' Kelas yang direferensi
+class Game <<Engine>> {
+    + getActivePlayers() : vector<Player*>
+    + getCurrentPlayer() : Player*
+}
+
+class TransactionLogger <<Data>> {
+    + log(turn, username, actionType, detail) : void
+}
+
+interface IGUI <<interface>> {
+    + getBidInput(player, currentHighBid) : pair<AuctionAction, int>
+    + renderAuctionStatus(property, highBid, bidder) : void
+    + renderMessage(msg) : void
+}
+
+' Model yang dimanipulasi
+class Property <<Model>> {
+    + setOwner(owner : Player*) : void
+    + setStatus(status : PropertyStatus) : void
+    + getName() : string
+    + getCode() : string
+}
+
+class Player <<Model>> {
+    + deductMoney(amount : int) : bool
+    + canAfford(amount : int) : bool
+    + addProperty(property : Property*) : void
+    + getUsername() : string
+    + getBalance() : int
+}
+
+' Relasi
+AuctionManager --> Game : references >
+AuctionManager --> TransactionLogger : references >
+AuctionManager --> IGUI : references >
+AuctionManager ..> AuctionAction : uses >
+AuctionManager ..> Property : manipulates >
+AuctionManager ..> Player : manipulates >
+
+@enduml

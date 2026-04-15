@@ -1,0 +1,75 @@
+@startuml SkillCard
+title SkillCard
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam classFontStyle Bold
+skinparam classAttributeFontSize 12
+
+enum CardCategory {
+    CHANCE
+    COMMUNITY
+    SKILL
+}
+
+abstract class SkillCard {
+    # remainingUses : int
+    --
+    + getCategory() : CardCategory
+    + {abstract} execute(player : Player&, game : Game&) : void
+    + isUsable() : bool
+}
+
+class MoveCard {
+    - steps : int
+    --
+    + getCardName() : string
+    + execute(player : Player&, game : Game&) : void
+    + getSteps() : int
+}
+
+class DiscountCard {
+    - discountPercent : int
+    - duration : int
+    --
+    + getCardName() : string
+    + execute(player : Player&, game : Game&) : void
+    + getDiscount() : int
+    + decrementDuration() : void
+}
+
+class ShieldCard {
+    - duration : int
+    --
+    + getCardName() : string
+    + execute(player : Player&, game : Game&) : void
+    + decrementDuration() : void
+}
+
+class TeleportCard {
+    --
+    + getCardName() : string
+    + execute(player : Player&, game : Game&) : void
+}
+
+class LassoCard {
+    --
+    + getCardName() : string
+    + execute(player : Player&, game : Game&) : void
+}
+
+class DemolitionCard {
+    --
+    + getCardName() : string
+    + execute(player : Player&, game : Game&) : void
+}
+
+SkillCard <|-- MoveCard
+SkillCard <|-- DiscountCard
+SkillCard <|-- ShieldCard
+SkillCard <|-- TeleportCard
+SkillCard <|-- LassoCard
+SkillCard <|-- DemolitionCard
+SkillCard ..> CardCategory : uses
+
+@enduml

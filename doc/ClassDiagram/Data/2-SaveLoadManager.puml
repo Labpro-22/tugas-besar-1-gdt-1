@@ -1,0 +1,75 @@
+@startuml SaveLoadManager
+allowmixing
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+skinparam linetype ortho
+skinparam nodesep 50
+skinparam ranksep 30
+
+title Diagram Kelas SaveLoadManager
+
+class SaveLoadManager {
+    __
+    + SaveLoadManager()
+    + saveGame(game : const Game&, logger : const TransactionLogger&, filename : string) : bool
+    + loadGame(filename : string, config : const GameConfig&) : Game*
+    + fileExists(filename : string) : bool
+    __
+    - serializePlayerState(player : const Player&) : string
+    - deserializePlayerState(lines : vector<string>&, lineIndex : int&) : Player*
+    - serializePropertyState(game : const Game&) : string
+    - deserializePropertyState(lines : vector<string>&, lineIndex : int&, board : Board*) : void
+    - serializeDeckState(deck : const CardDeck<SkillCard>&) : string
+    - deserializeDeckState(lines : vector<string>&, lineIndex : int&) : CardDeck<SkillCard>*
+    - serializeLogState(logger : const TransactionLogger&) : string
+    - deserializeLogState(lines : vector<string>&, lineIndex : int&) : vector<LogEntry>
+    - serializeSkillCard(card : const SkillCard&) : string
+    - deserializeSkillCard(line : string) : SkillCard*
+    - parseLine(line : string) : vector<string>
+}
+
+class Game <<Engine>> {
+}
+
+class TransactionLogger <<Data>> {
+}
+
+class GameConfig {
+}
+
+class Player <<Model>> {
+}
+
+class SkillCard <<Model>> {
+}
+
+class LogEntry {
+    - turn : int
+    - username : string
+    - actionType : string
+    - detail : string
+    __
+    + LogEntry(turn : int, username : string, actionType : string, detail : string)
+    + getTurn() : int
+    + getUsername() : string
+    + getActionType() : string
+    + getDetail() : string
+    + toString() : string
+}
+
+node "File System" as FS {
+    file "save_game.txt" as fsave
+}
+
+' Relasi
+SaveLoadManager ..> Game : serializes / deserializes >
+SaveLoadManager ..> TransactionLogger : reads / writes log >
+SaveLoadManager ..> GameConfig : uses for rebuild >
+SaveLoadManager ..> Player : creates on load >
+SaveLoadManager ..> SkillCard : deserializes >
+SaveLoadManager ..> LogEntry : creates on load >
+SaveLoadManager ..> fsave : reads / writes >
+
+
+@enduml

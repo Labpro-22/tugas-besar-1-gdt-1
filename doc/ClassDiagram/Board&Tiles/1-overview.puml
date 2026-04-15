@@ -1,0 +1,94 @@
+@startuml Overview
+title Overview Board & Tile
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam classFontStyle Bold
+skinparam classAttributeFontSize 12
+
+enum TileColor {
+    DEFAULT
+    COKLAT
+    BIRU_MUDA
+    MERAH_MUDA
+    ORANGE
+    MERAH
+    KUNING
+    HIJAU
+    BIRU_TUA
+    ABU_ABU
+}
+
+enum TileCategory {
+    PROPERTY
+    ACTION
+    SPECIAL
+}
+
+class Board {
+    - tiles : vector<Tile*>
+    - tileByCode : map<string, Tile*>
+    - boardSize : int
+    - goTile : GoTile*
+    - jailTile : JailTile*
+    --
+    + addTile(tile : Tile*) : void
+    + getTile(index : int) : Tile*
+    + getTile(code : string) : Tile*
+    + getNextIndex(current : int, steps : int) : int
+    + passesGo(from : int, steps : int) : bool
+    + getGoTile() : GoTile*
+    + getJailTile() : JailTile*
+    + getNearestRailroad(current : int) : RailroadTile*
+    + getSize() : int
+    + validate() : void
+}
+
+abstract class Tile {
+    # index : int
+    # code : string
+    # name : string
+    # color : TileColor
+    --
+    + getIndex() : int
+    + getCode() : string
+    + getName() : string
+    + getColor() : TileColor
+    + {abstract} onLanded(player : Player&, game : Game&) : void
+    + onPassed(player : Player&, game : Game&) : void
+    + {abstract} getCategory() : TileCategory
+    + getDisplayLabel() : string
+}
+
+package "Property Tile"{
+    abstract class PropertyTile {
+        # property : Property*
+        --
+        + getProperty() : Property*
+        + getCategory() : TileCategory
+        + getDisplayLabel() : string
+    }
+}
+
+package "Action Tile"{
+abstract class ActionTile {
+    --
+    + getCategory() : TileCategory
+}
+}
+
+package "Special Tile" {
+abstract class SpecialTile {
+    --
+    + getCategory() : TileCategory
+}
+}
+
+Board "1" *-- "20..60" Tile : owns
+Tile ..> TileColor : uses
+Tile ..> TileCategory : uses
+Tile <|-- PropertyTile
+Tile <|-- ActionTile
+Tile <|-- SpecialTile
+
+@enduml

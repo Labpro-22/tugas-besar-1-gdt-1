@@ -1,0 +1,65 @@
+@startuml Overview
+title GUIRenderer
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam classFontStyle Bold
+skinparam classAttributeFontSize 12
+
+skinparam groupInheritance 2
+
+class GUIRenderer {
+  -game Game*
+  -FXStack : stack<TimedPopup> 
+  -popupStack : stack<Popup>
+  -menu : MenuView
+  -playerProfiles : vector<PlayerProfileView>
+  -playerPieces : vector<PlayerPieceView>
+  -board : BoardView
+  -communityCardPile : CardDeckView<CommunityChestCard>
+  -chanceCardPile : CardDeckView<ChanceCard>
+  -skillCardPile : CardDeckView<SkillCard>
+  -dice : DiceView
+  -gameButtons : vector<Interactable
+  --
+  + refresh() : void
+  + disableAllInteractables() : void
+  + getCommand() : CommandProcessor*
+  + rollDice() : void
+  + movePlayer(player : Player&, tile : Tile&) : void
+  + expandPlayerInventory(player : Player&) : void
+  + buyProperty(player : Player&, property : Property&) : void
+  + mortgageProperty(player : Player&, property : Property&) : void
+  + buyHouse(player : Player&, property : Property&) : void
+  + transferMoneyFromBank(player : Player&, amount : int) : void
+  + transferMoneyToBank(player : Player&, amount : int) : void
+  + transferMoneyToPlayer(sender: Player&, reciever: Player&, amount : int) : void
+  + drawCard(drawedCard : Card&) : void
+  + discardCard(discardedCard : Card&) : void
+  + useSkillCard(usedCard : SkillCard&) :  void
+  + activateAuction() : void
+  + bidMoney(bidder : Player&, amount : int) : void
+  + passAuction(passer : Player&) : void
+  + finishAuction() : void
+  + activateFestival(property : &StreetProperty) : void
+  + goToJail(player : Player&) : void
+  + getFreeParking(player : Player&) : void
+  + pauseGame() : void
+  + resumeGame() : void
+  + declareBankruptcy(player : Player&) : void
+  + displayException(e : GameException&) : void
+  + saveGameState() : void
+  + switchTurn(player1 : Player&, player2 : Player&) : void
+  + nextTurn() : void
+  + finishGame() : void
+}
+
+GUIRenderer "1" o-- "0..*" TimedPopup
+GUIRenderer "1" o-- "0..*" Popup
+GUIRenderer "1" o-- "0..1" MenuView
+GUIRenderer "1" *-- "2..4" PlayerProfileView
+GUIRenderer "1" *-- "2..4" PlayerPieceView
+GUIRenderer "1" *-- "1" BoardView
+GUIRenderer "1" *-- "3" CardDeckView
+GUIRenderer "1" *-- "1" DiceView
+GUIRenderer "1" o-- "0..*" Interactable

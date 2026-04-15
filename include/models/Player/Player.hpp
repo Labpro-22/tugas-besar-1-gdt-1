@@ -37,7 +37,7 @@ public:
     int getJailAttempts() const; //tambahan
 
     //movement
-    int move(int steps, int boardSize = 40);
+    void move(int steps, int boardSize = 40);
     void setPosition(int newPosition);
 
     //balance
@@ -51,10 +51,14 @@ public:
     void incrementJailAttempts();
     void resetJailAttempts();
 
+    //jail
+    void sendToJail(int jailPosition); //tambah
+    void releaseFromJail(); //tambah
+
     //property -----------------------
-    // void addProperty(Property* property);
-    // void removeProperty(Property* property);
-    // const std::vector<Property*>& getOwnedProperties() const;
+    void addProperty(Property* property);
+    void removeProperty(Property* property);
+    const std::vector<Property*>& getOwnedProperties() const;
 
     //property util
     int countOwnedRailroads() const;

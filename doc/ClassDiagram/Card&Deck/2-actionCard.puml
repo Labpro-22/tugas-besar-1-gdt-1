@@ -27,7 +27,7 @@ enum CardCategory {
 abstract class ActionCard {
     --
     + {abstract} getCategory() : CardCategory
-    + {abstract} execute(player : Player&, game : Game&) : void
+    + {abstract} clone() : Card*
 }
 
 class ChanceCard {
@@ -35,7 +35,8 @@ class ChanceCard {
     --
     + getCardName() : string
     + getCategory() : CardCategory
-    + execute(player : Player&, game : Game&) : void
+    + getType() : ChanceType
+    + clone() : Card*
 }
 
 class CommunityChestCard {
@@ -43,7 +44,8 @@ class CommunityChestCard {
     --
     + getCardName() : string
     + getCategory() : CardCategory
-    + execute(player : Player&, game : Game&) : void
+    + getType() : ChanceType
+    + clone() : Card*
 }
 
 ActionCard <|-- ChanceCard

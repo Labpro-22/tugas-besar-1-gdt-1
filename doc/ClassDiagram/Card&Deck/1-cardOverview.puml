@@ -30,22 +30,22 @@ abstract class Card {
     + getDescription() : string
     + {abstract} getCardName() : string
     + {abstract} getCategory() : CardCategory
-    + {abstract} execute(player : Player&, game : Game&) : void
     + {abstract} clone() : Card*
 }
 
 abstract class ActionCard {
     --
     + {abstract} getCategory() : CardCategory
-    + {abstract} execute(player : Player&, game : Game&) : void
+    + {abstract} clone() : Card*
 }
 
 abstract class SkillCard {
     # remainingUses : int
     --
     + getCategory() : CardCategory
-    + {abstract} execute(player : Player&, game : Game&) : void
     + isUsable() : bool
+    + {abstract} getCardName() : string
+    + {abstract} clone() : Card*
 }
 
 class CardDeck<T> {
@@ -66,7 +66,8 @@ package "Action Card" {
         --
         + getCardName() : string
         + getCategory() : CardCategory
-        + execute(player : Player&, game : Game&) : void
+        + getType() : ChanceType
+        + clone() : Card*
     }
 
     class CommunityChestCard {
@@ -74,7 +75,8 @@ package "Action Card" {
         --
         + getCardName() : string
         + getCategory() : CardCategory
-        + execute(player : Player&, game : Game&) : void
+        + getType() : ChanceType
+        + clone() : Card*
     }
 }
 
@@ -83,8 +85,8 @@ package "Skill Card" {
         - steps : int
         --
         + getCardName() : string
-        + execute(player : Player&, game : Game&) : void
         + getSteps() : int
+        + clone() : Card*
     }
 
     class DiscountCard {
@@ -92,35 +94,35 @@ package "Skill Card" {
         - duration : int
         --
         + getCardName() : string
-        + execute(player : Player&, game : Game&) : void
         + getDiscount() : int
         + decrementDuration() : void
+        + clone() : Card*
     }
 
     class ShieldCard {
         - duration : int
         --
         + getCardName() : string
-        + execute(player : Player&, game : Game&) : void
         + decrementDuration() : void
+        + clone() : Card*
     }
 
     class TeleportCard {
         --
         + getCardName() : string
-        + execute(player : Player&, game : Game&) : void
+        + clone() : Card*
     }
 
     class LassoCard {
         --
         + getCardName() : string
-        + execute(player : Player&, game : Game&) : void
+        + clone() : Card*
     }
 
     class DemolitionCard {
         --
         + getCardName() : string
-        + execute(player : Player&, game : Game&) : void
+        + clone() : Card*
     }
 }
 

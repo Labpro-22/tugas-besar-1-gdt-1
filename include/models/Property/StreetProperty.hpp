@@ -32,6 +32,8 @@ public:
                    const std::vector<int> &rentLevels);
 
     std::string getColorGroup() const;
+    int getHouseBuildCost() const;  //tambah
+    int getHotelBuildCost() const;  //tambah
     BuildingState getBuildingState() const;
 
     bool hasHotel() const;
@@ -46,4 +48,5 @@ public:
 
     int calculateRent(int diceValue = 0) const override;
     int getAssetValue() const override;
+    int getBuildingAssetValue() const override; //tambah
 };

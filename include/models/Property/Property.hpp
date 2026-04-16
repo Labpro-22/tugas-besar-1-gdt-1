@@ -63,6 +63,7 @@ public:
 
     virtual int calculateRent(int diceValue = 0) const = 0;
     virtual int getAssetValue() const = 0;
+    virtual int getBuildingAssetValue() const; //tambahan
 
     std::string to_string(PropertyStatus status)
     {

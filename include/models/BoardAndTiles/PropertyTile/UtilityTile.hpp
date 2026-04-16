@@ -1,7 +1,7 @@
 #pragma once
 #include "models/BoardAndTiles/PropertyTile.hpp"
 
-class Utility;
+class UtilityProperty;
 
 class UtilityTile : public PropertyTile
 {

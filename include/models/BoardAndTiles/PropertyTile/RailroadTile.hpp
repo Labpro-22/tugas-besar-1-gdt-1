@@ -1,7 +1,7 @@
 #pragma once
 #include "models/BoardAndTiles/PropertyTile.hpp"
 
-class Railroad;
+class RailroadProperty;
 
 class RailroadTile : public PropertyTile
 {

@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+class Property;
+
 enum class PlayerStatus {
     ACTIVE,
     JAILED,

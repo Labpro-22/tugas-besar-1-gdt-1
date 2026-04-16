@@ -1,5 +1,5 @@
 #include "models/BoardAndTiles/PropertyTile.hpp"
-// #include "models/Property/Property.hpp"
+#include "models/Property/Property.hpp"
 
 PropertyTile::PropertyTile(int index, const std::string &code, const std::string &name, TileColor color, Property *property)
     : Tile(index, code, name, color), property(property) {}
@@ -19,5 +19,5 @@ std::string PropertyTile::getDisplayLabel() const
     if (property == nullptr)
         return "[" + code + "]";
 
-    // return "[" + code + "] " + property->getStatusLabel();
+    return "[" + code + "] " + property->to_string(property->getStatus());
 }

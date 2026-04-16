@@ -6,7 +6,7 @@ class Utility;
 class UtilityTile : public PropertyTile
 {
 public:
-    UtilityTile(int index, const std::string &code, const std::string &name, Utility *utility);
+    UtilityTile(int index, const std::string &code, const std::string &name, UtilityProperty *utility);
 
     void onLanded(Player &player, Game &game) override;
 };

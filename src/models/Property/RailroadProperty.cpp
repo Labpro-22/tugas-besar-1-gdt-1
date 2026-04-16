@@ -1,4 +1,4 @@
-#include "RailroadProperty.hpp"
+#include "models/Property/RailroadProperty.hpp"
 
 RailroadProperty::RailroadProperty( const std::string& code,
                                     const std::string& name,

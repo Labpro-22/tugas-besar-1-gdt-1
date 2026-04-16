@@ -32,6 +32,8 @@ class Player {
     + getBalance() : int
     + getPosition() : int
     + getStatus() : PlayerStatus
+    + getConsecutiveDoubles() : int
+    + getJailAttempts() : int
     + move(steps : int, boardSize : int = 40) : int
     + setPosition(newPosition : int) : void
     + addMoney(amount : int) : void
@@ -59,6 +61,8 @@ class Player {
     + removeCard(card : SkillCard*) : void
     + getHandCards() : vector<SkillCard*>
     + getCardCount() : int
+    + incrementConsecutiveDoubles() void
+    + resetConsecutiveDoubles() : void
     + operator+=(amount : int) : Player
     + operator-=(amount : int) : Player
     + operator>(other : Player) : bool

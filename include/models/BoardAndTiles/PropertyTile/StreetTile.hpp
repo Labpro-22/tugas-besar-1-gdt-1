@@ -1,4 +1,3 @@
-// StreetTile.h
 #pragma once
 #include "models/BoardAndTiles/PropertyTile.hpp"
 

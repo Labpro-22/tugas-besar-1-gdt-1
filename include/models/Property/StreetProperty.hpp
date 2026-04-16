@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Property.hpp"
+#include "models/Property/Property.hpp"
 
-enum class BuildingState {
+enum class BuildingState
+{
     NONE,
     HOUSE_1,
     HOUSE_2,
@@ -11,7 +12,8 @@ enum class BuildingState {
     HOTEL
 };
 
-class StreetProperty : public Property {
+class StreetProperty : public Property
+{
 private:
     std::string colorGroup;
     int houseBuildCost;
@@ -20,14 +22,14 @@ private:
     BuildingState buildingState;
 
 public:
-    StreetProperty( const std::string& code,
-                    const std::string& name,
-                    int purchasePrice,
-                    int mortgageValue,
-                    const std::string& colorGroup,
-                    int houseBuildCost,
-                    int hotelBuildCost,
-                    const std::vector<int>& rentLevels);
+    StreetProperty(const std::string &code,
+                   const std::string &name,
+                   int purchasePrice,
+                   int mortgageValue,
+                   const std::string &colorGroup,
+                   int houseBuildCost,
+                   int hotelBuildCost,
+                   const std::vector<int> &rentLevels);
 
     std::string getColorGroup() const;
     BuildingState getBuildingState() const;

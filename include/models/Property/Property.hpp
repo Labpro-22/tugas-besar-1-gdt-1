@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Player/Player.hpp"
+#include "models/Player/Player.hpp"
 #include <string>
 #include <vector>
 #include <map>

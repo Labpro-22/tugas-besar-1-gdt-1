@@ -7,5 +7,5 @@ protected:
     std::string filePath;
 
 public:
-    explicit InvalidFileException(const std::string &filePath);
+    explicit InvalidFileException(int code, const std::string &msg, const std::string &filePath);
 };

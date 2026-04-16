@@ -8,5 +8,5 @@ protected:
     Player *player;
 
 public:
-    explicit PlayerTurnException(const Player &player);
+    PlayerTurnException(int code, const std::string &msg, Player *player);
 };

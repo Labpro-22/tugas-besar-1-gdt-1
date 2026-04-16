@@ -4,6 +4,6 @@
 class ExistingHotelException : public PropertyManagementException
 {
 public:
-    explicit ExistingHotelException();
+    explicit ExistingHotelException(Player *player, Property *property);
     const char *what() const noexcept override;
 };

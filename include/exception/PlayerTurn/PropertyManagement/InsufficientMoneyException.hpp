@@ -7,6 +7,6 @@ private:
     int cost;
 
 public:
-    explicit InsufficientMoneyException(const int &cost);
+    explicit InsufficientMoneyException(Player *player, Property *property, int cost);
     const char *what() const noexcept override;
 };

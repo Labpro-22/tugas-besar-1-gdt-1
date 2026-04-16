@@ -2,7 +2,8 @@
 
 #include <string>
 #include <vector>
-
+class Property;
+class SkillCard;
 enum class PlayerStatus {
     ACTIVE,
     JAILED,
@@ -17,7 +18,7 @@ private:
     PlayerStatus status;
 
     std::vector<Property*> ownedProperties;
-    // std::vector<SkillCard*> handCards;
+    std::vector<SkillCard*> handCards;
 
     int consecutiveDoubles;
     int jailAttempts;
@@ -76,10 +77,10 @@ public:
     bool hasUsedSkill() const;
 
     //skill card---------------------------
-    // bool addCard(SkillCard* card);
-    // void removeCard(SkillCard* card);
-    // const std::vector<SkillCard*>& getHandCards() const;
-    // int getCardCount() const;
+    bool addCard(SkillCard* card);
+    void removeCard(SkillCard* card);
+    const std::vector<SkillCard*>& getHandCards() const;
+    int getCardCount() const;
 
     //consecutiveDouble
     void incrementConsecutiveDoubles(); //tambahan

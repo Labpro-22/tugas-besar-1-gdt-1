@@ -1,8 +1,9 @@
-#include "Player.hpp"
-#include "../Property/Property.hpp"
-#include "../Property/StreetProperty.hpp"
-#include "../Property/RailroadProperty.hpp"
-#include "../Property/UtilityProperty.hpp"
+#include "../../../include/models/Player/Player.hpp"
+#include "../../../include/models/Property/Property.hpp"
+#include "../../../include/models/Property/StreetProperty.hpp"
+#include "../../../include/models/Property/RailroadProperty.hpp"
+#include "../../../include/models/Property/UtilityProperty.hpp"
+#include <algorithm>
 
 Player::Player(const std::string& username, int initialBalance)
     :   username(username),
@@ -38,8 +39,8 @@ int Player::getJailAttempts() const{
 }
 
 //movement
-void Player::move(int steps, int boardSize = 40){
-    setPosition((position + steps) % 40);
+void Player::move(int steps, int boardSize){
+    setPosition((position + steps) % boardSize);
 }
 void Player::setPosition(int newPosition){
     position = newPosition;
@@ -130,6 +131,7 @@ int Player::countOwnedUtilities() const{
 }
 bool Player::ownsFullColorGroup(const std::string& colorGroup) const {
     //SKIP DULU, DINAMIS
+    return false;
 }
 int Player::calculatePropertyAssetValue() const{
     int total = 0;
@@ -177,10 +179,33 @@ bool Player::hasUsedSkill() const{
 }
 
 //skill card---------------------------
-// bool Player::addCard(SkillCard* card);
-// void Player::removeCard(SkillCard* card);
-// const std::vector<SkillCard*>& Player::getHandCards() const;
-// int Player::getCardCount() const;
+bool Player::addCard(SkillCard* card) {
+    if (card == nullptr) {
+        return false;
+    }
+
+    if (handCards.size() >= 3) {
+        return false;
+    }
+
+    handCards.push_back(card);
+    return true;
+}
+
+void Player::removeCard(SkillCard* card) {
+    handCards.erase(
+        std::remove(handCards.begin(), handCards.end(), card),
+        handCards.end()
+    );
+}
+
+const std::vector<SkillCard*>& Player::getHandCards() const {
+    return handCards;
+}
+
+int Player::getCardCount() const {
+    return static_cast<int>(handCards.size());
+}
 
 //consecutiveDouble
 void Player::incrementConsecutiveDoubles(){

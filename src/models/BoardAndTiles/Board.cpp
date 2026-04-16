@@ -3,7 +3,7 @@
 #include "models/BoardAndTiles/SpecialTile/GoTile.hpp"
 #include "models/BoardAndTiles/SpecialTile/JailTile.hpp"
 #include "models/BoardAndTiles/PropertyTile/RailroadTile.hpp"
-// #include "exception/InvalidActionException.hpp"
+#include "exception/InvalidEntryInput/InvalidTileException.hpp"
 
 Board::Board() : boardSize(0), goTile(nullptr), jailTile(nullptr) {}
 
@@ -30,9 +30,9 @@ void Board::addTile(Tile *tile)
 Tile *Board::getTile(int index) const
 {
     if (index < 1 || index > boardSize)
-        // throw InvalidActionException("Indeks petak tidak valid: " + std::to_string(index));
+        throw InvalidTileException("Indeks petak tidak valid: " + std::to_string(index));
 
-        return tiles[index - 1];
+    return tiles[index - 1];
 }
 
 Tile *Board::getTile(const std::string &code) const
@@ -40,9 +40,9 @@ Tile *Board::getTile(const std::string &code) const
     auto it = tileByCode.find(code);
 
     if (it == tileByCode.end())
-        // throw InvalidActionException("Kode petak tidak ditemukan: " + code);
+        throw InvalidTileException("Kode petak tidak ditemukan: " + code);
 
-        return it->second;
+    return it->second;
 }
 
 int Board::getNextIndex(int currentIndex, int steps) const
@@ -118,17 +118,16 @@ void Board::validate() const
 {
     if (boardSize < 20 || boardSize > 60)
     {
-        // throw InvalidActionException(
-        //     "Jumlah petak harus antara 20 dan 60, saat ini: " + std::to_string(boardSize));
+        throw InvalidTileException("Jumlah petak harus antara 20 dan 60, saat ini: " + std::to_string(boardSize));
     }
 
     if (goTile == nullptr)
     {
-        // throw InvalidActionException("Papan harus memiliki tepat 1 petak GO.");
+        throw InvalidTileException("Papan harus memiliki tepat 1 petak GO.");
     }
 
     if (jailTile == nullptr)
     {
-        // throw InvalidActionException("Papan harus memiliki tepat 1 petak Penjara.");
+        throw InvalidTileException("Papan harus memiliki tepat 1 petak Penjara.");
     }
 }

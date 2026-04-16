@@ -1,7 +1,7 @@
 #include "models/BoardAndTiles/ActionTile/ChanceTile.hpp"
-// #include "models/Card/ActionCard.hpp"
+#include "models/CardAndDeck/ActionCard.hpp"
 // #include "core/Game.hpp"
-// #include "models/Player/Player.hpp"
+#include "models/Player/Player.hpp"
 
 ChanceTile::ChanceTile(int index)
     : ActionTile(index, "KSP", "Kesempatan") {}

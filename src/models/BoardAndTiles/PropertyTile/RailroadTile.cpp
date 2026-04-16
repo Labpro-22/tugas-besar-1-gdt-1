@@ -2,7 +2,7 @@
 #include "models/Property/RailroadProperty.hpp"
 // #include "core/Game.hpp"
 #include "models/Player/Player.hpp"
-// #include "exception/InsufficientFundsException.hpp"
+#include "exception/PlayerTurn/PropertyManagement/InsufficientMoneyException.hpp"
 
 RailroadTile::RailroadTile(int index, const std::string &code, const std::string &name, RailroadProperty *railroad)
     : PropertyTile(index, code, name, TileColor::DEFAULT, railroad) {}
@@ -50,7 +50,7 @@ void RailroadTile::onLanded(Player &player, Game &game)
     //         "SEWA",
     //         "Bayar M" + std::to_string(rent) + " ke " + railroad->getOwner()->getUsername() + " (" + code + ")");
     // }
-    // catch (const InsufficientFundsException &e)
+    // catch (const InsufficientMoneyException &e)
     // {
     //     game.getUI().display("Kamu tidak mampu membayar sewa penuh! (M" + std::to_string(rent) + ")");
     //     game.getUI().display("Uang kamu saat ini: M" + std::to_string(player.getWallet().getBalance()));

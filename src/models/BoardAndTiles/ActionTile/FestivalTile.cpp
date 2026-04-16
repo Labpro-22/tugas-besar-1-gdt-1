@@ -1,7 +1,7 @@
 #include "models/BoardAndTiles/ActionTile/FestivalTile.hpp"
 // #include "core/Game.hpp"
-// #include "models/Player/Player.hpp"
-// #include "models/Property/Property.hpp"
+#include "models/Player/Player.hpp"
+#include "models/Property/Property.hpp"
 
 FestivalTile::FestivalTile(int index)
     : ActionTile(index, "FES", "Festival") {}

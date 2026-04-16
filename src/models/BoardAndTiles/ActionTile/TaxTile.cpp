@@ -1,7 +1,7 @@
 #include "models/BoardAndTiles/ActionTile/TaxTile.hpp"
 // #include "core/Game.hpp"
-// #include "models/Player/Player.hpp"
-// #include "exception/InsufficientFundsException.hpp"
+#include "models/Player/Player.hpp"
+#include "exception/PlayerTurn/PropertyManagement/InsufficientMoneyException.hpp"
 
 TaxTile::TaxTile(int index, const std::string &code, const std::string &name)
     : ActionTile(index, code, name) {}
@@ -23,7 +23,7 @@ void TaxTile::onLanded(Player &player, Game &game)
     //         "PAJAK",
     //         "Bayar M" + std::to_string(amount) + " ke Bank (" + name + ")");
     // }
-    // catch (const InsufficientFundsException &e)
+    // catch (const InsufficientMoneyException &e)
     // {
     //     game.getUI().display(e.what());
     //     game.getBankruptcyHandler().handle(player, nullptr, amount);

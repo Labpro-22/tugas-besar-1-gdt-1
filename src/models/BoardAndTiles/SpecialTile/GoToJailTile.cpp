@@ -1,6 +1,6 @@
 #include "models/BoardAndTiles/SpecialTile/GoToJailTile.hpp"
 // #include "core/Game.hpp"
-// #include "models/Player/Player.hpp"
+#include "models/Player/Player.hpp"
 
 GoToJailTile::GoToJailTile(int index)
     : SpecialTile(index, "PPJ", "Pergi ke Penjara") {}
@@ -18,8 +18,7 @@ GoToJailTile::GoToJailTile(int index)
 //         game.getCurrentTurn(),
 //         player.getUsername(),
 //         "PENJARA",
-//         player.getUsername() + " masuk penjara (mendarat di Pergi ke Penjara)"
-//     );
+//         player.getUsername() + " masuk penjara (mendarat di Pergi ke Penjara)");
 
 //     game.getTurnManager().endTurn();
 // }

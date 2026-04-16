@@ -1,8 +1,7 @@
-// IncomeTaxTile.cpp
 #include "models/BoardAndTiles/ActionTile/TaxTile/IncomingTaxTile.hpp"
 // #include "core/Game.hpp"
-// #include "models/Player/Player.hpp"
-// #include "exception/InsufficientFundsException.hpp"
+#include "models/Player/Player.hpp"
+#include "exception/PlayerTurn/PropertyManagement/InsufficientMoneyException.hpp"
 
 IncomeTaxTile::IncomeTaxTile(int index, int flatAmount, int percentage)
     : TaxTile(index, "PPH", "Pajak Penghasilan"),
@@ -39,7 +38,7 @@ void IncomeTaxTile::onLanded(Player &player, Game &game)
     //             "PAJAK",
     //             "Bayar PPH flat M" + std::to_string(flatAmount) + " ke Bank");
     //     }
-    //     catch (const InsufficientFundsException &e)
+    //     catch (const InsufficientMoneyException &e)
     //     {
     //         game.getUI().display("Kamu tidak mampu membayar pajak flat M" + std::to_string(flatAmount) + "!");
     //         game.getUI().display("Uang kamu saat ini: M" + std::to_string(player.getWallet().getBalance()));
@@ -71,7 +70,7 @@ void IncomeTaxTile::onLanded(Player &player, Game &game)
     //             "PAJAK",
     //             "Bayar PPH " + std::to_string(percentage) + "% = M" + std::to_string(amount) + " ke Bank");
     //     }
-    //     catch (const InsufficientFundsException &e)
+    //     catch (const InsufficientMoneyException &e)
     //     {
     //         game.getUI().display("Kamu tidak mampu membayar pajak!");
     //         game.getUI().display("Uang kamu saat ini: M" + std::to_string(player.getWallet().getBalance()));

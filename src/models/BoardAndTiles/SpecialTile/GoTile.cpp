@@ -1,6 +1,6 @@
 #include "models/BoardAndTiles/SpecialTile/GoTile.hpp"
 // #include "core/Game.hpp"
-// #include "models/Player/Player.hpp"
+#include "models/Player/Player.hpp"
 
 GoTile::GoTile(int index, int salary)
     : SpecialTile(index, "GO", "Petak Mulai"), salary(salary) {}

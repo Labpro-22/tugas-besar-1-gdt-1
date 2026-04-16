@@ -4,6 +4,6 @@
 class InsufficientOwnedColorException : public PropertyManagementException
 {
 public:
-    explicit InsufficientOwnedColorException();
+    explicit InsufficientOwnedColorException(Player *player, Property *property);
     const char *what() const noexcept override;
 };

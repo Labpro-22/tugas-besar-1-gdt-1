@@ -4,6 +4,6 @@
 class UnreadableFileException : public InvalidFileException
 {
 public:
-    explicit UnreadableFileException();
+    explicit UnreadableFileException(const std::string &filePath);
     const char *what() const noexcept override;
 };

@@ -8,5 +8,5 @@ protected:
     SkillCard *skillCard;
 
 public:
-    explicit SkillTurnException(const SkillCard &skillCard);
+    explicit SkillTurnException(int code, const std::string &msg, Player *player, SkillCard *skillCard);
 };

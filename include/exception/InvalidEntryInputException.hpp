@@ -4,5 +4,5 @@
 class InvalidEntryInputException : public GameException
 {
 public:
-    explicit InvalidEntryInputException();
+    explicit InvalidEntryInputException(int code, const std::string &msg);
 };

@@ -8,5 +8,5 @@ protected:
     Property *property;
 
 public:
-    explicit PropertyManagementException(const Property &property);
+    explicit PropertyManagementException(int code, const std::string &msg, Player *player, Property *property);
 };

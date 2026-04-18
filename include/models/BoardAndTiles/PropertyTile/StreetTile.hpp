@@ -1,7 +1,7 @@
 #pragma once
 #include "models/BoardAndTiles/PropertyTile.hpp"
 
-class Street;
+class StreetProperty;
 
 class StreetTile : public PropertyTile
 {

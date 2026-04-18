@@ -1,30 +1,19 @@
 #include <iostream>
-#include <vector>
-#include <string>
 #include <exception>
 
-template <typename T>
+#include "core/GameEngine.hpp"
 
-int main(){
-    T Masukkan = "Kosong";
-    // std::cout <<"Menjalankan program..." << std::endl;
-        // Memanggil kelas inisiasi dan menampilkan GUI.
-        // T class::fungsi(); -> mengembalikan objek yang merupakan tindakan dari pengguna
-    while(true){
-            switch (Masukkan) {
-                // case "Masuk_Start";
-                // case "Masuk_Setting";
-                // dan lain lain ...
-                case "Keluar":
-                    std::cout << "Keluar dari program..." << std::endl;
-                    // destructor semua objek yang ada
-                    return 0;
-                default:
-                    std::cout << "Masukkan tidak dikenali. Silakan coba lagi." << std::endl;
-            }
+// Entry point sementara. TODO:
+//   1. Buat CLIRenderer (implementasi IGUI) dari tim UI → IGUI* gui = new CLIRenderer();
+//   2. Oper ke GameEngine: GameEngine engine(gui);
+//   3. Hapus gui setelah engine selesai (kepemilikan ada di main, bukan engine).
+int main() {
+    try {
+        GameEngine engine;
+        engine.run();
+    } catch (const std::exception& e) {
+        std::cerr << "[FATAL] " << e.what() << std::endl;
+        return 1;
     }
-
-
-
     return 0;
 }

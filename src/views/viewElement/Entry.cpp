@@ -1,4 +1,4 @@
-#include "Entry.hpp"
+#include "views/viewElement/Entry.hpp"
 
 int Entry::textCursorTick = 0;
 

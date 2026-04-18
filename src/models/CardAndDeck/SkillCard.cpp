@@ -1,4 +1,4 @@
-#include "SkillCard.hpp"
+#include "models/CardAndDeck/SkillCard.hpp"
 
 SkillCard::SkillCard(const std::string& description, int uses)
     : Card(description), remainingUses(uses) {}

@@ -1,4 +1,4 @@
-#include "GUI.hpp"
+#include "views/GUI.hpp"
 
 GUI::GUI() : menu(nullptr){}
 

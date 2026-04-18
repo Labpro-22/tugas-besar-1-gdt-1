@@ -1,7 +1,7 @@
 #ifndef DEMOLITION_CARD_HPP
 #define DEMOLITION_CARD_HPP
 
-#include "SkillCard.hpp"
+#include "models/CardAndDeck/SkillCard.hpp"
 
 class DemolitionCard : public SkillCard {
 public:

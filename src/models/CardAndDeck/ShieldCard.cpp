@@ -1,4 +1,4 @@
-#include "ShieldCard.hpp"
+#include "models/CardAndDeck/ShieldCard.hpp"
 
 ShieldCard::ShieldCard()
     : SkillCard("Kebal terhadap tagihan atau sanksi selama 1 giliran."),

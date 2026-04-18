@@ -1,4 +1,4 @@
-#include "TeleportCard.hpp"
+#include "models/CardAndDeck/TeleportCard.hpp"
 
 TeleportCard::TeleportCard()
     : SkillCard("Pindah ke petak manapun di papan permainan.") {}

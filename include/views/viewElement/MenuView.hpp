@@ -16,6 +16,7 @@ class MainMenuView : public MenuView {
         Interactable exitButton;
     public :
         MainMenuView();
+        void movePosition(const Vector2& v) override;
         void enable() override;
         void disable() override;
         void interactionCheck() override;

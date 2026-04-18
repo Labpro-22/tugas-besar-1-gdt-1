@@ -55,6 +55,7 @@ void LoadConfirmPopup::interactionCheck() {
 }
 
 void LoadConfirmPopup::render() {
+    animationCheck();
     DrawRectangle(this->getRenderPos().x, this->getRenderPos().y,
                   this->getRenderWidth(), this->getRenderHeight(),
                   this->getRenderColor(BEIGE));

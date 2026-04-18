@@ -6,9 +6,12 @@
 #include <numeric>
 #include <iostream>
 #include <map>
+#include <set>
 #include <string>
 #include <sstream>
 using namespace std;
+
+class ViewAnimation;
 
 class View2D {
     protected:
@@ -21,10 +24,11 @@ class View2D {
         function<void()> renderFunc;
         static map<string, Font> fontMap;
         bool closeView;
+        map<string, ViewAnimation*> animations;
     public:
         View2D();
         View2D(const Vector2& pos, const Vector2& boundingDim, function<void()> renderFunc);
-        virtual ~View2D() {}
+        virtual ~View2D();
         const float getX() const;
         const float getY() const;
         const Vector2 getPos() const;
@@ -38,17 +42,22 @@ class View2D {
         const float getScale() const;
         const float getRenderFontSize(const float fontsize) const;
         const float getBrightness() const;
+        const float getOpacity() const;
         const Color getRenderColor(const Color& color) const;
         const bool isVisible() const;
         const bool closed() const;
+        virtual void movePosition(const Vector2& v);
         void movePosition(float x, float y);
-        void movePosition(const Vector2& v);
-        void movePositionDelta(float dx, float dy);
         void movePositionDelta(const Vector2& dv);
+        void movePositionDelta(float dx, float dy);
         void setScale(float scale);
         void setBrightness(float brightness);
+        void setOpacity(float opacity);
         void setVisible(bool visible);
         void setRender(function<void()> renderFunc);
+        void addAnimation(string animKey, ViewAnimation* anim);
+        ViewAnimation* getAnimation(string animKey) const;
+        void animationCheck();
         virtual void enable() {};
         virtual void disable() {};
         virtual void interactionCheck() {};

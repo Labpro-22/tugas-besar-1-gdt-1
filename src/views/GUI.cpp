@@ -16,6 +16,11 @@ void GUI::loadMainMenu() {
     views.insert(menu);
 }
 
+void GUI::enterGame() {
+    cout<<"Entered Game"<<endl;
+    (menu->getAnimation("START_GAME"))->start();
+}
+
 void GUI::loadPopup(Popup* popup) {
     disableAll();
     popupStack.push(popup);
@@ -70,6 +75,12 @@ void GUI::update() {
         }
     }
 
+    if (menu != nullptr) {
+        if (menu->closed()) {
+            menu = nullptr;
+        }
+    }
+
     if (!popupStack.empty()) {
         while(popupStack.top()->closed()) {            
             popupStack.pop();
@@ -90,7 +101,7 @@ void GUI::update() {
 }
 
 void GUI::display() {
-    menu->render();
+    if (menu != nullptr) menu->render();
     stack<Popup*> temp = popupStack;
     while(!temp.empty()) {
         temp.top()->render();

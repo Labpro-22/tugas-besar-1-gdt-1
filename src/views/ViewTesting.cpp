@@ -13,7 +13,10 @@ int main() {
         ClearBackground(RAYWHITE);
         app.update();
         string command = app.getCommand();
-        if (command != "NULL") { cout<<command<<endl; };
+        if (command != "NULL") { 
+            cout<<command<<endl; 
+            if (command == "START GAME") { app.enterGame(); }
+        };
         BeginDrawing();
 
         app.display();

@@ -1,4 +1,4 @@
-#include "View3D.hpp"
+#include "../include/views/viewElement/View3D.hpp"
 #include <iostream>
 using namespace std;
 

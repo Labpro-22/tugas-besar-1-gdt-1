@@ -1,4 +1,4 @@
-#include "physicsEngine/PhysicsEngine.hpp"
+#include "../include/views/animation/physicsEngine/PhysicsEngine.hpp"
 #include <cstring>
 
 void printVector3(const Vector3& v) {

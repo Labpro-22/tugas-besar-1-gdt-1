@@ -1,4 +1,4 @@
-#include "PhysicsEngine.hpp"
+#include "../include/views/animation/physicsEngine/PhysicsEngine.hpp"
 
 PhysicsEngine::PhysicsEngine(const float gravity, const float floorFriction, const float floorY, const float fps) : 
     gravityAcceleration(gravity), floorFriction(floorFriction), floorY(floorY), fps(fps) {}

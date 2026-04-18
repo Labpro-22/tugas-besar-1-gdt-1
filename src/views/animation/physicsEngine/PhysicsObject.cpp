@@ -1,4 +1,4 @@
-#include "PhysicsObject.hpp"
+#include "../include/views/animation/physicsEngine/PhysicsObject.hpp"
 
 
 PhysicsObject::PhysicsObject() : 

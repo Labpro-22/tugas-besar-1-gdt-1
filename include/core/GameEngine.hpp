@@ -64,7 +64,7 @@ private:
     void executeGunakanKemampuan(Player* player);
 
 public:
-    GameEngine();
+    GameEngine(IGUI* gui);
     ~GameEngine();
 
     void run();

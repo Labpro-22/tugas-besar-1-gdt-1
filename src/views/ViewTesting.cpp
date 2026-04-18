@@ -1,0 +1,27 @@
+#include "views/GUI.hpp"
+
+
+int main() {    
+    const int screenWidth = 1200;
+    const int screenHeight = 800;
+    InitWindow(screenWidth, screenHeight, "Nimonspoli");
+    View2D::addFont("Orbitron", "data/Orbitron-VariableFont_wght.ttf");
+    SetTargetFPS(120);
+    GUI app;
+    app.loadMainMenu();
+    while (!WindowShouldClose()) {
+        ClearBackground(RAYWHITE);
+        app.update();
+        string command = app.getCommand();
+        if (command != "NULL") { cout<<command<<endl; };
+        BeginDrawing();
+
+        app.display();
+        DrawFPS(10,10);
+        EndDrawing();
+    }
+    View2D::unloadFonts();
+    CloseWindow();
+   
+    return 0;
+}

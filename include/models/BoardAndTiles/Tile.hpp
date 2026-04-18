@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "TileTypes.hpp"
+#include "models/BoardAndTiles/TileTypes.hpp"
 
 class Player;
 class Game;

@@ -1,4 +1,4 @@
-#include "Card.hpp"
+#include "models/CardAndDeck/Card.hpp"
 
 Card::Card(const std::string& description) 
     : description(description) {}

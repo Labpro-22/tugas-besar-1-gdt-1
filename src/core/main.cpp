@@ -1,30 +1,17 @@
 #include <iostream>
-#include <vector>
-#include <string>
 #include <exception>
 
-template <typename T>
+#include "core/GameEngine.hpp"
+#include "views/GUI.hpp"
 
-int main(){
-    T Masukkan = "Kosong";
-    // std::cout <<"Menjalankan program..." << std::endl;
-        // Memanggil kelas inisiasi dan menampilkan GUI.
-        // T class::fungsi(); -> mengembalikan objek yang merupakan tindakan dari pengguna
-    while(true){
-            switch (Masukkan) {
-                // case "Masuk_Start";
-                // case "Masuk_Setting";
-                // dan lain lain ...
-                case "Keluar":
-                    std::cout << "Keluar dari program..." << std::endl;
-                    // destructor semua objek yang ada
-                    return 0;
-                default:
-                    std::cout << "Masukkan tidak dikenali. Silakan coba lagi." << std::endl;
-            }
+int main() {
+    try {
+        GUI gui;
+        GameEngine engine(&gui);
+        engine.run();
+    } catch (const std::exception& e) {
+        std::cerr << "[FATAL] " << e.what() << std::endl;
+        return 1;
     }
-
-
-
     return 0;
 }

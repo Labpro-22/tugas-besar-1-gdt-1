@@ -1,4 +1,4 @@
-#include "LassoCard.hpp"
+#include "models/CardAndDeck/LassoCard.hpp"
 
 LassoCard::LassoCard()
     : SkillCard("Tarik pemain lawan di depanmu ke petakmu.") {}

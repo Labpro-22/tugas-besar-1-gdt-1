@@ -1,7 +1,7 @@
 #ifndef MOVE_CARD_HPP
 #define MOVE_CARD_HPP
 
-#include "SkillCard.hpp"
+#include "models/CardAndDeck/SkillCard.hpp"
 
 class MoveCard : public SkillCard {
 private:

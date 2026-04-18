@@ -1,7 +1,7 @@
 #ifndef COMMUNITY_CHEST_CARD_HPP
 #define COMMUNITY_CHEST_CARD_HPP
 
-#include "ActionCard.hpp"
+#include "models/CardAndDeck/ActionCard.hpp"
 
 enum class CommunityType {
     BIRTHDAY,

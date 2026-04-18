@@ -1,4 +1,4 @@
-#include "MoveCard.hpp"
+#include "models/CardAndDeck/MoveCard.hpp"
 
 MoveCard::MoveCard(int steps)
     : SkillCard("Maju " + std::to_string(steps) + " petak."), steps(steps) {}

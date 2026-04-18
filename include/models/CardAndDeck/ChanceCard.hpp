@@ -1,7 +1,7 @@
 #ifndef CHANCE_CARD_HPP
 #define CHANCE_CARD_HPP
 
-#include "ActionCard.hpp"
+#include "models/CardAndDeck/ActionCard.hpp"
 
 enum class ChanceType {
     GO_TO_NEAREST_STATION,

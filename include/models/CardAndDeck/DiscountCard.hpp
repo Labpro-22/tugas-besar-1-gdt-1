@@ -1,7 +1,7 @@
 #ifndef DISCOUNT_CARD_HPP
 #define DISCOUNT_CARD_HPP
 
-#include "SkillCard.hpp"
+#include "models/CardAndDeck/SkillCard.hpp"
 
 class DiscountCard : public SkillCard {
 private:

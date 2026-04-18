@@ -1,4 +1,4 @@
-#include "CommunityChestCard.hpp"
+#include "models/CardAndDeck/CommunityChestCard.hpp"
 
 CommunityChestCard::CommunityChestCard(CommunityType type)
     : ActionCard(initDescription(type)), type(type) {}

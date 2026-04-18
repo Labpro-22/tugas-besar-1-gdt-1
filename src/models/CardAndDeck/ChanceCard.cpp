@@ -1,4 +1,4 @@
-#include "ChanceCard.hpp"
+#include "models/CardAndDeck/ChanceCard.hpp"
 
 ChanceCard::ChanceCard(ChanceType type)
     : ActionCard(initDescription(type)), type(type) {}

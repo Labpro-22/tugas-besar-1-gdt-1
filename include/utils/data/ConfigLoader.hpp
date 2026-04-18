@@ -12,7 +12,7 @@
 #include <stdexcept>
 
 // Class headers
-#include "GameConfig.hpp"
+#include "utils/data/GameConfig.hpp"
 
 #include "models/Property/Property.hpp"
 #include "models/Property/StreetProperty.hpp"

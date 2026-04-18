@@ -1,4 +1,4 @@
-#include "DemolitionCard.hpp"
+#include "models/CardAndDeck/DemolitionCard.hpp"
 
 DemolitionCard::DemolitionCard()
     : SkillCard("Hancurkan satu bangunan milik pemain lawan.") {}

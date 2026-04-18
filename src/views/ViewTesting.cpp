@@ -1,4 +1,4 @@
-#include "GUI.hpp"
+#include "views/GUI.hpp"
 
 
 int main() {    

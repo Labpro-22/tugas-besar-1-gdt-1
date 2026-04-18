@@ -1,7 +1,7 @@
 #ifndef ACTION_CARD_HPP
 #define ACTION_CARD_HPP
 
-#include "Card.hpp"
+#include "models/CardAndDeck/Card.hpp"
 
 class ActionCard : public Card {
 public:

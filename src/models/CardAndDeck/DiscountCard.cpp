@@ -1,4 +1,4 @@
-#include "DiscountCard.hpp"
+#include "models/CardAndDeck/DiscountCard.hpp"
 
 DiscountCard::DiscountCard(int discountPercent)
     : SkillCard("Diskon " + std::to_string(discountPercent) + "% untuk pembelian properti."),

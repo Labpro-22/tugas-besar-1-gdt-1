@@ -1,7 +1,7 @@
 #ifndef TELEPORT_CARD_HPP
 #define TELEPORT_CARD_HPP
 
-#include "SkillCard.hpp"
+#include "models/CardAndDeck/SkillCard.hpp"
 
 class TeleportCard : public SkillCard {
 public:

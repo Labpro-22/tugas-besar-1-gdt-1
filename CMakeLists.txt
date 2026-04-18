@@ -33,3 +33,4 @@ add_executable(${PROJECT_NAME} src/views/ViewTesting.cpp
 
 # 4. Link raylib to your executable
 target_link_libraries(${PROJECT_NAME} raylib)
+target_include_directories(${PROJECT_NAME} PUBLIC include)

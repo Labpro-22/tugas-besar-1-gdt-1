@@ -1,7 +1,7 @@
 #ifndef LASSO_CARD_HPP
 #define LASSO_CARD_HPP
 
-#include "SkillCard.hpp"
+#include "models/CardAndDeck/SkillCard.hpp"
 
 class LassoCard : public SkillCard {
 public:

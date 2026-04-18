@@ -1,4 +1,4 @@
-#include "View2D.hpp"
+#include "../include/views/viewElement/View2D.hpp"
 
 map<string, Font> View2D::fontMap;
 

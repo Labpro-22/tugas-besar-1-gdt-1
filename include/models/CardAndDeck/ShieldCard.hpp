@@ -1,7 +1,7 @@
 #ifndef SHIELD_CARD_HPP
 #define SHIELD_CARD_HPP
 
-#include "SkillCard.hpp"
+#include "models/CardAndDeck/SkillCard.hpp"
 
 class ShieldCard : public SkillCard {
 private:

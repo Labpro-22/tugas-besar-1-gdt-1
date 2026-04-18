@@ -4,13 +4,13 @@
 #include "core/Game.hpp"
 #include "utils/data/TransactionLogger.hpp"
 #include "utils/data/ConfigLoader.hpp"
+#include "views/IGUI.hpp"
 
 class TurnManager;
 class CommandProcessor;
 class AuctionManager;
 class BankruptcyManager;
 class SaveLoadManager;
-class IGUI;
 
 class PropertyTile;
 class ActionTile;

@@ -1,6 +1,13 @@
 #include "views/GUI.hpp"
 
-GUI::GUI() : menu(nullptr), exitRequested(false) {}
+GUI::GUI(float fps) : menu(nullptr), fps(fps), camManager(CameraManager()), exitRequested(false) {
+    camManager.addCamera("BOARD_CAM", View3DCamera({30.0f, 10.0f, 0}, {0,0,0}, 45.0f));
+    View3DCamera* boardCam = camManager.getCurrentCamera();
+    boardCam->addMovement("ROTATE_INDEFINITE", 
+        new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this](){
+            boardCam->rotateAroundTarget(27*(1/this->fps), {0,1,0});
+        }, [](){}));
+}
 
 bool GUI::shouldExit() const {
     return exitRequested;
@@ -161,6 +168,9 @@ void GUI::update() {
 }
 
 void GUI::display() {
+    BeginMode3D(camManager.mount());
+        DrawGrid(40,1);
+    EndMode3D();
     if (menu != nullptr) menu->render();
     stack<Popup*> temp = popupStack;
     while(!temp.empty()) {

@@ -30,7 +30,10 @@ add_executable(${PROJECT_NAME} src/views/ViewTesting.cpp
                                src/views/viewElement/Interactable.cpp
                                src/views/viewElement/Entry.cpp
                                src/views/viewElement/MenuView.cpp
-                               src/views/animation/ViewAnimation.cpp)
+                               src/views/animation/ViewAnimation.cpp
+                               src/views/animation/camera/CameraManager.cpp
+                               src/views/animation/camera/CameraMovement.cpp
+                               src/views/animation/camera/View3DCamera.cpp)
 
 # 4. Link raylib to your executable
 target_link_libraries(${PROJECT_NAME} raylib)

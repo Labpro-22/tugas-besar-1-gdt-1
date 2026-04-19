@@ -49,7 +49,7 @@ void MainMenuView::movePosition(const Vector2& v) {
 
 void MainMenuView::render() {
     animationCheck();
-    DrawRectangle(getRenderPos().x, getRenderPos().y, boundingDim.x, boundingDim.y, DARKGRAY);
+    DrawRectangle(getRenderPos().x, getRenderPos().y, boundingDim.x, boundingDim.y, {100, 100, 100, 150});
     startButton.render();
     loadFileEntry.render();
     exitButton.render();

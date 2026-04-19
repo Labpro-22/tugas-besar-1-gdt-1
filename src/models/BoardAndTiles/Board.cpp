@@ -52,22 +52,19 @@ int Board::getNextIndex(int currentIndex, int steps) const
 
 bool Board::passesGo(int fromIndex, int steps) const
 {
-    if (goTile == nullptr)
-        return false;
+    if (goTile == nullptr) return false;
+    if (steps <= 0)        return false;
 
     int goIndex = goTile->getIndex();
     int toIndex = getNextIndex(fromIndex, steps);
 
-    if (fromIndex == goIndex)
-        return false;
+    if (fromIndex == goIndex) return false;
+    if (toIndex == goIndex)   return true;
 
-    if (toIndex == goIndex)
-        return false;
-
-    if (toIndex > fromIndex)
-        return goIndex > fromIndex && goIndex <= toIndex ? false : false;
-
-    return fromIndex < goIndex || toIndex >= goIndex ? false : true;
+    if (toIndex > fromIndex) {
+        return goIndex > fromIndex && goIndex < toIndex;
+    }
+    return goIndex > fromIndex || goIndex < toIndex;
 }
 
 GoTile *Board::getGoTile() const

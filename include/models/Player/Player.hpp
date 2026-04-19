@@ -3,7 +3,8 @@
 #include <string>
 #include <vector>
 
-class Property;
+#include "../Property/Property.hpp"
+#include "../CardAndDeck/SkillCard.hpp"
 
 enum class PlayerStatus {
     ACTIVE,
@@ -54,9 +55,9 @@ public:
     void resetJailAttempts();
 
     //property -----------------------
-    // void addProperty(Property* property);
-    // void removeProperty(Property* property);
-    // const std::vector<Property*>& getOwnedProperties() const;
+    void addProperty(Property* property);
+    void removeProperty(Property* property);
+    const std::vector<Property*>& getOwnedProperties() const;
 
     //property util
     int countOwnedRailroads() const;

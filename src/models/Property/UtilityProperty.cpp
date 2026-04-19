@@ -1,4 +1,5 @@
 #include "models/Property/UtilityProperty.hpp"
+#include "models/Player/Player.hpp"
 
 UtilityProperty::UtilityProperty(const std::string &code,
                                  const std::string &name,

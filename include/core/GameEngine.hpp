@@ -2,11 +2,11 @@
 #define GAMEENGINE_HPP
 
 #include "core/Game.hpp"
+#include "core/TurnManager.hpp"
 #include "utils/data/TransactionLogger.hpp"
 #include "utils/data/ConfigLoader.hpp"
 #include "views/IGUI.hpp"
 
-class TurnManager;
 class CommandProcessor;
 class AuctionManager;
 class BankruptcyManager;
@@ -29,6 +29,7 @@ private:
     TransactionLogger* logger;
     IGUI* gui;  // non-owning
 
+    DiceManager* dice;
     TurnManager* turnManager;
     CommandProcessor* commandProcessor;
     AuctionManager* auctionManager;

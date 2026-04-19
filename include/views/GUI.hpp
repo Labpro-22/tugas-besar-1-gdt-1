@@ -2,6 +2,7 @@
 #include "views/IGUI.hpp"
 #include "views/viewElement/MenuView.hpp"
 #include "views/viewElement/Popup.hpp"
+#include "views/animation/ViewAnimation.hpp"
 #include <set>
 #include <stack>
 

@@ -51,7 +51,7 @@ void ViewAnimation::setFadeAnimation(const float newOpacity, const float duratio
 
 void ViewAnimation::start() { playing = true; }
 void ViewAnimation::pause() { playing = false; }
-
+void ViewAnimation::end() { ended = true; }
 void ViewAnimation::play() {
     if (playing) { 
         animationFunc(); 

@@ -1,7 +1,11 @@
 #include "core/GameEngine.hpp"
+#include "core/CommandProcessor.hpp"
 
 #include <iostream>
 #include <algorithm>
+#include <random>
+#include <chrono>
+#include <numeric>
 
 #include "models/Player/Player.hpp"
 #include "models/BoardAndTiles/Board.hpp"
@@ -31,10 +35,22 @@ GameEngine::GameEngine(IGUI* gui)
       saveLoadManager(nullptr) {}
 
 GameEngine::~GameEngine() {
+    delete commandProcessor;
     delete turnManager;
     delete dice;
     delete logger;
     delete game;
+}
+
+static std::string waitForInput(IGUI* gui, const std::string& prompt) {
+    gui->showInputPrompt(prompt);
+    while (!gui->shouldExit()) {
+        gui->update();
+        gui->display();
+        std::string c = gui->getCommand();
+        if (!c.empty() && c != "NULL") return c;
+    }
+    return "";
 }
 
 void GameEngine::run() {
@@ -92,8 +108,34 @@ void GameEngine::initNewGame() {
     game->setDecks(std::get<0>(decks), std::get<1>(decks), std::get<2>(decks));
 
     turnManager = new TurnManager(game, dice, gui);
+    commandProcessor = new CommandProcessor(this, game, turnManager, dice, gui);
 
-    // TODO: tanya jumlah pemain, buat Player, acak turnOrder
+    int numPlayers = 0;
+    while (numPlayers < 2 || numPlayers > 4) {
+        std::string s = waitForInput(gui, "Jumlah pemain (2-4):");
+        try { numPlayers = std::stoi(s); } catch (...) { numPlayers = 0; }
+        if (numPlayers < 2 || numPlayers > 4) {
+            gui->showMessage("Jumlah pemain harus 2-4.");
+        }
+    }
+
+    int initBalance = config.getMisc().getInitialBalance();
+    for (int i = 0; i < numPlayers; ++i) {
+        std::string uname = waitForInput(gui,
+            "Username pemain ke-" + std::to_string(i + 1) + ":");
+        game->addPlayer(new Player(uname, initBalance));
+    }
+
+    std::vector<int> order(numPlayers);
+    std::iota(order.begin(), order.end(), 0);
+    unsigned seed = static_cast<unsigned>(
+        std::chrono::system_clock::now().time_since_epoch().count());
+    std::shuffle(order.begin(), order.end(), std::default_random_engine(seed));
+    game->setTurnOrder(order);
+    game->setCurrentTurnIndex(0);
+    game->setCurrentTurn(1);
+
+    gui->loadGameView();
 }
 
 void GameEngine::initLoadGame() {
@@ -124,8 +166,24 @@ void GameEngine::gameLoop() {
 
 void GameEngine::processPlayerTurn(Player* player) {
     turnManager->startTurn(player);
-    // TODO: loop perintah dari gui/commandProcessor sampai player END_TURN
-    turnManager->endTurn(player);
+    gui->renderPlayer(*player);
+
+    while (!gui->shouldExit()) {
+        gui->update();
+        gui->display();
+
+        std::string cmd = gui->getCommand();
+        if (cmd.empty() || cmd == "NULL") continue;
+
+        CommandResult res = commandProcessor->process(cmd, player);
+        if (res == CommandResult::END_TURN)       break;
+        if (res == CommandResult::GAME_OVER)      { game->setGameOver(true); return; }
+        if (res == CommandResult::SAVED_MID_TURN) return;
+    }
+
+    if (turnManager->getPhase() != TurnPhase::ENDED) {
+        turnManager->endTurn(player);
+    }
 }
 
 void GameEngine::handleTileLanding(Player* player, Tile* tile) {

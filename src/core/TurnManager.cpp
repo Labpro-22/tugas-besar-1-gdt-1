@@ -4,6 +4,7 @@
 #include "models/Player/Player.hpp"
 #include "models/BoardAndTiles/Board.hpp"
 #include "models/BoardAndTiles/Tile.hpp"
+#include "models/BoardAndTiles/SpecialTile/JailTile.hpp"
 #include "models/BoardAndTiles/PropertyTile.hpp"
 #include "models/Property/Property.hpp"
 #include "views/IGUI.hpp"
@@ -25,7 +26,23 @@ void TurnManager::startTurn(Player* player) {
     phase = TurnPhase::AWAITING_ROLL;
 }
 
-void TurnManager::endTurn(Player* /*player*/) {
+void TurnManager::endTurn(Player* player) {
+    if (player != nullptr && player->getConsecutiveDoubles() >= 3) {
+        Board* board = game->getBoard();
+        if (board != nullptr) {
+            JailTile* jail = board->getJailTile();
+            if (jail != nullptr) player->setPosition(jail->getIndex());
+        }
+        player->setStatus(PlayerStatus::JAILED);
+        player->resetConsecutiveDoubles();
+        if (gui != nullptr) {
+            gui->showMessage(player->getUsername() +
+                " dipenjara karena 3 dadu ganda berturut-turut.");
+        }
+    }
+
+    hasActed = false;
+    shieldActive = false;
     phase = TurnPhase::ENDED;
 }
 

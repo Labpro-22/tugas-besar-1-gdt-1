@@ -24,6 +24,7 @@ class FestivalTile;
 class TaxTile;
 
 class GameEngine {
+    friend class CommandProcessor;
 private:
     Game* game;
     TransactionLogger* logger;

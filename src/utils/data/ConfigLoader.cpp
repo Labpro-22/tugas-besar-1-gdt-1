@@ -44,15 +44,16 @@ std::vector<Property*> ConfigLoader::loadProperties(std::string filename) {
         if (tokens.size() < 5) continue;
         
         int id = std::stoi(tokens[0]);
-        if (id < 0 || id >= 40) continue;
-        
+        if (id < 1 || id > 40) continue;
+        int idx = id - 1;
+
         std::string jenis = tokens[3];
         if (jenis == "STREET") {
-            properties[id] = createStreetProperty(tokens);
+            properties[idx] = createStreetProperty(tokens);
         } else if (jenis == "RAILROAD") {
-            properties[id] = createRailroadProperty(tokens, rTable);
+            properties[idx] = createRailroadProperty(tokens, rTable);
         } else if (jenis == "UTILITY") {
-            properties[id] = createUtilityProperty(tokens, uTable);
+            properties[idx] = createUtilityProperty(tokens, uTable);
         }
     }
     return properties;
@@ -153,7 +154,8 @@ StreetProperty* ConfigLoader::createStreetProperty(std::vector<std::string> toke
     
     std::vector<int> rentLevels;
     for (size_t i = 9; i < tokens.size() && i < 15; ++i) {
-        rentLevels.push_back(std::stoi(tokens[i]));
+        try { rentLevels.push_back(std::stoi(tokens[i])); }
+        catch (...) { continue; }
     }
     
     return new StreetProperty(code, name, purchasePrice, mortgageValue,
@@ -280,28 +282,25 @@ Tile* ConfigLoader::createTileForIndex(int index,
         }
     }
     
-    // Non-property tiles
+    // Non-property tiles (Nimonspoli 0-based layout)
     switch (index) {
-        // Special tiles
-        case 0:  return new GoTile(index, config.getSpecial().getGoSalary());
-        case 10: return new JailTile(index);
-        case 20: return new FreeParkingTile(index);
-        case 30: return new GoToJailTile(index);
+        case 0:  return new GoTile(index, config.getSpecial().getGoSalary());   // GO
+        case 10: return new JailTile(index);                                    // PEN
+        case 20: return new FreeParkingTile(index);                             // BBP
+        case 30: return new GoToJailTile(index);                                // PPJ
 
-        // Community Chest
         case 2:
-        case 17:
-        case 33: return new CommunityChestTile(index);
+        case 17: return new CommunityChestTile(index);                          // DNU
 
-        // Chance
-        case 7:
         case 22:
-        case 36: return new ChanceTile(index);
+        case 36: return new ChanceTile(index);                                  // KSP
 
-        // Tax
-        case 4:  return new IncomeTaxTile(index,config.getTax().getPphFlat(),config.getTax().getPphPercent());
-        case 38: return new LuxuryTaxTile(index,
-config.getTax().getPbmFlat());
+        case 7:
+        case 33: return new FestivalTile(index);                                // FES
+
+        case 4:  return new IncomeTaxTile(index, config.getTax().getPphFlat(),
+                                          config.getTax().getPphPercent());     // PPH
+        case 38: return new LuxuryTaxTile(index, config.getTax().getPbmFlat()); // PBM
 
         default: return nullptr;
     }

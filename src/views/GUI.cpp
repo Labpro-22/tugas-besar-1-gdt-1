@@ -1,6 +1,66 @@
 #include "views/GUI.hpp"
 
-GUI::GUI() : menu(nullptr){}
+GUI::GUI() : menu(nullptr), exitRequested(false) {}
+
+bool GUI::shouldExit() const {
+    return exitRequested;
+}
+
+void GUI::loadGameView() {
+    // TODO: muat view permainan utama
+}
+
+void GUI::loadFinishMenu() {
+    // TODO: muat menu akhir permainan
+}
+
+void GUI::showMessage(const std::string& /*message*/) {
+    // TODO: tampilkan popup pesan
+}
+
+void GUI::showConfirm(const std::string& /*question*/) {
+    // TODO: tampilkan popup konfirmasi ya/tidak
+}
+
+void GUI::showInputPrompt(const std::string& /*prompt*/) {
+    // TODO: tampilkan popup input teks
+}
+
+void GUI::renderBoard(const Game& /*game*/) {
+    // TODO
+}
+
+void GUI::renderPlayer(const Player& /*player*/) {
+    // TODO
+}
+
+void GUI::renderProperty(const Property& /*property*/) {
+    // TODO
+}
+
+void GUI::renderDice(int /*die1*/, int /*die2*/) {
+    // TODO
+}
+
+void GUI::renderLog(const std::vector<LogEntry>& /*entries*/) {
+    // TODO
+}
+
+void GUI::renderSkillHand(const std::vector<SkillCard*>& /*hand*/) {
+    // TODO
+}
+
+void GUI::renderAuction(const Property& /*property*/, int /*currentBid*/, const Player* /*highBidder*/) {
+    // TODO
+}
+
+void GUI::renderBankruptcy(const Player& /*player*/) {
+    // TODO
+}
+
+void GUI::renderWinner(const Player& /*winner*/) {
+    // TODO
+}
 
 void GUI::unloadView(View2D* p) {
     if (p != nullptr) {

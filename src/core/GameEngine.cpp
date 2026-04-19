@@ -2,10 +2,10 @@
 
 #include <iostream>
 
-GameEngine::GameEngine()
+GameEngine::GameEngine(IGUI* gui)
     : game(nullptr),
       logger(new TransactionLogger()),
-      gui(nullptr),
+      gui(gui),
       turnManager(nullptr),
       commandProcessor(nullptr),
       auctionManager(nullptr),
@@ -19,7 +19,34 @@ GameEngine::~GameEngine() {
 }
 
 void GameEngine::run() {
-    // TODO: showMainMenu → initNewGame / initLoadGame → gameLoop
+    if (gui == nullptr) {
+        return;
+    }
+
+    gui->loadMainMenu();
+
+    // Loop menu utama — menunggu user memilih NEW_GAME atau LOAD_GAME
+    while (!gui->shouldExit()) {
+        gui->update();
+        gui->display();
+
+        std::string command = gui->getCommand();
+        if (command == "NULL" || command.empty()) {
+            continue;
+        }
+
+        if (command == "NEW_GAME") {
+            initNewGame();
+            gameLoop();
+            break;
+        } else if (command.rfind("LOAD_GAME", 0) == 0) {
+            initLoadGame();
+            gameLoop();
+            break;
+        } else if (command == "EXIT") {
+            break;
+        }
+    }
 }
 
 void GameEngine::initNewGame() {

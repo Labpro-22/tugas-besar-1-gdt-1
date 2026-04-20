@@ -1,5 +1,7 @@
 #include "core/GameEngine.hpp"
 #include "core/CommandProcessor.hpp"
+#include "core/AuctionManager.hpp"
+#include "core/BankruptcyManager.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -36,6 +38,9 @@ GameEngine::GameEngine(IGUI* gui)
 
 GameEngine::~GameEngine() {
     delete commandProcessor;
+    delete auctionManager;
+    delete bankruptcyManager;
+    delete saveLoadManager;
     delete turnManager;
     delete dice;
     delete logger;
@@ -109,6 +114,8 @@ void GameEngine::initNewGame() {
 
     turnManager = new TurnManager(game, dice, gui);
     commandProcessor = new CommandProcessor(this, game, turnManager, dice, gui);
+    auctionManager = new AuctionManager(game, logger, gui);
+    bankruptcyManager = new BankruptcyManager(game, logger, gui, auctionManager);
 
     int numPlayers = 0;
     while (numPlayers < 2 || numPlayers > 4) {
@@ -227,17 +234,56 @@ void GameEngine::handleSpecialLanding(Player* player, SpecialTile* tile) {
     tile->onLanded(*player, *game);
 }
 
+void GameEngine::handleBuyOrRent(Player* player, Property* prop, int diceTotal) {
+    if (prop == nullptr) return;
+
+    if (prop->getOwner() == nullptr) {
+        gui->showInputPrompt("Beli " + prop->getName() +
+            " seharga " + std::to_string(prop->getPurchasePrice()) + "? (YA/TIDAK)");
+        std::string ans;
+        while (!gui->shouldExit()) {
+            gui->update(); gui->display();
+            std::string c = gui->getCommand();
+            if (!c.empty() && c != "NULL") { ans = c; break; }
+        }
+        std::string up = ans;
+        std::transform(up.begin(), up.end(), up.begin(),
+                       [](unsigned char c){ return std::toupper(c); });
+        if (up == "YA" || up == "BELI" || up == "Y") {
+            if (player->canAfford(prop->getPurchasePrice())) {
+                player->deductMoney(prop->getPurchasePrice());
+                prop->setOwner(player);
+                prop->setStatus(PropertyStatus::OWNED);
+                player->addProperty(prop);
+                gui->showMessage(player->getUsername() + " membeli " + prop->getName());
+                return;
+            }
+            gui->showMessage("Saldo tidak cukup. Lanjut ke lelang.");
+        }
+        auctionManager->runAuction(prop, player);
+        return;
+    }
+
+    if (prop->getOwner() == player) return;
+    if (prop->isMortgaged())        return;
+
+    int rent = prop->calculateRent(diceTotal);
+    if (rent <= 0) return;
+    gui->showMessage(player->getUsername() + " bayar sewa " +
+        std::to_string(rent) + " ke " + prop->getOwner()->getUsername());
+    bankruptcyManager->handleInsufficientFunds(*player, rent, prop->getOwner());
+}
+
 void GameEngine::handleStreetLanding(Player* player, StreetTile* tile) {
-    // TODO: beli / sewa / lelang via CommandProcessor
-    tile->onLanded(*player, *game);
+    handleBuyOrRent(player, tile->getProperty(), game->getLastDiceTotal());
 }
 
 void GameEngine::handleRailroadLanding(Player* player, RailroadTile* tile) {
-    tile->onLanded(*player, *game);
+    handleBuyOrRent(player, tile->getProperty(), game->getLastDiceTotal());
 }
 
 void GameEngine::handleUtilityLanding(Player* player, UtilityTile* tile) {
-    tile->onLanded(*player, *game);
+    handleBuyOrRent(player, tile->getProperty(), game->getLastDiceTotal());
 }
 
 void GameEngine::handleChanceLanding(Player* player, ChanceTile* tile) {
@@ -268,10 +314,10 @@ void GameEngine::handleGoToJailLanding(Player* player) {
 
 bool GameEngine::executePayment(Player* from, Player* to, int amount) {
     if (from == nullptr || amount <= 0) return false;
-    if (!from->canAfford(amount)) {
-        // TODO: trigger bankruptcyManager saat tersedia
-        return false;
+    if (bankruptcyManager != nullptr) {
+        return bankruptcyManager->handleInsufficientFunds(*from, amount, to);
     }
+    if (!from->canAfford(amount)) return false;
     from->deductMoney(amount);
     if (to != nullptr) to->addMoney(amount);
     return true;
@@ -298,18 +344,3 @@ void GameEngine::endGame() {
     if (winner != nullptr) gui->renderWinner(*winner);
 }
 
-void GameEngine::executeGadai(Player* /*player*/) {
-    // TODO
-}
-
-void GameEngine::executeTebus(Player* /*player*/) {
-    // TODO
-}
-
-void GameEngine::executeBangun(Player* /*player*/) {
-    // TODO
-}
-
-void GameEngine::executeGunakanKemampuan(Player* /*player*/) {
-    // TODO
-}

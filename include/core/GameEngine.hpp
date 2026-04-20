@@ -10,6 +10,7 @@
 class CommandProcessor;
 class AuctionManager;
 class BankruptcyManager;
+class Property;
 class SaveLoadManager;
 
 class PropertyTile;
@@ -55,15 +56,11 @@ private:
     void handleFestivalLanding(Player* player, FestivalTile* tile);
     void handleTaxLanding(Player* player, TaxTile* tile);
     void handleGoToJailLanding(Player* player);
+    void handleBuyOrRent(Player* player, Property* prop, int diceTotal);
 
     bool executePayment(Player* from, Player* to, int amount);
     bool checkWinCondition();
     void endGame();
-
-    void executeGadai(Player* player);
-    void executeTebus(Player* player);
-    void executeBangun(Player* player);
-    void executeGunakanKemampuan(Player* player);
 
 public:
     GameEngine(IGUI* gui);

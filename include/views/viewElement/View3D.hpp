@@ -18,5 +18,7 @@ class View3D {
         void setPosX(float x);
         void setPosY(float y);
         void setPosZ(float z);
-        void render();
+        void setTransform(Matrix& m);
+        void transform(Matrix& m);
+        virtual void render();
 };

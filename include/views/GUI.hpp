@@ -1,6 +1,7 @@
 #pragma once
 #include "views/IGUI.hpp"
 #include "views/viewElement/MenuView.hpp"
+#include "views/viewElement/board/BoardView.hpp"
 #include "views/viewElement/Popup.hpp"
 #include "views/animation/ViewAnimation.hpp"
 #include "views/animation/camera/CameraManager.hpp"
@@ -13,12 +14,16 @@ class GUI : public IGUI {
         set<View2D*> views;
         stack<Popup*> popupStack;
         MenuView* menu;
-        bool exitRequested;
+        Entry* debuggingEntry;
+        BoardView* board;
+
         CameraManager camManager;
+
         float fps;
+        bool exitRequested;
         void unloadView(View2D* p);
     public:
-        GUI(float fps);
+        GUI(float fps, Board& board);
         ~GUI() override = default;
 
         // Lifecycle
@@ -55,4 +60,7 @@ class GUI : public IGUI {
         void loadPopup(Popup* popup);
         void enableAll();
         void disableAll();
+
+        // Testing
+        void loadDebuggingEntry();
 };

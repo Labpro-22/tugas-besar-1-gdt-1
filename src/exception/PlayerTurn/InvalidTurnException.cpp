@@ -1,9 +1,8 @@
 #include "exception/PlayerTurn/InvalidTurnException.hpp"
 
 InvalidTurnException::InvalidTurnException(Player *player)
-    : PlayerTurnException(130, "Error Turn: ", player) {};
-
-const char *InvalidTurnException::what() const noexcept
+    : PlayerTurnException(130, "Error Turn: ", player)
 {
-    return errorMessage.c_str();
+    errorMessage += "Nama Player: " + player->getUsername() +
+                    " (Aksi ditolak karena saat ini bukan giliran player ini)";
 }

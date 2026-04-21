@@ -1,9 +1,9 @@
 #include "exception/PlayerTurn/PropertyManagement/InsufficientOwnedColorException.hpp"
 
 InsufficientOwnedColorException::InsufficientOwnedColorException(Player *player, Property *property)
-    : PropertyManagementException(113, "Insufficient Color: ", player, property) {};
-
-const char *InsufficientOwnedColorException::what() const noexcept
+    : PropertyManagementException(113, "Insufficient Color: ", player, property)
 {
-    return errorMessage.c_str();
-};
+    errorMessage += "Nama Player: " + player->getUsername() +
+                    ", Property: " + property->getName() +
+                    " (Player belum memiliki semua properti dengan warna/komplek ini)";
+}

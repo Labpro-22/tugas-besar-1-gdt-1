@@ -1,9 +1,8 @@
 #include "exception/InvalidFile/FileNotFoundException.hpp"
 
 FileNotFoundException::FileNotFoundException(const std::string &filePath)
-    : InvalidFileException(310, "File Not Found: ", filePath) {};
-
-const char *FileNotFoundException::what() const noexcept
+    : InvalidFileException(310, "File Not Found: ", filePath)
 {
-    return errorMessage.c_str();
-};
+    errorMessage += "Lokasi: " + filePath +
+                    " (Pastikan nama file dan direktori sudah benar)";
+}

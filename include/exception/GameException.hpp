@@ -10,5 +10,5 @@ protected:
 
 public:
     explicit GameException(int errorCode, const std::string &errorMessage);
-    const char *what() const noexcept override = 0;
+    const char *what() const noexcept override;
 };

@@ -1,9 +1,8 @@
 #include "exception/InvalidEntryInput/InvalidTileException.hpp"
 
 InvalidTileException::InvalidTileException(const std::string &tileCode)
-    : InvalidEntryInputException(210, "Dice Number Invalid: "), tileCode(tileCode) {};
-
-const char *InvalidTileException::what() const noexcept
+    : InvalidEntryInputException(220, "Invalid Tile: "), tileCode(tileCode)
 {
-    return errorMessage.c_str();
-};
+    errorMessage += "Kode Tile yang dicari: '" + tileCode +
+                    "' (Tile ini tidak ditemukan di papan permainan)";
+}

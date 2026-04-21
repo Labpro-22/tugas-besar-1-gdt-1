@@ -28,6 +28,23 @@ void CameraMovement::setLinearMoveAnimation(const Vector3& moveDest, const float
     };
 }
 
+
+void CameraMovement::setMoveToCameraAnimation(View3DCamera& destCamera, const float duration) {
+    Vector3 startingPos = camera.getPos();
+    Vector3 startingTargetPos = camera.getTarget();
+    Vector3 startingUp = camera.up;
+    moveFunc = [destCamera, duration, startingPos, startingTargetPos, startingUp, this](){
+        if (frameProgress/fps >= duration) {
+            camera.movePosition(destCamera.getPos());
+            camera.moveTargetPos(destCamera.getTarget());
+            ended = true;
+        } else {
+            camera.movePosition(startingPos + (destCamera.getPos() - startingPos)*((frameProgress/fps)/duration));
+            camera.moveTargetPos(startingTargetPos + (destCamera.getTarget() - startingTargetPos)*((frameProgress/fps)/duration));
+        }
+    };
+}
+
 void CameraMovement::setRotationOnSelfAnimation(const float deg, const Vector3& axis, const float duration) {
     moveFunc = [deg, axis, duration, this](){
         if (frameProgress/fps >= duration) {

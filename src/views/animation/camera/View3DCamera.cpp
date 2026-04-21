@@ -17,11 +17,14 @@ View3DCamera::~View3DCamera() {
 
 const Vector3 View3DCamera::getPos() const { return position; }
 const Vector3 View3DCamera::getTarget() const { return target; }
+const Vector3 View3DCamera::getUp() const { return up; }
 
 void View3DCamera::movePosition(const Vector3& pos) { position = pos; }
 void View3DCamera::movePositionDelta(const Vector3& deltaPos) { position += deltaPos; }
 void View3DCamera::moveTargetPos(const Vector3& pos) { target = pos; }
 void View3DCamera::moveTargetPosDelta(const Vector3& deltaPos) { target += deltaPos; }
+void View3DCamera::setUp(const Vector3& pos) { up = pos; }
+void View3DCamera::setUpDelta(const Vector3& deltaUp) { up += deltaUp; }
 
 void View3DCamera::rotateAroundPoint(const float deg, const Vector3& axis, const Vector3& point) {
     float radian = deg * (M_PI/180.0f);

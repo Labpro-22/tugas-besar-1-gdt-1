@@ -3,13 +3,13 @@
 GUI::GUI(float fps, Board& board) : menu(nullptr), board(new BoardView(board)),
          debuggingEntry(nullptr),
          fps(fps), camManager(CameraManager()), exitRequested(false) {
-    camManager.addCamera("BOARD_CAM", View3DCamera({30.0f, 10.0f, 0}, {0,0,0}, 45.0f));
+    camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize()*1.1f, 10.0f, 0}, {0,0,0}, 45.0f));
     View3DCamera* boardCam = camManager.getCurrentCamera();
     boardCam->addMovement("ROTATE_INDEFINITE", 
         new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this](){
             boardCam->rotateAroundTarget(27*(1/this->fps), {0,1,0});
         }, [](){}));
-    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, 30.0f, 0}, {0,0,0}, 45.0f));
+    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize()*1.25f, 0}, {0,0,0}, 45.0f));
 }
 
 bool GUI::shouldExit() const {
@@ -138,6 +138,7 @@ void GUI::disableAll() {
 
 
 void GUI::update() {
+    camManager.updateCamMap();
     set<View2D*> closedViews;
     for (View2D* view : views) {
         if (view->closed()) {

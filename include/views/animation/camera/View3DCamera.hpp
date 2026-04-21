@@ -10,6 +10,7 @@ class CameraMovement;
 class View3DCamera : public Camera3D {
     private :
         map<string, CameraMovement*> movements;
+        bool closed;
     public :
         View3DCamera();
         View3DCamera(const Vector3& pos, const Vector3& target, const float fovy);
@@ -17,7 +18,8 @@ class View3DCamera : public Camera3D {
         const Vector3 getPos() const;
         const Vector3 getTarget() const;
         const Vector3 getUp() const;
-        
+        const float getFOV() const;
+        const bool isClosed() const;
         void movePosition(const Vector3& pos);
         void movePositionDelta(const Vector3& deltaPos);
         void moveTargetPos(const Vector3& pos);
@@ -30,5 +32,6 @@ class View3DCamera : public Camera3D {
         void addMovement(string moveKey, CameraMovement* movement);
         CameraMovement* getMovement(string moveKey);
         void updateMovement();
+        void close();
         Camera3D& mount();
 };

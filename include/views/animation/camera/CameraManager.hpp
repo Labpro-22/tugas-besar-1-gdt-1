@@ -11,7 +11,7 @@ class CameraManager {
         View3DCamera& getCamera(const string camKey);
         void addCamera(const string camKey, const View3DCamera& camera);
         void setCurrentCamera(const string camKey);
-        
+        void updateCamMap();
         void switchTo(const string camKey, const float duration);
         void switchToNextCam(const float duration);
         Camera3D& mount();

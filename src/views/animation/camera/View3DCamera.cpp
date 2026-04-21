@@ -1,9 +1,10 @@
 #include "../include/views/animation/camera/View3DCamera.hpp"
 #include "../include/views/animation/camera/CameraMovement.hpp"
+#include <set>
 
 View3DCamera::View3DCamera() : Camera3D({0}) {}
 
-View3DCamera::View3DCamera(const Vector3& pos, const Vector3& target, const float fovy) : Camera3D({0}){
+View3DCamera::View3DCamera(const Vector3& pos, const Vector3& target, const float fovy) : Camera3D({0}), closed(false){
     position = pos;
     this->target = target;
     up = (Vector3){ 0.0f, 1.0f, 0.0f };
@@ -18,6 +19,8 @@ View3DCamera::~View3DCamera() {
 const Vector3 View3DCamera::getPos() const { return position; }
 const Vector3 View3DCamera::getTarget() const { return target; }
 const Vector3 View3DCamera::getUp() const { return up; }
+const float View3DCamera::getFOV() const { return fovy; }
+const bool View3DCamera::isClosed() const { return closed; }
 
 void View3DCamera::movePosition(const Vector3& pos) { position = pos; }
 void View3DCamera::movePositionDelta(const Vector3& deltaPos) { position += deltaPos; }
@@ -60,6 +63,9 @@ void View3DCamera::updateMovement() {
         movements.erase(moveKey);
     }
 }
+
+void View3DCamera::close() { closed = true; }
+
 
 Camera3D& View3DCamera::mount() {
     updateMovement();

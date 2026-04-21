@@ -265,7 +265,7 @@ Tile* ConfigLoader::createTileForIndex(int index,
             if      (c == "COKLAT")    color = TileColor::COKLAT;
             else if (c == "BIRU_MUDA") color = TileColor::BIRU_MUDA;
             else if (c == "MERAH_MUDA")color = TileColor::MERAH_MUDA;
-            else if (c == "ORANGE")    color = TileColor::ORANGE;
+            else if (c == "ORANGE")    color = TileColor::ORANYE;
             else if (c == "MERAH")     color = TileColor::MERAH;
             else if (c == "KUNING")    color = TileColor::KUNING;
             else if (c == "HIJAU")     color = TileColor::HIJAU;

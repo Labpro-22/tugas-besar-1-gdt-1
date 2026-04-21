@@ -1,6 +1,7 @@
 #pragma once
 #include "raylib.h"
 #include "raymath.h"
+#include "../ColorPallete.hpp"
 #include <functional>
 #include <algorithm>
 #include <numeric>
@@ -64,6 +65,7 @@ class View2D {
         virtual const string catchCommand();
         virtual void render();
         static void addFont(string fontKey, string fontFilename);
+        static Font getFont(string fontKey);
         static void unloadFonts();
 };
 

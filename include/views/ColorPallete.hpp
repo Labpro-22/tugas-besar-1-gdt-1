@@ -1,0 +1,1 @@
+#define LOGO_RED {230, 14, 0, 255}

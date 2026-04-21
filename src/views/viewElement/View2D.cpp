@@ -73,6 +73,10 @@ void View2D::unloadFonts() {
     }
 }
 
+Font View2D::getFont(string fontKey) {
+    return fontMap.at(fontKey);
+}
+
 const Vector2 getScreenCenter() {
     return {(float)GetScreenWidth()/2, (float)GetScreenHeight()/2};
 }
@@ -138,5 +142,6 @@ void drawTextLinesWrapped(Font font, const string text, Vector2 centerPos, float
 
     for (int i = 0; i < textLines.size(); i++) {
         DrawTextEx(font, textLines[i].c_str(), textLinePos[i], textLineFontSizes[i], 1, textColor);
+        cout<<textLines[i]<<endl;
     }
 }

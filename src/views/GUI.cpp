@@ -1,12 +1,15 @@
 #include "views/GUI.hpp"
 
-GUI::GUI(float fps) : menu(nullptr), fps(fps), camManager(CameraManager()), exitRequested(false) {
+GUI::GUI(float fps, Board& board) : menu(nullptr), board(new BoardView(board)),
+         debuggingEntry(nullptr),
+         fps(fps), camManager(CameraManager()), exitRequested(false) {
     camManager.addCamera("BOARD_CAM", View3DCamera({30.0f, 10.0f, 0}, {0,0,0}, 45.0f));
     View3DCamera* boardCam = camManager.getCurrentCamera();
     boardCam->addMovement("ROTATE_INDEFINITE", 
         new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this](){
             boardCam->rotateAroundTarget(27*(1/this->fps), {0,1,0});
         }, [](){}));
+    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, 30.0f, 0}, {0,0,0}, 45.0f));
 }
 
 bool GUI::shouldExit() const {
@@ -110,6 +113,8 @@ string GUI::getCommand() {
                 }
                 if (tokens[1] == "LOAD_CONFIRM_POPUP") { 
                     loadPopup(new LoadConfirmPopup(tokens[2])); 
+                } else if (tokens[1] == "SWITCH_TOP_VIEW") {
+                    camManager.switchTo("TOP_VIEW", 1);
                 }
                 return "NULL";
             }
@@ -170,11 +175,22 @@ void GUI::update() {
 void GUI::display() {
     BeginMode3D(camManager.mount());
         DrawGrid(40,1);
+        board->render();
+        
     EndMode3D();
     if (menu != nullptr) menu->render();
+    if (debuggingEntry != nullptr) debuggingEntry->render();
     stack<Popup*> temp = popupStack;
     while(!temp.empty()) {
         temp.top()->render();
         temp.pop();
     }
+}
+
+void GUI::loadDebuggingEntry() {
+    debuggingEntry = new Entry({800, 50}, "Enter Command", 30, "Orbitron", [this](){
+        this->debuggingEntry->setGameCommand(this->debuggingEntry->getEntryText());
+    });
+    debuggingEntry->movePosition({debuggingEntry->getRenderWidth(), GetScreenHeight() - debuggingEntry->getRenderHeight()/2});
+    views.insert(debuggingEntry);
 }

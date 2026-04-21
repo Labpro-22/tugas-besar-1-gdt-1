@@ -22,6 +22,7 @@ void View3D::setPos(const Vector3& pos) {
     this->pos = pos;
 }
 
+
 void View3D::setPosX(float x) {
     pos.x = x;
 }
@@ -32,8 +33,16 @@ void View3D::setPosZ(float z) {
     pos.z = z;
 }
 
+void View3D::setTransform(Matrix& m) {
+    transformation = m;
+}
+
+
+void View3D::transform(Matrix& m) {
+    transformation = m*transformation;
+}
+
 void View3D::render() {
     model.transform = transformation;
     DrawModel(model, pos, 1, color);
-    
 }

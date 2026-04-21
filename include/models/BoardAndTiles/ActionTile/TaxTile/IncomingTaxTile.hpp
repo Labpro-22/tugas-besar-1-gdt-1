@@ -9,7 +9,8 @@ private:
 
 public:
     IncomeTaxTile(int index, int flatAmount, int percentage);
-
+    const int getFlatAmount() const ;
+    const int getTaxPercentage() const;
     int calculateTax(const Player &player) const override;
     void onLanded(Player &player, Game &game) override;
 };

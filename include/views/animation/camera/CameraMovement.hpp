@@ -20,6 +20,7 @@ class CameraMovement {
         void setMoveFunc(function<void()> animationFunc);
         void setMoveEndFunc(function<void()> animationEndFunc);
         void setLinearMoveAnimation(const Vector3& moveDest, const float duration);
+        void setMoveToCameraAnimation(View3DCamera& destCamera, const float duration);
         void setRotationOnSelfAnimation(const float deg, const Vector3& axis, const float duration);
         void setRotationOnTargetAnimation(const float deg, const Vector3& axis, const float duration);
         void start();

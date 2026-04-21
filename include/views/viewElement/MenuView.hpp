@@ -14,8 +14,10 @@ class MainMenuView : public MenuView {
         Interactable startButton;
         Entry loadFileEntry;
         Interactable exitButton;
+        Texture2D logo;
     public :
         MainMenuView();
+        ~MainMenuView();
         void movePosition(const Vector2& v) override;
         void enable() override;
         void disable() override;

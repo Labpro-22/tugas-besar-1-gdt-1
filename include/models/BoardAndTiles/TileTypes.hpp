@@ -6,7 +6,7 @@ enum class TileColor
     COKLAT,
     BIRU_MUDA,
     MERAH_MUDA,
-    ORANGE,
+    ORANYE,
     MERAH,
     KUNING,
     HIJAU,

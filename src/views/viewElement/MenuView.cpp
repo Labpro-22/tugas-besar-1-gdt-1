@@ -9,14 +9,17 @@ MainMenuView::MainMenuView() :
     exitButton(Interactable({500, 50}, true, false, "CLOSE GAME", [](){}, [](){})),
     loadFileEntry(Entry({500, 50}, "Enter savefile path", 24, "Orbitron", [](){})) {
     Vector2 screenCenter = getScreenCenter();
+
+
     startButton.movePosition(screenCenter + (Vector2){0.0f, 100.0f});
     startButton.setRender([this](){
         DrawRectangle(this->startButton.getRenderPos().x, this->startButton.getRenderPos().y,
                       this->startButton.getRenderWidth(), this->startButton.getRenderHeight(), 
-                      this->startButton.getRenderColor(VIOLET));
+                      this->startButton.getRenderColor(LOGO_RED));
         Vector2 textDim = MeasureTextEx(fontMap.at("Orbitron"), "Start Game", this->startButton.getRenderFontSize(36), 0);
         DrawTextEx(fontMap.at("Orbitron"), "Start Game", {this->startButton.getX() - textDim.x/2,
-                   this->startButton.getY() - 18}, this->startButton.getRenderFontSize(36), 0, this->startButton.getRenderColor(BLACK));
+                   this->startButton.getY() - 18}, this->startButton.getRenderFontSize(36), 0, 
+                   this->startButton.getRenderColor(WHITE));
     });
 
     loadFileEntry.movePosition(screenCenter + (Vector2){0.0f, 170.f});
@@ -28,15 +31,24 @@ MainMenuView::MainMenuView() :
     exitButton.setRender([this](){
         DrawRectangle(this->exitButton.getRenderPos().x, this->exitButton.getRenderPos().y,
                       this->exitButton.getRenderWidth(), this->exitButton.getRenderHeight(), 
-                      this->exitButton.getRenderColor(VIOLET));
+                      this->exitButton.getRenderColor(LOGO_RED));
         Vector2 textDim = MeasureTextEx(fontMap.at("Orbitron"), "Exit Game", this->exitButton.getRenderFontSize(36), 0);
         DrawTextEx(fontMap.at("Orbitron"), "Exit Game", 
                   {this->exitButton.getX() - textDim.x/2, this->exitButton.getY() - 18}, this->exitButton.getRenderFontSize(36), 0, 
-                  this->exitButton.getRenderColor(BLACK));
+                  this->exitButton.getRenderColor(WHITE));
     });
+
+
     ViewAnimation* anim = new ViewAnimation(*this, 120, true, [](){}, [this](){ closeView = true; });
     anim->setMoveAnimation({pos.x, pos.y - getRenderHeight()}, 1);
     this->addAnimation("START_GAME", anim);
+    Image img = LoadImage("data/GUIAssets/nimonspoli_logo.png");
+    logo = LoadTextureFromImage(img);
+    UnloadImage(img);
+}
+
+MainMenuView::~MainMenuView() {
+    UnloadTexture(logo);
 }
 
 void MainMenuView::movePosition(const Vector2& v) {
@@ -50,6 +62,7 @@ void MainMenuView::movePosition(const Vector2& v) {
 void MainMenuView::render() {
     animationCheck();
     DrawRectangle(getRenderPos().x, getRenderPos().y, boundingDim.x, boundingDim.y, {100, 100, 100, 150});
+    DrawTexture(logo, pos.x - logo.width/2, pos.y - logo.height/2 - 200, WHITE);
     startButton.render();
     loadFileEntry.render();
     exitButton.render();

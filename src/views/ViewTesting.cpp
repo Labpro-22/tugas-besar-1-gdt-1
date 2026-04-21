@@ -7,15 +7,17 @@ int main() {
     InitWindow(screenWidth, screenHeight, "Nimonspoli");
     View2D::addFont("Orbitron", "data/Orbitron-VariableFont_wght.ttf");
     SetTargetFPS(120);
-    GUI app;
+    GUI app(120);
     app.loadMainMenu();
     while (!WindowShouldClose()) {
         ClearBackground(RAYWHITE);
         app.update();
         string command = app.getCommand();
-        if (command != "NULL") { cout<<command<<endl; };
+        if (command != "NULL") { 
+            cout<<command<<endl; 
+            if (command == "START GAME") { app.enterGame(); }
+        };
         BeginDrawing();
-
         app.display();
         DrawFPS(10,10);
         EndDrawing();

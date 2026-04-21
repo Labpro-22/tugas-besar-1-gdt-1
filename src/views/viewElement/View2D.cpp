@@ -1,4 +1,5 @@
 #include "../include/views/viewElement/View2D.hpp"
+#include "../include/views/animation/ViewAnimation.hpp"
 
 map<string, Font> View2D::fontMap;
 
@@ -8,6 +9,9 @@ View2D::View2D() :
 View2D::View2D(const Vector2& pos, const Vector2& boundingDim, function<void()> renderFunc) :
     pos(pos), boundingDim(boundingDim), scale(1), brightness(0), opacity(1), visible(true), renderFunc(renderFunc), closeView(false) {}
 
+View2D::~View2D() {
+    for(auto anim : animations) { delete anim.second; }
+}
 const float View2D::getX() const { return pos.x; }
 const float View2D::getY() const { return pos.y; }
 const Vector2 View2D::getPos() const { return pos; }
@@ -21,21 +25,41 @@ const Vector2 View2D::getRenderDim() const { return boundingDim*scale; }
 const float View2D::getScale() const { return scale; }
 const float View2D::getRenderFontSize(const float fontsize) const { return fontsize*scale; }
 const float View2D::getBrightness() const { return brightness; }
-const Color View2D::getRenderColor(const Color& color) const { return ColorBrightness(color, brightness); }
+const float View2D::getOpacity() const { return opacity; }
+const Color View2D::getRenderColor(const Color& color) const { return ColorAlpha(ColorBrightness(color, brightness), opacity); }
 const bool View2D::isVisible() const { return visible; }
 const bool View2D::closed() const { return closeView; }
 
-void View2D::movePosition(float x, float y) { pos = {x,y}; }
+void View2D::movePosition(float x, float y) { movePosition({x,y}); }
 void View2D::movePosition(const Vector2& v) { pos = v; }
-void View2D::movePositionDelta(float dx, float dy) { pos += {dx,dy}; }
-void View2D::movePositionDelta(const Vector2& dv) { pos += dv; }
+void View2D::movePositionDelta(float dx, float dy) { movePosition(pos + (Vector2){dx,dy}); }
+void View2D::movePositionDelta(const Vector2& dv) { movePosition(pos + dv); }
 void View2D::setScale(float scale) { this->scale = scale; }
+void View2D::setBrightness(float brightness) { this->brightness = brightness; }
+void View2D::setOpacity(float opacity) { this->opacity = opacity; }
 void View2D::setVisible(bool visible) { this->visible = visible; }
 void View2D::setRender(function<void()> renderFunc) { this->renderFunc = renderFunc; }
 
+void View2D::addAnimation(string animKey, ViewAnimation* anim) { animations[animKey] = anim; }
+ViewAnimation* View2D::getAnimation(string animKey) const { return animations.at(animKey); }
+void View2D::animationCheck() {
+    vector<string> doneAnimations;
+    for(auto anim : animations) {
+        anim.second->play();
+        if (anim.second->hasEnded()) {
+            doneAnimations.push_back(anim.first);
+        }
+    }
+    
+    for (string animKey : doneAnimations) {
+        delete animations[animKey];
+        animations.erase(animKey);
+    }
+}
 
 const string View2D::catchCommand() { return "NULL"; }
 void View2D::render() {
+    animationCheck();
     renderFunc();
 }
 

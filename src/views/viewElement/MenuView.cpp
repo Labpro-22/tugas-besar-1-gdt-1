@@ -1,4 +1,5 @@
 #include "views/viewElement/MenuView.hpp"
+#include "../include/views/animation/ViewAnimation.hpp"
 
 
 MainMenuView::MainMenuView() : 
@@ -17,7 +18,7 @@ MainMenuView::MainMenuView() :
         DrawTextEx(fontMap.at("Orbitron"), "Start Game", {this->startButton.getX() - textDim.x/2,
                    this->startButton.getY() - 18}, this->startButton.getRenderFontSize(36), 0, this->startButton.getRenderColor(BLACK));
     });
-    
+
     loadFileEntry.movePosition(screenCenter + (Vector2){0.0f, 170.f});
     loadFileEntry.setOnEnterFunc([this](){
         this->loadFileEntry.setGameCommand("DISPLAY LOAD_CONFIRM_POPUP " + loadFileEntry.getEntryText());
@@ -33,11 +34,22 @@ MainMenuView::MainMenuView() :
                   {this->exitButton.getX() - textDim.x/2, this->exitButton.getY() - 18}, this->exitButton.getRenderFontSize(36), 0, 
                   this->exitButton.getRenderColor(BLACK));
     });
+    ViewAnimation* anim = new ViewAnimation(*this, 120, true, [](){}, [this](){ closeView = true; });
+    anim->setMoveAnimation({pos.x, pos.y - getRenderHeight()}, 1);
+    this->addAnimation("START_GAME", anim);
 }
 
+void MainMenuView::movePosition(const Vector2& v) {
+    Vector2 deltaPos = v - pos;
+    pos = v;
+    startButton.movePositionDelta(deltaPos);
+    loadFileEntry.movePositionDelta(deltaPos);
+    exitButton.movePositionDelta(deltaPos);
+}
 
 void MainMenuView::render() {
-    DrawRectangle(getRenderPos().x, getRenderPos().y, boundingDim.x, boundingDim.y, DARKGRAY);
+    animationCheck();
+    DrawRectangle(getRenderPos().x, getRenderPos().y, boundingDim.x, boundingDim.y, {100, 100, 100, 150});
     startButton.render();
     loadFileEntry.render();
     exitButton.render();

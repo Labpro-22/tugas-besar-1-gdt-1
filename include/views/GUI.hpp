@@ -2,6 +2,9 @@
 #include "views/IGUI.hpp"
 #include "views/viewElement/MenuView.hpp"
 #include "views/viewElement/Popup.hpp"
+#include "views/animation/ViewAnimation.hpp"
+#include "views/animation/camera/CameraManager.hpp"
+#include "views/animation/camera/CameraMovement.hpp"
 #include <set>
 #include <stack>
 
@@ -11,10 +14,11 @@ class GUI : public IGUI {
         stack<Popup*> popupStack;
         MenuView* menu;
         bool exitRequested;
-
+        CameraManager camManager;
+        float fps;
         void unloadView(View2D* p);
     public:
-        GUI();
+        GUI(float fps);
         ~GUI() override = default;
 
         // Lifecycle
@@ -29,6 +33,7 @@ class GUI : public IGUI {
         void loadMainMenu() override;
         void loadGameView() override;
         void loadFinishMenu() override;
+        void enterGame();
 
         // Popup / prompt
         void showMessage(const std::string& message) override;

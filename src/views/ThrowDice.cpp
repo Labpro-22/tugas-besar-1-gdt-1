@@ -64,7 +64,7 @@ Model createDiceModel(float diceEdges) {
     Model cubeModel = LoadModelFromMesh(CopyMesh(cubeMesh));
     UnloadMesh(cubeMesh);
 
-    Texture2D texture = LoadTexture("data/dicefaces.png");
+    Texture2D texture = LoadTexture("data/GUIAssets/dicefaces.png");
     cubeModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
     return cubeModel;
 }

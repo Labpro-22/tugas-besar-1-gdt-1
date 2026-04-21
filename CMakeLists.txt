@@ -37,7 +37,7 @@ add_executable(${PROJECT_NAME} src/views/ViewTesting.cpp
                                src/views/animation/camera/CameraManager.cpp
                                src/views/animation/camera/CameraMovement.cpp
                                src/views/animation/camera/View3DCamera.cpp
-                               src/core/Game.cpp
+                               
                                src/models/Player/Player.cpp
                                src/models/Property/Property.cpp
                                src/models/Property/StreetProperty.cpp
@@ -74,8 +74,12 @@ add_executable(${PROJECT_NAME} src/views/ViewTesting.cpp
                                src/models/CardAndDeck/TeleportCard.cpp
                                src/exception/GameException.cpp
                                src/exception/InvalidEntryInputException.cpp
+                               src/exception/InvalidFileException.cpp
                                src/exception/InvalidEntryInput/InvalidTileException.cpp
-                               src/utils/data/ConfigLoader.cpp)
+                               src/exception/InvalidEntryInput/InvalidDiceNumberException.cpp
+                               src/exception/InvalidFile/InvalidConfigException.cpp
+                               src/utils/data/ConfigLoader.cpp
+                               src/core/Game.cpp)
 
 # 4. Link raylib to your executable
 target_link_libraries(${PROJECT_NAME} raylib)

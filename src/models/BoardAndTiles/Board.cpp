@@ -1,9 +1,9 @@
-// Board.cpp
 #include "models/BoardAndTiles/Board.hpp"
 #include "models/BoardAndTiles/SpecialTile/GoTile.hpp"
 #include "models/BoardAndTiles/SpecialTile/JailTile.hpp"
 #include "models/BoardAndTiles/PropertyTile/RailroadTile.hpp"
 #include "exception/InvalidEntryInput/InvalidTileException.hpp"
+#include "exception/InvalidFile/InvalidConfigException.hpp"
 
 Board::Board() : boardSize(0), goTile(nullptr), jailTile(nullptr) {}
 
@@ -30,7 +30,7 @@ void Board::addTile(Tile *tile)
 Tile *Board::getTile(int index) const
 {
     if (index < 1 || index > boardSize)
-        throw InvalidTileException("Indeks petak tidak valid: " + std::to_string(index));
+        throw InvalidTileException(std::to_string(index));
 
     return tiles[index - 1];
 }
@@ -40,7 +40,7 @@ Tile *Board::getTile(const std::string &code) const
     auto it = tileByCode.find(code);
 
     if (it == tileByCode.end())
-        throw InvalidTileException("Kode petak tidak ditemukan: " + code);
+        throw InvalidTileException(code);
 
     return it->second;
 }
@@ -118,16 +118,16 @@ void Board::validate() const
 {
     if (boardSize < 20 || boardSize > 60)
     {
-        throw InvalidTileException("Jumlah petak harus antara 20 dan 60, saat ini: " + std::to_string(boardSize));
+        throw InvalidConfigException("placeholder path", "Jumlah petak harus antara 20 dan 60, saat ini: " + std::to_string(boardSize));
     }
 
     if (goTile == nullptr)
     {
-        throw InvalidTileException("Papan harus memiliki tepat 1 petak GO.");
+        throw InvalidConfigException("placeholder path", "Papan harus memiliki tepat 1 petak GO.");
     }
 
     if (jailTile == nullptr)
     {
-        throw InvalidTileException("Papan harus memiliki tepat 1 petak Penjara.");
+        throw InvalidConfigException("placeholder path", "Papan harus memiliki tepat 1 petak GO.");
     }
 }

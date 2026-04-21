@@ -8,5 +8,4 @@ private:
 
 public:
     explicit InsufficientMoneyException(Player *player, Property *property, int cost);
-    const char *what() const noexcept override;
 };

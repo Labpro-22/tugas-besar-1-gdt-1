@@ -5,6 +5,10 @@ LuxuryTaxTile::LuxuryTaxTile(int index, int flatAmount)
     : TaxTile(index, "PBM", "Pajak Barang Mewah"),
       flatAmount(flatAmount) {}
 
+const int LuxuryTaxTile::getFlatAmount() const {
+    return flatAmount;
+}
+
 int LuxuryTaxTile::calculateTax(const Player &player) const
 {
     return flatAmount;

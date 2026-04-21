@@ -3,6 +3,7 @@
 #include "models/Property/StreetProperty.hpp"
 #include "models/Property/RailroadProperty.hpp"
 #include "models/Property/UtilityProperty.hpp"
+#include "models/CardAndDeck/SkillCard.hpp"
 
 Player::Player(const std::string &username, int initialBalance)
     : username(username),
@@ -136,6 +137,32 @@ bool Player::hasRolled() const {
 
 bool Player::hasUsedSkill() const {
     return hasUsedSkillThisTurn;
+}
+
+// Skill Card
+bool Player::addCard(SkillCard* card) {
+    if (handCards.size() >= 3) {
+        return false;
+    }
+    handCards.push_back(card);
+    return true;
+}
+
+void Player::removeCard(SkillCard* card) {
+    for (auto it = handCards.begin(); it != handCards.end(); ++it) {
+        if (*it == card) {
+            handCards.erase(it);
+            return;
+        }
+    }
+}
+
+const std::vector<SkillCard*>& Player::getHandCards() const {
+    return handCards;
+}
+
+int Player::getCardCount() const {
+    return (int)handCards.size();
 }
 
 // Consecutive Doubles

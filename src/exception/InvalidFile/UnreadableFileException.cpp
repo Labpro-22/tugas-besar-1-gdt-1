@@ -1,9 +1,8 @@
 #include "exception/InvalidFile/UnreadableFileException.hpp"
 
 UnreadableFileException::UnreadableFileException(const std::string &filePath)
-    : InvalidFileException(310, "Unreadable File: ", filePath) {};
-
-const char *UnreadableFileException::what() const noexcept
+    : InvalidFileException(320, "Unreadable File: ", filePath)
 {
-    return errorMessage.c_str();
-};
+    errorMessage += "Lokasi: " + filePath +
+                    " (File berhasil ditemukan, tetapi formatnya rusak atau tidak dapat diparsing)";
+}

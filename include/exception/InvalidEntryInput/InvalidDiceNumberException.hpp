@@ -9,5 +9,4 @@ private:
 
 public:
     explicit InvalidDiceNumberException(int dice1Number, int dice2Number);
-    const char *what() const noexcept override;
 };

@@ -3,7 +3,8 @@
 #include <string>
 #include <vector>
 
-class Property;
+#include "../Property/Property.hpp"
+#include "../CardAndDeck/SkillCard.hpp"
 
 enum class PlayerStatus {
     ACTIVE,
@@ -19,7 +20,7 @@ private:
     PlayerStatus status;
 
     std::vector<Property*> ownedProperties;
-    // std::vector<SkillCard*> handCards;
+    std::vector<SkillCard*> handCards;
 
     int consecutiveDoubles;
     int jailAttempts;
@@ -54,9 +55,9 @@ public:
     void resetJailAttempts();
 
     //property -----------------------
-    // void addProperty(Property* property);
-    // void removeProperty(Property* property);
-    // const std::vector<Property*>& getOwnedProperties() const;
+    void addProperty(Property* property);
+    void removeProperty(Property* property);
+    const std::vector<Property*>& getOwnedProperties() const;
 
     //property util
     int countOwnedRailroads() const;
@@ -74,10 +75,10 @@ public:
     bool hasUsedSkill() const;
 
     //skill card---------------------------
-    // bool addCard(SkillCard* card);
-    // void removeCard(SkillCard* card);
-    // const std::vector<SkillCard*>& getHandCards() const;
-    // int getCardCount() const;
+    bool addCard(SkillCard* card);
+    void removeCard(SkillCard* card);
+    const std::vector<SkillCard*>& getHandCards() const;
+    int getCardCount() const;
 
     //consecutiveDouble
     void incrementConsecutiveDoubles(); //tambahan

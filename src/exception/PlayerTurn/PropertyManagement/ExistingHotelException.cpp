@@ -1,9 +1,9 @@
 #include "exception/PlayerTurn/PropertyManagement/ExistingHotelException.hpp"
 
 ExistingHotelException::ExistingHotelException(Player *player, Property *property)
-    : PropertyManagementException(111, "Hotel Exists: ", player, property) {};
-
-const char *ExistingHotelException::what() const noexcept
+    : PropertyManagementException(112, "Hotel Exists: ", player, property)
 {
-    return errorMessage.c_str();
-};
+    errorMessage += "Nama Player: " + player->getUsername() +
+                    ", Property: " + property->getName() +
+                    " (Properti ini sudah memiliki hotel/bangunan maksimal)";
+}

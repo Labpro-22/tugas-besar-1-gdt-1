@@ -9,30 +9,39 @@ Entry::Entry(const Vector2 &recDim, const string defaultText, const float fontSi
     {
         Vector2 renderPos = getRenderPos();
         float fontSizeRender = getRenderFontSize(this->fontSize);
+        float boxWidth = getRenderWidth();
+        float padding = 5.0f;
 
-        float textX = renderPos.x + 5;
+        BeginScissorMode(renderPos.x, renderPos.y, boxWidth, getRenderHeight());
+
+        DrawRectangle(renderPos.x, renderPos.y, boxWidth, getRenderHeight(), WHITE);
+
+        std::string leftOfCursor = entryText.substr(0, cursorPos);
+        float cursorOffsetInText = MeasureTextEx(fontMap[this->fontKey], leftOfCursor.c_str(), fontSizeRender, 1).x;
+
+        static float textScrollX = 0;
+        if (cursorOffsetInText + textScrollX > boxWidth - padding * 2)
+        {
+            textScrollX = (boxWidth - padding * 2) - cursorOffsetInText;
+        }
+        else if (cursorOffsetInText + textScrollX < 0)
+        {
+            textScrollX = -cursorOffsetInText;
+        }
+
+        float textX = renderPos.x + padding + textScrollX;
         float textY = renderPos.y + (getRenderHeight() - fontSizeRender) / 2;
-
-        DrawRectangle(renderPos.x, renderPos.y,
-                      getRenderWidth(), getRenderHeight(), WHITE);
 
         if (!selected && entryText.empty())
         {
-            DrawTextEx(fontMap[this->fontKey],
-                       this->defaultText.c_str(),
-                       {textX, textY},
-                       fontSizeRender, 1, GRAY);
+            DrawTextEx(fontMap[this->fontKey], "input", {renderPos.x + padding, textY}, fontSizeRender, 1, GRAY);
         }
         else
         {
-            DrawTextEx(fontMap[this->fontKey],
-                       this->entryText.c_str(),
-                       {textX, textY},
-                       fontSizeRender, 1, BLACK);
+            DrawTextEx(fontMap[this->fontKey], entryText.c_str(), {textX, textY}, fontSizeRender, 1, BLACK);
         }
 
         cursorBlinkTime += GetFrameTime();
-
         if (cursorBlinkTime >= 0.5f)
         {
             cursorVisible = !cursorVisible;
@@ -41,23 +50,15 @@ Entry::Entry(const Vector2 &recDim, const string defaultText, const float fontSi
 
         if (selected && cursorVisible)
         {
-            std::string leftText = entryText.substr(0, cursorPos);
-
-            float cursorX = textX +
-                            MeasureTextEx(fontMap[this->fontKey],
-                                          leftText.c_str(),
-                                          fontSizeRender,
-                                          1)
-                                .x;
-
-            DrawLine(cursorX, textY, cursorX, textY + fontSizeRender, BLACK);
+            float cursorRenderX = textX + cursorOffsetInText;
+            DrawLine(cursorRenderX, textY, cursorRenderX, textY + fontSizeRender, BLACK);
         }
+
+        EndScissorMode();
 
         if (selected)
         {
-            DrawRectangleLinesEx(
-                {renderPos.x, renderPos.y, getRenderWidth(), getRenderHeight()},
-                3, LIME);
+            DrawRectangleLinesEx({renderPos.x, renderPos.y, boxWidth, getRenderHeight()}, 3, LIME);
         }
     };
 }
@@ -110,6 +111,7 @@ void Entry::interactionCheck()
             {
                 entryText.insert(cursorPos, 1, (char)key);
                 cursorPos++;
+
                 cursorVisible = true;
                 cursorBlinkTime = 0.0f;
             }

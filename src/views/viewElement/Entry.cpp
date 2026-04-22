@@ -34,7 +34,7 @@ Entry::Entry(const Vector2 &recDim, const string defaultText, const float fontSi
 
         if (!selected && entryText.empty())
         {
-            DrawTextEx(fontMap[this->fontKey], "input", {renderPos.x + padding, textY}, fontSizeRender, 1, GRAY);
+            DrawTextEx(fontMap[this->fontKey], this->defaultText.c_str(), {renderPos.x + padding, textY}, fontSizeRender, 1, GRAY);
         }
         else
         {

@@ -10,6 +10,7 @@ class BoardView : View3D {
         vector<TileView> tiles;
     public :
         BoardView(Board& board);
+        const float getBoardSize() const;
         void update();
         void render() override;
 };

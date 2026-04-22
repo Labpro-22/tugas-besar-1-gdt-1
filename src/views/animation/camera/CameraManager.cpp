@@ -1,5 +1,6 @@
 #include "../include/views/animation/camera/CameraManager.hpp"
 #include "../include/views/animation/camera/CameraMovement.hpp"
+#include <set>
 
 CameraManager::CameraManager() : currentCamera(nullptr) {}
 
@@ -22,15 +23,16 @@ View3DCamera& CameraManager::getCamera(const string camKey) {
 
 
 void CameraManager::switchTo(string camKey, const float duration) {
-    View3DCamera* transitionCam = new View3DCamera(*currentCamera);
+    cameraMap["SWITCH_CAM"] = View3DCamera(currentCamera->getPos(), currentCamera->getTarget(), currentCamera->getFOV());
     View3DCamera* destCam = &cameraMap.at(camKey);
-    currentCamera = transitionCam;
-    transitionCam->addMovement("SWITCH", new CameraMovement(*transitionCam, 120, false, [](){}, [this, camKey](){
+    currentCamera = &cameraMap.at("SWITCH_CAM");
+    cameraMap.at("SWITCH_CAM").addMovement("SWITCH", new CameraMovement(cameraMap.at("SWITCH_CAM"), 120, false, [](){}, [this, camKey](){
         View3DCamera* doneCam = this->currentCamera;
         this->currentCamera = &cameraMap.at(camKey);
+        doneCam->close();
     }));
-    transitionCam->getMovement("SWITCH")->setMoveToCameraAnimation(*destCam, duration);
-    transitionCam->getMovement("SWITCH")->start();
+    cameraMap.at("SWITCH_CAM").getMovement("SWITCH")->setMoveToCameraAnimation(*destCam, duration);
+    cameraMap.at("SWITCH_CAM").getMovement("SWITCH")->start();
 }
 
 void CameraManager::switchToNextCam(const float duration) {
@@ -44,6 +46,20 @@ void CameraManager::switchToNextCam(const float duration) {
     }
     switchTo(nextCam, duration);
 }
+
+void CameraManager::updateCamMap() {
+    set<string> closedCams;
+    for (auto& pair : cameraMap) {
+        if (cameraMap.at(pair.first).isClosed()) {
+            closedCams.insert(pair.first);
+        }
+    }
+
+    for (string key : closedCams) {
+        cameraMap.erase(key);
+    }
+}
+
 
 Camera3D& CameraManager::mount() {
     return currentCamera->mount();

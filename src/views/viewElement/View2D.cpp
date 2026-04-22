@@ -142,6 +142,5 @@ void drawTextLinesWrapped(Font font, const string text, Vector2 centerPos, float
 
     for (int i = 0; i < textLines.size(); i++) {
         DrawTextEx(font, textLines[i].c_str(), textLinePos[i], textLineFontSizes[i], 1, textColor);
-        cout<<textLines[i]<<endl;
     }
 }

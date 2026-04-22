@@ -21,12 +21,13 @@ class TileView : public View3D {
         string tileFooter;
         bool cornerTile;
         RenderTexture2D tileTexture;
+        bool isTextureLoaded;
 
         static Vector2 tileDim;
     public :
         TileView(Tile& tile, const string tileHeader, const string tileFooter, const bool cornerTile, const string iconFilePath);
         static const Vector2 getTileDim();
-        void renderTileBase();
+        void render() override;
 };
 
 class PropertyTileView : public TileView {

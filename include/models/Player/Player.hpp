@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 
-#include "../Property/Property.hpp"
 #include "../CardAndDeck/SkillCard.hpp"
 
 class Property;

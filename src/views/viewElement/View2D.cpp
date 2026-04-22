@@ -40,8 +40,8 @@ void View2D::setOpacity(float opacity) { this->opacity = opacity; }
 void View2D::setVisible(bool visible) { this->visible = visible; }
 void View2D::setRender(function<void()> renderFunc) { this->renderFunc = renderFunc; }
 
-void View2D::addAnimation(string animKey, ViewAnimation* anim) { animations[animKey] = anim; }
-ViewAnimation* View2D::getAnimation(string animKey) const { return animations.at(animKey); }
+void View2D::addAnimation(string animKey, View2DAnimation* anim) { animations[animKey] = anim; }
+View2DAnimation* View2D::getAnimation(string animKey) const { return animations.at(animKey); }
 void View2D::animationCheck() {
     vector<string> doneAnimations;
     for(auto anim : animations) {

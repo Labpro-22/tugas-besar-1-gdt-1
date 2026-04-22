@@ -1,4 +1,6 @@
 #include "../include/views/viewElement/board/TileView.hpp"
+#include "../include/views/viewElement/player/PlayerView.hpp"
+#include "../include/views/animation/ViewAnimation.hpp"
 #include "../include/models/BoardAndTiles/TileTypes.hpp"
 #include <algorithm>
 #include <ranges>
@@ -154,13 +156,25 @@ void drawImageOnTexture(RenderTexture2D* texture, string filePath, bool isCorner
     UnloadTexture(imgTexture);
 }
 
-TileView::TileView(Tile& tile, const string tileHeader, const string tileFooter, const bool cornerTile, const string iconFilePath) :  
+TileView::TileView(Tile& tile, const string tileHeader, const string tileFooter, const bool cornerTile, const int cardinality, const string iconFilePath) :  
     View3D(View3D({0,0}, getTileModel(cornerTile), WHITE)), tile(tile), isTextureLoaded(false),
-    tileHeader(tileHeader), tileFooter(tileFooter), cornerTile(cornerTile), 
+    tileHeader(tileHeader), tileFooter(tileFooter), cornerTile(cornerTile), cardinality(cardinality),
     tileTexture(getBaseTileTexture(cornerTile, getSpacedString(tileHeader), getSpacedString(tileFooter), tile)) {
     if (iconFilePath != "") {
         drawImageOnTexture(&tileTexture, iconFilePath, cornerTile);
     }
+}
+
+Tile* TileView::getTile() const {
+    return &tile;
+}
+
+int TileView::getCardinality() const {
+    return cardinality;
+}
+
+bool TileView::isCornerTile() const {
+    return cornerTile;
 }
 
 void TileView::render() {
@@ -172,13 +186,134 @@ void TileView::render() {
     DrawModel(model, pos, 1, color);
 }
 
+
+Vector3 TileView::getPlayerPosInTile(int playerIdx) {
+    Vector2 tileSize = tileDim;
+    if (cornerTile) {
+        tileSize.x = tileDim.y;
+    } else {
+        tileSize.x *= 0.85;
+    }
+    Vector3 relPlayerPos;
+    if (playersInTile.size() == 1) {
+        relPlayerPos =  {0, 0, 0};
+    } else if (playersInTile.size() == 2) {
+        if (playerIdx == 0) relPlayerPos = {0, 0, tileSize.y*0.325f};
+        else relPlayerPos = {0, 0, -tileSize.y*0.325f};
+    } else {
+        if (playerIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.325f};
+        else if (playerIdx == 1) relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+        else if (playerIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+        else relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.325f};
+    }
+    return pos + Vector3Transform(relPlayerPos, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
+}
+
+Vector3 StreetTileView::getPlayerPosInTile(int playerIdx) {
+    Vector2 tileSize = tileDim;
+    if (cornerTile) {
+        tileSize.x = tileDim.y;
+    } else {
+        tileSize.x *= 0.85;
+    }
+    Vector3 relPlayerPos;
+    if (playersInTile.size() == 1) {
+        relPlayerPos =  {0, 0, 0};
+    } else if (playersInTile.size() == 2) {
+        if (playerIdx == 0) relPlayerPos = {0, 0, tileSize.y*0.175f};
+        else relPlayerPos = {0, 0, -tileSize.y*0.325f};
+    } else {
+        if (playerIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.175f};
+        else if (playerIdx == 1) relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+        else if (playerIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+        else relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.175f};
+    }
+    return pos + Vector3Transform(relPlayerPos, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
+}
+
+Vector3 JailTileView::getPlayerPosInTile(int playerIdx) {
+    Vector2 tileSize = tileDim;
+    if (cornerTile) {
+        tileSize.x = tileDim.y;
+    } else {
+        tileSize.x *= 0.85;
+    }
+    Vector3 relPlayerPos;
+    if(cornerTile) {
+        if (playersInTile.size() == 1) {
+            relPlayerPos =  {tileSize.x*0.325f, 0, tileSize.y*0.325f};
+        } else if (playersInTile.size() == 2) {
+            if (playerIdx == 0) relPlayerPos = {0, 0, tileSize.y*0.325f};
+            else relPlayerPos = {tileSize.x*0.325f, 0, 0};
+        } else if (playersInTile.size() == 3) {
+            if (playerIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.325f};
+            else if (playerIdx == 1) relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.325f};
+            else relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+        } else {
+            if (playerIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.325f};
+            else if (playerIdx == 1) relPlayerPos = {tileSize.x*0.075f, 0, tileSize.y*0.325f};
+            else if (playerIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.075f};
+            else relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+        }
+    } else {
+        if (playersInTile.size() == 1) {
+            relPlayerPos =  {0, 0, -tileSize.y*0.125f};
+        } else if (playersInTile.size() == 2) {
+            if (playerIdx == 0) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.15f};
+            else relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.15f};
+        } else {
+            if (playerIdx == 0) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.125f};
+            else if (playerIdx == 1) relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.125f};
+            else if (playerIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+            else relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+        }
+    }
+    return pos + Vector3Transform(relPlayerPos, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
+}
+
+Vector3 TileView::getPassingPos() {
+    if (playersInTile.size() == 1) {
+        return pos + Vector3Transform((Vector3){0,0,-tileDim.y*0.25f}, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
+    } else {
+        return pos;
+    }
+}
+
+Vector3 StreetTileView::getPassingPos() {
+    if (playersInTile.size() > 1) {
+        return pos + Vector3Transform((Vector3){0,0,-tileDim.y*0.125f}, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
+    } else if (playersInTile.size() == 1){
+        return pos + Vector3Transform((Vector3){0,0,-tileDim.y*0.25f}, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
+    } else {
+        return pos;
+    }
+}
+
+Vector3 JailTileView::getPassingPos() {
+    return pos + Vector3Transform((Vector3){0, 0, -tileDim.y*0.325f}, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
+}
+
+void TileView::adjustPlayersInTile() {
+    for (int i = 0; i < playersInTile.size(); i++) {
+        View3DAnimation* adjustAnim = new View3DAnimation(*playersInTile[i], 120, true, [](){}, [](){});
+        adjustAnim->setMoveAnimation(getPlayerPosInTile(i), 0.1);
+        playersInTile[i]->addAnimation("ADJUST_POS", adjustAnim);
+        playersInTile[i]->getAnimation("ADJUST_POS")->start();
+    }
+}   
+
+void TileView::handlePlayerEnteringTile(PlayerView* player) {
+    playersInTile.push_back(player);
+    adjustPlayersInTile();
+}
+
 const Vector2 TileView::getTileDim() {
     return tileDim;
 }
 
-PropertyTileView::PropertyTileView(PropertyTile& tile, const bool cornerTile) : 
+PropertyTileView::PropertyTileView(PropertyTile& tile, const bool cornerTile,const int cardinality) : 
     TileView(tile, tile.getProperty()->getName(), "M" + to_string(tile.getProperty()->getPurchasePrice()), 
-             cornerTile, ""), property(*tile.getProperty()) {
+             cornerTile, cardinality, ""), property(*tile.getProperty()) {
     if (tile.getProperty()->getType() == PropertyType::RAILROAD) {
         drawImageOnTexture(&tileTexture, "data/GUIAssets/railroad_icon.png", cornerTile);
     } else if (tile.getProperty()->getType() == PropertyType::UTILITY) {
@@ -186,12 +321,12 @@ PropertyTileView::PropertyTileView(PropertyTile& tile, const bool cornerTile) :
     }
 }
 
-StreetTileView::StreetTileView(PropertyTile& tile, StreetProperty& street, const bool cornerTile) : 
-    PropertyTileView(tile, cornerTile), street(street) {}
+StreetTileView::StreetTileView(PropertyTile& tile, StreetProperty& street, const bool cornerTile,const int cardinality) : 
+    PropertyTileView(tile, cornerTile, cardinality), street(street) {}
 
 
-GoTileView::GoTileView(GoTile& tile, const bool cornerTile) : 
-    TileView(tile, "COLLECT M" + to_string(tile.getSalary()) + " SALARY", "", cornerTile, "data/GUIAssets/go_icon.png") {
+GoTileView::GoTileView(GoTile& tile, const bool cornerTile, const int cardinality) : 
+    TileView(tile, "COLLECT M" + to_string(tile.getSalary()) + " SALARY", "", cornerTile, cardinality, "data/GUIAssets/go_icon.png") {
     BeginTextureMode(tileTexture);
     Image img = LoadImage("data/GUIAssets/goarrow_icon.png");
     ImageFlipVertical(&img);
@@ -206,8 +341,10 @@ GoTileView::GoTileView(GoTile& tile, const bool cornerTile) :
     UnloadTexture(imgTexture);
 }
 
-JailTileView::JailTileView(Tile& tile, const bool cornerTile) :
-    TileView(tile, "IN JAIL", "JUST VISITING", cornerTile, "") {
+
+
+JailTileView::JailTileView(Tile& tile, const bool cornerTile, const int cardinality) :
+    TileView(tile, "IN JAIL", "JUST VISITING", cornerTile, cardinality, "") {
     BeginTextureMode(tileTexture);
     ClearBackground({205, 230, 208, 255});
     if(!cornerTile) {

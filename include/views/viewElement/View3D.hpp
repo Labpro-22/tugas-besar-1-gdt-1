@@ -2,6 +2,11 @@
 #include "raylib.h"
 #include "raymath.h"
 #include <iostream>
+#include <map>
+#include <vector>
+using namespace std;
+
+class View3DAnimation;
 
 class View3D {
     protected:
@@ -10,15 +15,20 @@ class View3D {
         Matrix transformation;
         Color color;
         Vector3 dimension;
+        map<string, View3DAnimation*> animations;
     public:
         View3D();
         View3D(const Vector3& pos, const Model& model, const Color& color);
         const Vector3 getPos() const;
-        void setPos(const Vector3& pos);
+        void movePosition(const Vector3& pos);
+        void movePositionDelta(const Vector3& deltaPos);
         void setPosX(float x);
         void setPosY(float y);
         void setPosZ(float z);
-        void setTransform(Matrix& m);
-        void transform(Matrix& m);
+        void setTransform(const Matrix& m);
+        void transform(const Matrix& m);
+        void addAnimation(string animKey, View3DAnimation* anim);
+        View3DAnimation* getAnimation(string animKey) const;
+        void animationCheck();
         virtual void render();
 };

@@ -47,8 +47,7 @@ BoardView::BoardView(Board& board) : View3D({0,0.015,0}, getBoardModel(board), W
     RenderTexture2D texture = LoadRenderTexture(1500, 1500);
     getBaseBoardTexture(&texture, 1500, 1500);
     model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture.texture;
-    
-    int i = 9;
+    int i = 0;
     int tilePerDirection = board.getAllTiles().size() / 4;
     float boardSide = (tilePerDirection - 1)*TileView::getTileDim().x + 2*TileView::getTileDim().y;
     Vector3 startingPos = {-(boardSide - TileView::getTileDim().y)/2, 0.03, (boardSide - TileView::getTileDim().y)/2};
@@ -57,46 +56,45 @@ BoardView::BoardView(Board& board) : View3D({0,0.015,0}, getBoardModel(board), W
     for (Tile* tile : board.getAllTiles()) {
         TileView* tileView;
         bool isCorner = i % (tilePerDirection) == 0;
-        
+        int cardinality = i / tilePerDirection;
         if (tile->getCategory() == TileCategory::PROPERTY) {
             PropertyTile* pTile = static_cast<PropertyTile*>(tile);
             if (pTile->getProperty()->getType() == PropertyType::STREET) {
                 StreetProperty* st = static_cast<StreetProperty*>(pTile->getProperty());
-                tileView = new StreetTileView(*pTile, *st, isCorner);
+                tileView = new StreetTileView(*pTile, *st, isCorner, cardinality);
             }
             else {
-                tileView = new PropertyTileView(*pTile, isCorner);
+                tileView = new PropertyTileView(*pTile, isCorner, cardinality);
             }
         } else {
             if(tile->getCode() == "PPH") {
                 IncomeTaxTile* itTile = static_cast<IncomeTaxTile*>(tile);
                 tileView = new TileView(*tile, "INCOME TAX", 
                                         "$" + to_string(itTile->getFlatAmount())+ " / " + to_string(itTile->getFlatAmount()) + "%",
-                                        isCorner, "data/GUIAssets/incometax_icon.png");
+                                        isCorner, cardinality, "data/GUIAssets/incometax_icon.png");
             } else if (tile->getCode() == "PBM") {
                 LuxuryTaxTile* lTile = static_cast<LuxuryTaxTile*>(tile);
                 tileView = new TileView(*tile, "LUXURY TAX", 
                                         "$" + to_string(lTile->getFlatAmount()),
-                                        isCorner, "data/GUIAssets/luxurytax_icon.png");
+                                        isCorner, cardinality, "data/GUIAssets/luxurytax_icon.png");
             } else if (tile->getCode() == "GO") {
                 GoTile* gTile = static_cast<GoTile*>(tile);
-                tileView = new GoTileView(*gTile, isCorner);
+                tileView = new GoTileView(*gTile, isCorner, cardinality);
             } else if (tile->getCode() == "PEN") {
-                tileView = new JailTileView(*tile, isCorner);
+                tileView = new JailTileView(*tile, isCorner, cardinality);
             } else if (tile->getCode() == "BBP") {
-                tileView = new TileView(*tile, "FREE", "PARKING", isCorner, "data/GUIAssets/freeparking_icon.png");
+                tileView = new TileView(*tile, "FREE", "PARKING", isCorner, cardinality, "data/GUIAssets/freeparking_icon.png");
             } else if (tile->getCode() == "PPJ") {
-                tileView = new TileView(*tile, "GO TO", "JAIL", isCorner, "data/GUIAssets/gotojail_icon.png");
+                tileView = new TileView(*tile, "GO TO", "JAIL", isCorner, cardinality, "data/GUIAssets/gotojail_icon.png");
             } else if (tile->getCode() == "KSP") {
-                tileView = new TileView(*tile, "CHANCE", "", isCorner, "data/GUIAssets/chancetile_icon.png");
+                tileView = new TileView(*tile, "CHANCE", "", isCorner, cardinality, "data/GUIAssets/chancetile_icon.png");
             } else if (tile->getCode() == "DNU") {
-                tileView = new TileView(*tile, "COMMUNITY CHEST", "", isCorner, "data/GUIAssets/comchesttile_icon.png");
+                tileView = new TileView(*tile, "COMMUNITY CHEST", "", isCorner, cardinality, "data/GUIAssets/comchesttile_icon.png");
             } else if (tile->getCode() == "FES") {
-                tileView = new TileView(*tile, "FESTIVAL", "", isCorner, "data/GUIAssets/festival_icon.png");
+                tileView = new TileView(*tile, "FESTIVAL", "", isCorner, cardinality, "data/GUIAssets/festival_icon.png");
             }
         }
-        tileView->setPos(startingPos);
-        
+        tileView->movePosition(startingPos);
         
 
         Matrix rotation = MatrixRotate({0,1,0}, -M_PI/2);
@@ -112,9 +110,42 @@ BoardView::BoardView(Board& board) : View3D({0,0.015,0}, getBoardModel(board), W
         }
         i++;
         tileView->transform(tileRotation);
-        tiles.push_back(*tileView);
+        tiles.push_back(tileView);
     }
     cout<<tiles.size()<<endl;
+}
+
+TileView* BoardView::getTileFromIdx(const int idx) const{
+    if (idx >= tiles.size()) {
+        return nullptr;
+    } else {
+        return tiles[idx];
+    }
+}
+
+TileView* BoardView::getNextTile(const int idx) const{
+    if (idx >= tiles.size()) {
+        return nullptr;
+    } else {
+        return tiles[(idx + 1) % tiles.size()];
+    }
+}
+
+TileView* BoardView::getNextTile(TileView& tile) const {
+    int idx = tile.getTile()->getIndex();
+    if (idx >= tiles.size()) {
+        return nullptr;
+    } else {
+        return tiles[(idx + 1) % tiles.size()];
+    }
+}
+
+TileView* BoardView::getGoTile() const {
+    return getTileFromIdx(board.getGoTile()->getIndex());
+}
+
+TileView* BoardView::getJailTile() const {
+    return getTileFromIdx(board.getJailTile()->getIndex());
 }
 
 const float BoardView::getBoardSize() const {
@@ -125,8 +156,8 @@ void BoardView::render() {
     model.transform = transformation;
     DrawModel(model, pos, 1, color);
     int i = 0;
-    for (TileView& tile : tiles) {
-        tile.render();
+    for (TileView* tile : tiles) {
+        tile->render();
         i++;
     }
 }

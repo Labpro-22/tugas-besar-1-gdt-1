@@ -2,6 +2,7 @@
 #include "../include/views/animation/camera/CameraMovement.hpp"
 #include <set>
 
+
 CameraManager::CameraManager() : currentCamera(nullptr) {}
 
 void CameraManager::addCamera(const string camKey, const View3DCamera& camera) {
@@ -22,14 +23,15 @@ View3DCamera& CameraManager::getCamera(const string camKey) {
 }
 
 
-void CameraManager::switchTo(string camKey, const float duration) {
+void CameraManager::switchTo(string camKey, const float duration, function<void()> switchEndFunc) {
     cameraMap["SWITCH_CAM"] = View3DCamera(currentCamera->getPos(), currentCamera->getTarget(), currentCamera->getFOV());
     View3DCamera* destCam = &cameraMap.at(camKey);
     currentCamera = &cameraMap.at("SWITCH_CAM");
-    cameraMap.at("SWITCH_CAM").addMovement("SWITCH", new CameraMovement(cameraMap.at("SWITCH_CAM"), 120, false, [](){}, [this, camKey](){
+    cameraMap.at("SWITCH_CAM").addMovement("SWITCH", new CameraMovement(cameraMap.at("SWITCH_CAM"), 120, false, [](){}, [this, camKey, switchEndFunc](){
         View3DCamera* doneCam = this->currentCamera;
         this->currentCamera = &cameraMap.at(camKey);
         doneCam->close();
+        switchEndFunc();
     }));
     cameraMap.at("SWITCH_CAM").getMovement("SWITCH")->setMoveToCameraAnimation(*destCam, duration);
     cameraMap.at("SWITCH_CAM").getMovement("SWITCH")->start();
@@ -44,7 +46,7 @@ void CameraManager::switchToNextCam(const float duration) {
     } else {
         nextCam = next(it, 1)->first;
     }
-    switchTo(nextCam, duration);
+    switchTo(nextCam, duration, [](){});
 }
 
 void CameraManager::updateCamMap() {

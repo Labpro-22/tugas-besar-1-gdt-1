@@ -97,6 +97,18 @@ void GUI::loadPopup(Popup* popup) {
     views.insert(popup);
 }
 
+void GUI::loadPlayer(Player& player) {
+    Color playerColor;
+    switch(players.size()) {
+        case 0: playerColor = RED; break;
+        case 1: playerColor = BLUE; break;
+        case 2: playerColor = GREEN; break;
+        case 3: playerColor = YELLOW; break;
+        default: playerColor = LIGHTGRAY;
+    }
+    players.push_back(new PlayerView(player, board, playerColor, &camManager));
+}
+
 string GUI::getCommand() {
     for (View2D* view : views) {
         string command = view->catchCommand();
@@ -113,8 +125,14 @@ string GUI::getCommand() {
                 }
                 if (tokens[1] == "LOAD_CONFIRM_POPUP") { 
                     loadPopup(new LoadConfirmPopup(tokens[2])); 
-                } else if (tokens[1] == "SWITCH_TOP_VIEW") {
-                    camManager.switchTo("TOP_VIEW", 1);
+                } else if (tokens[1] == "TOP_VIEW") {
+                    camManager.switchTo("TOP_VIEW", 1, [](){});
+                } else if (tokens[1] == "MOVE_PLAYER") {
+                    camManager.switchTo(players[stoi(tokens[2])]->getPlayerCamKey(), 1, [this, tokens](){
+                        players[stoi(tokens[2])]->moveToTile(*board->getTileFromIdx(stoi(tokens[3])));
+                    });
+                } else if (tokens[1] == "BOARD_CAM") {
+                    camManager.switchTo("BOARD_CAM", 1, [](){});
                 }
                 return "NULL";
             }
@@ -177,7 +195,9 @@ void GUI::display() {
     BeginMode3D(camManager.mount());
         DrawGrid(40,1);
         board->render();
-        
+        for (PlayerView* player : players) {
+            player->render();
+        }
     EndMode3D();
     if (menu != nullptr) menu->render();
     if (debuggingEntry != nullptr) debuggingEntry->render();

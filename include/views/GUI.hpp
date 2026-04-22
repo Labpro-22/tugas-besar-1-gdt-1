@@ -2,6 +2,7 @@
 #include "views/IGUI.hpp"
 #include "views/viewElement/MenuView.hpp"
 #include "views/viewElement/board/BoardView.hpp"
+#include "views/viewElement/player/PlayerView.hpp"
 #include "views/viewElement/Popup.hpp"
 #include "views/animation/ViewAnimation.hpp"
 #include "views/animation/camera/CameraManager.hpp"
@@ -16,6 +17,7 @@ class GUI : public IGUI {
         MenuView* menu;
         Entry* debuggingEntry;
         BoardView* board;
+        vector<PlayerView*> players;
 
         CameraManager camManager;
 
@@ -58,6 +60,7 @@ class GUI : public IGUI {
 
         // Utility khusus GUI raylib (bukan bagian IGUI)
         void loadPopup(Popup* popup);
+        void loadPlayer(Player& player);
         void enableAll();
         void disableAll();
 

@@ -19,6 +19,14 @@ int main() {
     Board& b = *CL.buildBoard(GC.getProperties(), GC);
     GUI app(120, b);
     app.loadMainMenu();
+    Player player = Player("Big Man", 500);
+    Player player2 = Player("Little Man", 500);
+    Player player3 = Player("Medium Man", 500);
+    Player player4 = Player("Nonexistent Man", 500);
+    app.loadPlayer(player);
+    app.loadPlayer(player2);
+    app.loadPlayer(player3);
+    app.loadPlayer(player4);
     app.loadDebuggingEntry();
     while (!WindowShouldClose()) {
         ClearBackground(RAYWHITE);

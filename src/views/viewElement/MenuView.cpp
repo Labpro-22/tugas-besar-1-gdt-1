@@ -39,7 +39,7 @@ MainMenuView::MainMenuView() :
     });
 
 
-    ViewAnimation* anim = new ViewAnimation(*this, 120, true, [](){}, [this](){ closeView = true; });
+    View2DAnimation* anim = new View2DAnimation(*this, 120, true, [](){}, [this](){ closeView = true; });
     anim->setMoveAnimation({pos.x, pos.y - getRenderHeight()}, 1);
     this->addAnimation("START_GAME", anim);
     Image img = LoadImage("data/GUIAssets/nimonspoli_logo.png");

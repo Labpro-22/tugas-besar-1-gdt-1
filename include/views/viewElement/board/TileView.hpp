@@ -12,20 +12,29 @@
 #include "../../../models/Property/Property.hpp"
 #include "../../../models/Property/StreetProperty.hpp"
 
-
+class PlayerView;
 
 class TileView : public View3D {
     protected :
         Tile& tile;
         string tileHeader;
         string tileFooter;
+        int cardinality;
         bool cornerTile;
         RenderTexture2D tileTexture;
         bool isTextureLoaded;
+        vector<PlayerView*> playersInTile;
 
         static Vector2 tileDim;
     public :
-        TileView(Tile& tile, const string tileHeader, const string tileFooter, const bool cornerTile, const string iconFilePath);
+        TileView(Tile& tile, const string tileHeader, const string tileFooter, const bool cornerTile, const int cardinality, const string iconFilePath);
+        Tile* getTile() const;
+        int getCardinality() const;
+        bool isCornerTile() const;
+        virtual Vector3 getPlayerPosInTile(int playerIdx);
+        virtual Vector3 getPassingPos();
+        void adjustPlayersInTile();
+        void handlePlayerEnteringTile(PlayerView* player);
         static const Vector2 getTileDim();
         void render() override;
 };
@@ -34,24 +43,28 @@ class PropertyTileView : public TileView {
     protected :
         Property& property;
     public :
-        PropertyTileView(PropertyTile& tile, const bool cornerTile);
+        PropertyTileView(PropertyTile& tile, const bool cornerTile, const int cardinality);
 };
 
 class StreetTileView : public PropertyTileView {
     private :
         StreetProperty& street;
     public :
-        StreetTileView(PropertyTile& tile, StreetProperty& street, const bool cornerTile);
+        StreetTileView(PropertyTile& tile, StreetProperty& street, const bool cornerTile, const int cardinality);
+        Vector3 getPlayerPosInTile(int playerIdx) override;
+        Vector3 getPassingPos() override;
 };
 
 class GoTileView : public TileView {
     private:
     public:
-        GoTileView(GoTile& tile, const bool cornerTile);
+        GoTileView(GoTile& tile, const bool cornerTile, const int cardinality);
 };
 
 class JailTileView : public TileView {
     private:
     public:
-        JailTileView(Tile& tile, const bool cornerTile);
+        JailTileView(Tile& tile, const bool cornerTile, const int cardinality);
+        Vector3 getPlayerPosInTile(int playerIdx) override;
+        Vector3 getPassingPos() override;
 };

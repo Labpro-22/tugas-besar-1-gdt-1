@@ -13,7 +13,7 @@ View3DCamera::View3DCamera(const Vector3& pos, const Vector3& target, const floa
 }
 
 View3DCamera::~View3DCamera() {
-    for(auto move : movements) { delete move.second; }
+    //for(auto move : movements) { delete move.second; }
 }
 
 const Vector3 View3DCamera::getPos() const { return position; }
@@ -49,11 +49,24 @@ void View3DCamera::rotateAroundTarget(const float deg, const Vector3& axis) {
 void View3DCamera::addMovement(string moveKey, CameraMovement* movement) { movements[moveKey] = movement; }
 CameraMovement* View3DCamera::getMovement(string moveKey) { return movements.at(moveKey); }
 
+void View3DCamera::pauseAllMovement() {
+    for (auto pair : movements) {
+        pair.second->pause();
+    }
+}
+
+void View3DCamera::resumeAllMovement() {
+    for (auto pair : movements) {
+        pair.second->start();
+    }
+}
+
+
 void View3DCamera::updateMovement() {
     vector<string> doneMovements;
     for(auto move : movements) {
-        move.second->move();
-        if (move.second->hasEnded()) {
+        move.second->play();
+        if (move.second->hasEnded() || closed) {
             doneMovements.push_back(move.first);
         }
     }

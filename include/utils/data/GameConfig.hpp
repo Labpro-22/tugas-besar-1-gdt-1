@@ -6,6 +6,26 @@
 
 class Property;
 
+class ActionTileConfig {
+private:
+    int id;
+    std::string kode;
+    std::string nama;
+    std::string jenis;
+    std::string warna;
+
+public:
+    ActionTileConfig() : id(0) {}
+    ActionTileConfig(int id, std::string kode, std::string nama, std::string jenis, std::string warna) 
+        : id(id), kode(kode), nama(nama), jenis(jenis), warna(warna) {}
+
+    int getId() const { return id; }
+    std::string getKode() const { return kode; }
+    std::string getNama() const { return nama; }
+    std::string getJenis() const { return jenis; }
+    std::string getWarna() const { return warna; }
+};
+
 class TaxConfig {
 private:
     int pphFlat;
@@ -46,6 +66,7 @@ private:
     std::vector<Property*> properties;
     std::map<int, int> railroadRents;
     std::map<int, int> utilityMultipliers;
+    std::map<int, ActionTileConfig> actionTiles;
     TaxConfig tax;
     SpecialConfig special;
     MiscConfig misc;
@@ -55,6 +76,7 @@ public:
     std::vector<Property*> getProperties() const { return properties; }
     const std::map<int, int>& getRailroadRents() const { return railroadRents; }
     const std::map<int, int>& getUtilityMultipliers() const { return utilityMultipliers; }
+    const std::map<int, ActionTileConfig>& getActionTiles() const { return actionTiles; }
     const TaxConfig& getTax() const { return tax; }
     const SpecialConfig& getSpecial() const { return special; }
     const MiscConfig& getMisc() const { return misc; }
@@ -62,9 +84,10 @@ public:
     void setProperties(std::vector<Property*> p) { properties = p; }
     void setRailroadRents(std::map<int, int> rents) { railroadRents = rents; }
     void setUtilityMultipliers(std::map<int, int> multipliers) { utilityMultipliers = multipliers; }
+    void setActionTiles(std::map<int, ActionTileConfig> at) { actionTiles = at; }
     void setTax(TaxConfig t) { tax = t; }
     void setSpecial(SpecialConfig s) { special = s; }
-    void setMisc(MiscConfig m) { misc = m; }
+    void setMisc(MiscConfig m) { misc = m; }  
 };
 
 #endif

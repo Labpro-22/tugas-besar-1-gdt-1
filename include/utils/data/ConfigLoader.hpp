@@ -54,6 +54,7 @@ private:
     std::vector<Property*> loadProperties(std::string filename);
     std::map<int, int> loadRailroadRents(std::string filename);
     std::map<int, int> loadUtilityMultipliers(std::string filename);
+    std::map<int, ActionTileConfig> loadActionTiles(std::string filename);
     TaxConfig loadTaxConfig(std::string filename);
     SpecialConfig loadSpecialConfig(std::string filename);
     MiscConfig loadMiscConfig(std::string filename);

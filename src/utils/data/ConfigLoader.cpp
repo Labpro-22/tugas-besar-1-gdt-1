@@ -13,7 +13,8 @@ GameConfig ConfigLoader::loadGameConfig() {
     config.setSpecial(loadSpecialConfig(configDir + "/special.txt"));
     config.setMisc(loadMiscConfig(configDir + "/misc.txt"));
     config.setProperties(loadProperties(configDir + "/property.txt"));
-    
+    config.setActionTiles(loadActionTiles(configDir + "/aksi.txt"));
+
     return config;
 }
 
@@ -252,58 +253,29 @@ Board* ConfigLoader::createStandardBoard(std::vector<Property*> properties, cons
 
 Tile* ConfigLoader::createTileForIndex(int index,
         std::vector<Property*> properties, const GameConfig& config) {
-
-    // a PropertyTile
     if (index >= 0 && index < (int)properties.size() && properties[index] != nullptr) {
         Property* prop = properties[index];
-
-        if (prop->getType() == PropertyType::STREET) {
-            auto* streetProp = dynamic_cast<StreetProperty*>(prop);
-            // Map colorGroup string → TileColor enum
-            TileColor color = TileColor::DEFAULT;
-            std::string c = streetProp->getColorGroup();
-            if      (c == "COKLAT")    color = TileColor::COKLAT;
-            else if (c == "BIRU_MUDA") color = TileColor::BIRU_MUDA;
-            else if (c == "MERAH_MUDA")color = TileColor::MERAH_MUDA;
-            else if (c == "ORANGE")    color = TileColor::ORANYE;
-            else if (c == "MERAH")     color = TileColor::MERAH;
-            else if (c == "KUNING")    color = TileColor::KUNING;
-            else if (c == "HIJAU")     color = TileColor::HIJAU;
-            else if (c == "BIRU_TUA")  color = TileColor::BIRU_TUA;
-            else if (c == "ABU_ABU")   color = TileColor::ABU_ABU;
-            return new StreetTile(index, prop->getCode(), prop->getName(),color, streetProp);
-
-        } else if (prop->getType() == PropertyType::RAILROAD) {
-            return new RailroadTile(index, prop->getCode(), prop->getName(),
-                                    dynamic_cast<RailroadProperty*>(prop));
-
-        } else if (prop->getType() == PropertyType::UTILITY) {
-            return new UtilityTile(index, prop->getCode(), prop->getName(),dynamic_cast<UtilityProperty*>(prop));
-        }
     }
     
-    // Non-property tiles (Nimonspoli 0-based layout)
-    switch (index) {
-        case 0:  return new GoTile(index, config.getSpecial().getGoSalary());   // GO
-        case 10: return new JailTile(index);                                    // PEN
-        case 20: return new FreeParkingTile(index);                             // BBP
-        case 30: return new GoToJailTile(index);                                // PPJ
-
-        case 2:
-        case 17: return new CommunityChestTile(index);                          // DNU
-
-        case 22:
-        case 36: return new ChanceTile(index);                                  // KSP
-
-        case 7:
-        case 33: return new FestivalTile(index);                                // FES
-
-        case 4:  return new IncomeTaxTile(index, config.getTax().getPphFlat(),
-                                          config.getTax().getPphPercent());     // PPH
-        case 38: return new LuxuryTaxTile(index, config.getTax().getPbmFlat()); // PBM
-
-        default: return nullptr;
+    int id = index + 1; 
+    const auto& actionTiles = config.getActionTiles();
+    
+    if (actionTiles.find(id) != actionTiles.end()) {
+        std::string kode = actionTiles.at(id).getKode(); 
+        
+        // Buat petak aksi
+        if (kode == "GO")  return new GoTile(index, config.getSpecial().getGoSalary());
+        if (kode == "PEN") return new JailTile(index);
+        if (kode == "BBP") return new FreeParkingTile(index);
+        if (kode == "PPJ") return new GoToJailTile(index);
+        if (kode == "DNU") return new CommunityChestTile(index);
+        if (kode == "KSP") return new ChanceTile(index);
+        if (kode == "FES") return new FestivalTile(index);
+        if (kode == "PPH") return new IncomeTaxTile(index, config.getTax().getPphFlat(), config.getTax().getPphPercent());
+        if (kode == "PBM") return new LuxuryTaxTile(index, config.getTax().getPbmFlat());
     }
+
+    return nullptr;
 }
 
 //  Deck building
@@ -343,4 +315,29 @@ CardDeck<SkillCard>* ConfigLoader::buildSkillDeck() {
     deck->addCard(new DemolitionCard());
     deck->shuffle();
     return deck;
+}
+
+// Load file aksi.txt
+std::map<int, ActionTileConfig> ConfigLoader::loadActionTiles(std::string filename) {
+    std::map<int, ActionTileConfig> actionTiles;
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Warning: Could not open " << filename << std::endl;
+        return actionTiles;
+    }
+    
+    std::string line;
+    std::getline(file, line); // skip header
+    
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+        std::stringstream ss(line);
+        int id;
+        std::string kode, nama, jenis, warna;
+        
+        if (ss >> id >> kode >> nama >> jenis >> warna) {
+            actionTiles[id] = ActionTileConfig(id, kode, nama, jenis, warna);
+        }
+    }
+    return actionTiles;
 }

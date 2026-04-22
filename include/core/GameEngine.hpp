@@ -2,14 +2,15 @@
 #define GAMEENGINE_HPP
 
 #include "core/Game.hpp"
+#include "core/TurnManager.hpp"
 #include "utils/data/TransactionLogger.hpp"
 #include "utils/data/ConfigLoader.hpp"
 #include "views/IGUI.hpp"
 
-class TurnManager;
 class CommandProcessor;
 class AuctionManager;
 class BankruptcyManager;
+class Property;
 class SaveLoadManager;
 
 class PropertyTile;
@@ -24,11 +25,13 @@ class FestivalTile;
 class TaxTile;
 
 class GameEngine {
+    friend class CommandProcessor;
 private:
     Game* game;
     TransactionLogger* logger;
     IGUI* gui;  // non-owning
 
+    DiceManager* dice;
     TurnManager* turnManager;
     CommandProcessor* commandProcessor;
     AuctionManager* auctionManager;
@@ -53,15 +56,11 @@ private:
     void handleFestivalLanding(Player* player, FestivalTile* tile);
     void handleTaxLanding(Player* player, TaxTile* tile);
     void handleGoToJailLanding(Player* player);
+    void handleBuyOrRent(Player* player, Property* prop, int diceTotal);
 
     bool executePayment(Player* from, Player* to, int amount);
     bool checkWinCondition();
     void endGame();
-
-    void executeGadai(Player* player);
-    void executeTebus(Player* player);
-    void executeBangun(Player* player);
-    void executeGunakanKemampuan(Player* player);
 
 public:
     GameEngine(IGUI* gui);

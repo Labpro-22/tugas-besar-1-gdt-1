@@ -58,6 +58,24 @@ public:
     int size() const {
         return (int)(drawPile.size() + discardPile.size());
     }
+
+    T* takeByName(const std::string& name) {
+        for (auto it = drawPile.begin(); it != drawPile.end(); ++it) {
+            if ((*it)->getCardName() == name) {
+                T* card = *it;
+                drawPile.erase(it);
+                return card;
+            }
+        }
+        for (auto it = discardPile.begin(); it != discardPile.end(); ++it) {
+            if ((*it)->getCardName() == name) {
+                T* card = *it;
+                discardPile.erase(it);
+                return card;
+            }
+        }
+        return nullptr;
+    }
 };
 
 #endif

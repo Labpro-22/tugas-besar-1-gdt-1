@@ -1,11 +1,36 @@
 #include "core/GameEngine.hpp"
+#include "core/CommandProcessor.hpp"
+#include "core/AuctionManager.hpp"
+#include "core/BankruptcyManager.hpp"
+#include "core/SaveLoadManager.hpp"
 
 #include <iostream>
+#include <algorithm>
+#include <random>
+#include <chrono>
+#include <numeric>
+
+#include "models/Player/Player.hpp"
+#include "models/BoardAndTiles/Board.hpp"
+#include "models/BoardAndTiles/Tile.hpp"
+#include "models/BoardAndTiles/PropertyTile.hpp"
+#include "models/BoardAndTiles/SpecialTile.hpp"
+#include "models/BoardAndTiles/ActionTile.hpp"
+#include "models/BoardAndTiles/PropertyTile/StreetTile.hpp"
+#include "models/BoardAndTiles/PropertyTile/RailroadTile.hpp"
+#include "models/BoardAndTiles/PropertyTile/UtilityTile.hpp"
+#include "models/BoardAndTiles/ActionTile/ChanceTile.hpp"
+#include "models/BoardAndTiles/ActionTile/CommunityChestTile.hpp"
+#include "models/BoardAndTiles/ActionTile/FestivalTile.hpp"
+#include "models/BoardAndTiles/ActionTile/TaxTile.hpp"
+#include "models/BoardAndTiles/SpecialTile/GoToJailTile.hpp"
+#include "models/BoardAndTiles/SpecialTile/JailTile.hpp"
 
 GameEngine::GameEngine(IGUI* gui)
     : game(nullptr),
       logger(new TransactionLogger()),
       gui(gui),
+      dice(new DiceManager()),
       turnManager(nullptr),
       commandProcessor(nullptr),
       auctionManager(nullptr),
@@ -13,9 +38,25 @@ GameEngine::GameEngine(IGUI* gui)
       saveLoadManager(nullptr) {}
 
 GameEngine::~GameEngine() {
-    // delete manager di sini setelah header-nya tersedia
+    delete commandProcessor;
+    delete auctionManager;
+    delete bankruptcyManager;
+    delete saveLoadManager;
+    delete turnManager;
+    delete dice;
     delete logger;
     delete game;
+}
+
+static std::string waitForInput(IGUI* gui, const std::string& prompt) {
+    gui->showInputPrompt(prompt);
+    while (!gui->shouldExit()) {
+        gui->update();
+        gui->display();
+        std::string c = gui->getCommand();
+        if (!c.empty() && c != "NULL") return c;
+    }
+    return "";
 }
 
 void GameEngine::run() {
@@ -72,95 +113,268 @@ void GameEngine::initNewGame() {
     auto decks = loader.buildDecks();
     game->setDecks(std::get<0>(decks), std::get<1>(decks), std::get<2>(decks));
 
-    // TODO: tanya jumlah pemain, buat Player, acak turnOrder
+    turnManager = new TurnManager(game, dice, gui);
+    commandProcessor = new CommandProcessor(this, game, turnManager, dice, gui);
+    auctionManager = new AuctionManager(game, logger, gui);
+    bankruptcyManager = new BankruptcyManager(game, logger, gui, auctionManager);
+    saveLoadManager = new SaveLoadManager(game, logger, gui);
+
+    int numPlayers = 0;
+    while (numPlayers < 2 || numPlayers > 4) {
+        std::string s = waitForInput(gui, "Jumlah pemain (2-4):");
+        try { numPlayers = std::stoi(s); } catch (...) { numPlayers = 0; }
+        if (numPlayers < 2 || numPlayers > 4) {
+            gui->showMessage("Jumlah pemain harus 2-4.");
+        }
+    }
+
+    int initBalance = config.getMisc().getInitialBalance();
+    for (int i = 0; i < numPlayers; ++i) {
+        std::string uname = waitForInput(gui,
+            "Username pemain ke-" + std::to_string(i + 1) + ":");
+        game->addPlayer(new Player(uname, initBalance));
+    }
+
+    std::vector<int> order(numPlayers);
+    std::iota(order.begin(), order.end(), 0);
+    unsigned seed = static_cast<unsigned>(
+        std::chrono::system_clock::now().time_since_epoch().count());
+    std::shuffle(order.begin(), order.end(), std::default_random_engine(seed));
+    game->setTurnOrder(order);
+    game->setCurrentTurnIndex(0);
+    game->setCurrentTurn(1);
+
+    gui->loadGameView();
 }
 
 void GameEngine::initLoadGame() {
-    // TODO: load dari file via saveLoadManager
+    this->game = new Game();
+
+    ConfigLoader loader("data/");
+    GameConfig config = loader.loadGameConfig();
+
+    game->setConfigValues(
+        config.getMisc().getMaxTurn(),
+        config.getMisc().getInitialBalance(),
+        config.getSpecial().getGoSalary(),
+        config.getSpecial().getJailFine(),
+        config.getTax().getPphFlat(),
+        config.getTax().getPphPercent(),
+        config.getTax().getPbmFlat(),
+        config.getRailroadRents(),
+        config.getUtilityMultipliers()
+    );
+    game->setBoard(loader.buildBoard(config.getProperties(), config));
+    auto decks = loader.buildDecks();
+    game->setDecks(std::get<0>(decks), std::get<1>(decks), std::get<2>(decks));
+
+    turnManager = new TurnManager(game, dice, gui);
+    commandProcessor = new CommandProcessor(this, game, turnManager, dice, gui);
+    auctionManager = new AuctionManager(game, logger, gui);
+    bankruptcyManager = new BankruptcyManager(game, logger, gui, auctionManager);
+    saveLoadManager = new SaveLoadManager(game, logger, gui);
+
+    std::string filepath = waitForInput(gui, "Nama file save:");
+    if (!saveLoadManager->load(filepath)) {
+        gui->showMessage("Load gagal, memulai game baru.");
+        return;
+    }
+    gui->showMessage("Game dimuat dari " + filepath);
+    gui->loadGameView();
 }
 
 void GameEngine::gameLoop() {
-    // TODO: loop tiap giliran sampai game over
+    if (game == nullptr || turnManager == nullptr) return;
+
+    while (!game->isGameOver() && !game->isMaxTurnReached()) {
+        Player* current = game->getCurrentPlayer();
+        if (current == nullptr) break;
+
+        processPlayerTurn(current);
+
+        if (checkWinCondition()) {
+            game->setGameOver(true);
+            break;
+        }
+
+        game->advanceTurnOrder();
+        if (game->getCurrentTurnIndex() == 0) {
+            game->incrementTurn();
+        }
+    }
+    endGame();
 }
 
-void GameEngine::processPlayerTurn(Player* /*player*/) {
-    // TODO: startTurn → loop perintah → endTurn
+void GameEngine::processPlayerTurn(Player* player) {
+    turnManager->startTurn(player);
+    gui->renderPlayer(*player);
+
+    while (!gui->shouldExit()) {
+        gui->update();
+        gui->display();
+
+        std::string cmd = gui->getCommand();
+        if (cmd.empty() || cmd == "NULL") continue;
+
+        CommandResult res = commandProcessor->process(cmd, player);
+        if (res == CommandResult::END_TURN)       break;
+        if (res == CommandResult::GAME_OVER)      { game->setGameOver(true); return; }
+        if (res == CommandResult::SAVED_MID_TURN) return;
+    }
+
+    if (turnManager->getPhase() != TurnPhase::ENDED) {
+        turnManager->endTurn(player);
+    }
 }
 
-void GameEngine::handleTileLanding(Player* /*player*/, Tile* /*tile*/) {
-    // TODO: dispatch berdasarkan getCategory()
+void GameEngine::handleTileLanding(Player* player, Tile* tile) {
+    if (player == nullptr || tile == nullptr || game == nullptr) return;
+
+    switch (tile->getCategory()) {
+        case TileCategory::PROPERTY:
+            handlePropertyLanding(player, dynamic_cast<PropertyTile*>(tile));
+            break;
+        case TileCategory::ACTION:
+            handleActionLanding(player, dynamic_cast<ActionTile*>(tile));
+            break;
+        case TileCategory::SPECIAL:
+            handleSpecialLanding(player, dynamic_cast<SpecialTile*>(tile));
+            break;
+    }
 }
 
-void GameEngine::handlePropertyLanding(Player* /*player*/, PropertyTile* /*tile*/) {
-    // TODO
+void GameEngine::handlePropertyLanding(Player* player, PropertyTile* tile) {
+    if (tile == nullptr) return;
+    if      (auto* s = dynamic_cast<StreetTile*>(tile))   handleStreetLanding(player, s);
+    else if (auto* r = dynamic_cast<RailroadTile*>(tile)) handleRailroadLanding(player, r);
+    else if (auto* u = dynamic_cast<UtilityTile*>(tile))  handleUtilityLanding(player, u);
 }
 
-void GameEngine::handleActionLanding(Player* /*player*/, ActionTile* /*tile*/) {
-    // TODO
+void GameEngine::handleActionLanding(Player* player, ActionTile* tile) {
+    if (tile == nullptr) return;
+    if      (auto* c = dynamic_cast<ChanceTile*>(tile))          handleChanceLanding(player, c);
+    else if (auto* cc = dynamic_cast<CommunityChestTile*>(tile)) handleCommunityChestLanding(player, cc);
+    else if (auto* f = dynamic_cast<FestivalTile*>(tile))        handleFestivalLanding(player, f);
+    else if (auto* t = dynamic_cast<TaxTile*>(tile))             handleTaxLanding(player, t);
 }
 
-void GameEngine::handleSpecialLanding(Player* /*player*/, SpecialTile* /*tile*/) {
-    // TODO
+void GameEngine::handleSpecialLanding(Player* player, SpecialTile* tile) {
+    if (tile == nullptr) return;
+    if (dynamic_cast<GoToJailTile*>(tile)) {
+        handleGoToJailLanding(player);
+        return;
+    }
+    // GO / Jail / FreeParking delegasi ke tile.onLanded
+    tile->onLanded(*player, *game);
 }
 
-void GameEngine::handleStreetLanding(Player* /*player*/, StreetTile* /*tile*/) {
-    // TODO: beli / sewa / lelang
+void GameEngine::handleBuyOrRent(Player* player, Property* prop, int diceTotal) {
+    if (prop == nullptr) return;
+
+    if (prop->getOwner() == nullptr) {
+        gui->showInputPrompt("Beli " + prop->getName() +
+            " seharga " + std::to_string(prop->getPurchasePrice()) + "? (YA/TIDAK)");
+        std::string ans;
+        while (!gui->shouldExit()) {
+            gui->update(); gui->display();
+            std::string c = gui->getCommand();
+            if (!c.empty() && c != "NULL") { ans = c; break; }
+        }
+        std::string up = ans;
+        std::transform(up.begin(), up.end(), up.begin(),
+                       [](unsigned char c){ return std::toupper(c); });
+        if (up == "YA" || up == "BELI" || up == "Y") {
+            if (player->canAfford(prop->getPurchasePrice())) {
+                player->deductMoney(prop->getPurchasePrice());
+                prop->setOwner(player);
+                prop->setStatus(PropertyStatus::OWNED);
+                player->addProperty(prop);
+                gui->showMessage(player->getUsername() + " membeli " + prop->getName());
+                return;
+            }
+            gui->showMessage("Saldo tidak cukup. Lanjut ke lelang.");
+        }
+        auctionManager->runAuction(prop, player);
+        return;
+    }
+
+    if (prop->getOwner() == player) return;
+    if (prop->isMortgaged())        return;
+
+    int rent = prop->calculateRent(diceTotal);
+    if (rent <= 0) return;
+    gui->showMessage(player->getUsername() + " bayar sewa " +
+        std::to_string(rent) + " ke " + prop->getOwner()->getUsername());
+    bankruptcyManager->handleInsufficientFunds(*player, rent, prop->getOwner());
 }
 
-void GameEngine::handleRailroadLanding(Player* /*player*/, RailroadTile* /*tile*/) {
-    // TODO
+void GameEngine::handleStreetLanding(Player* player, StreetTile* tile) {
+    handleBuyOrRent(player, tile->getProperty(), game->getLastDiceTotal());
 }
 
-void GameEngine::handleUtilityLanding(Player* /*player*/, UtilityTile* /*tile*/) {
-    // TODO
+void GameEngine::handleRailroadLanding(Player* player, RailroadTile* tile) {
+    handleBuyOrRent(player, tile->getProperty(), game->getLastDiceTotal());
 }
 
-void GameEngine::handleChanceLanding(Player* /*player*/, ChanceTile* /*tile*/) {
-    // TODO: draw + execute kartu chance
+void GameEngine::handleUtilityLanding(Player* player, UtilityTile* tile) {
+    handleBuyOrRent(player, tile->getProperty(), game->getLastDiceTotal());
 }
 
-void GameEngine::handleCommunityChestLanding(Player* /*player*/, CommunityChestTile* /*tile*/) {
-    // TODO
+void GameEngine::handleChanceLanding(Player* player, ChanceTile* tile) {
+    tile->onLanded(*player, *game);
 }
 
-void GameEngine::handleFestivalLanding(Player* /*player*/, FestivalTile* /*tile*/) {
-    // TODO
+void GameEngine::handleCommunityChestLanding(Player* player, CommunityChestTile* tile) {
+    tile->onLanded(*player, *game);
 }
 
-void GameEngine::handleTaxLanding(Player* /*player*/, TaxTile* /*tile*/) {
-    // TODO
+void GameEngine::handleFestivalLanding(Player* player, FestivalTile* tile) {
+    tile->onLanded(*player, *game);
 }
 
-void GameEngine::handleGoToJailLanding(Player* /*player*/) {
-    // TODO
+void GameEngine::handleTaxLanding(Player* player, TaxTile* tile) {
+    tile->onLanded(*player, *game);
 }
 
-bool GameEngine::executePayment(Player* /*from*/, Player* /*to*/, int /*amount*/) {
-    // TODO: canAfford → bayar, kalau gagal → bankruptcyManager
-    return false;
+void GameEngine::handleGoToJailLanding(Player* player) {
+    Board* board = game->getBoard();
+    if (board == nullptr) return;
+    JailTile* jail = board->getJailTile();
+    if (jail != nullptr) {
+        player->setPosition(jail->getIndex());
+    }
+    player->setStatus(PlayerStatus::JAILED);
+}
+
+bool GameEngine::executePayment(Player* from, Player* to, int amount) {
+    if (from == nullptr || amount <= 0) return false;
+    if (bankruptcyManager != nullptr) {
+        return bankruptcyManager->handleInsufficientFunds(*from, amount, to);
+    }
+    if (!from->canAfford(amount)) return false;
+    from->deductMoney(amount);
+    if (to != nullptr) to->addMoney(amount);
+    return true;
 }
 
 bool GameEngine::checkWinCondition() {
-    // TODO: satu pemain tersisa atau maxTurn tercapai
+    if (game == nullptr) return false;
+    if (game->getActivePlayerCount() <= 1) return true;
+    if (game->isMaxTurnReached()) return true;
     return false;
 }
 
 void GameEngine::endGame() {
-    // TODO: tentukan pemenang + render
+    if (game == nullptr || gui == nullptr) return;
+
+    Player* winner = nullptr;
+    int bestWealth = -1;
+    for (Player* p : game->getActivePlayers()) {
+        int w = p->calculateTotalWealth();
+        if (w > bestWealth) { bestWealth = w; winner = p; }
+    }
+
+    gui->loadFinishMenu();
+    if (winner != nullptr) gui->renderWinner(*winner);
 }
 
-void GameEngine::executeGadai(Player* /*player*/) {
-    // TODO
-}
-
-void GameEngine::executeTebus(Player* /*player*/) {
-    // TODO
-}
-
-void GameEngine::executeBangun(Player* /*player*/) {
-    // TODO
-}
-
-void GameEngine::executeGunakanKemampuan(Player* /*player*/) {
-    // TODO
-}

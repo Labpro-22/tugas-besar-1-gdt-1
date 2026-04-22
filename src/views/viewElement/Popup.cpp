@@ -22,7 +22,7 @@ IndefinitePopup::IndefinitePopup(const View2D& view) :
 LoadConfirmPopup::LoadConfirmPopup(const string filePath) : 
     IndefinitePopup(View2D(getScreenCenter(), {480, 360}, [](){})),
     filePath(filePath),
-    confirmButton(Interactable({320, 50}, true, false, "LOAD " + filePath, [](){}, [this](){ this->closeView = true;})) 
+    confirmButton(Interactable({320, 50}, true, false, "LOAD_GAME " + filePath, [](){}, [this](){ this->closeView = true;})) 
     {
     confirmButton.movePosition(this->pos.x, this->pos.y + this->getRenderDim().y/2 - this->confirmButton.getBoundingHeight()/2 - 20);
     confirmButton.setRender([this](){

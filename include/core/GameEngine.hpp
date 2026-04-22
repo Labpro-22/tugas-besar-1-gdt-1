@@ -35,8 +35,8 @@ private:
     BankruptcyManager* bankruptcyManager;
     SaveLoadManager* saveLoadManager;
 
-    void initNewGame();
-    void initLoadGame();
+    void initNewGame(const std::string& configPath);
+    void initLoadGame(const std::string& configPath);
 
     void gameLoop();
     void processPlayerTurn(Player* player);
@@ -67,7 +67,7 @@ public:
     GameEngine(IGUI* gui);
     ~GameEngine();
 
-    void run();
+    void update();
 };
 
 #endif

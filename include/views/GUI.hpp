@@ -1,4 +1,5 @@
 #pragma once
+#include "utils/Command.hpp"
 #include "views/IGUI.hpp"
 #include "views/viewElement/MenuView.hpp"
 #include "views/viewElement/board/BoardView.hpp"
@@ -32,7 +33,7 @@ class GUI : public IGUI {
         bool shouldExit() const override;
 
         // Input
-        string getCommand() override;
+        Command getCommand() override;
 
         // Navigasi view
         void loadMainMenu() override;

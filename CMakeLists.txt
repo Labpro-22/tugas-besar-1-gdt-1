@@ -7,8 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(raylib REQUIRED)
 
 add_executable(${PROJECT_NAME} src/core/Game.cpp
+                               src/core/main.cpp
                                src/core/GameEngine.cpp
-                               src/views/ViewTesting.cpp
+                            #    src/views/ViewTesting.cpp
                                src/views/GUI.cpp
                                src/views/viewElement/View2D.cpp
                                src/views/viewElement/View3D.cpp

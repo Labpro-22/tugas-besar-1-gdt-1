@@ -1,18 +1,20 @@
 #include "views/GUI.hpp"
+#include "core/Game.hpp"
 
-GUI::GUI(float fps, Board& board) : menu(nullptr), board(new BoardView(board)),
-         debuggingEntry(nullptr),
-         fps(fps), camManager(CameraManager()), exitRequested(false) {
-    camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize()*1.1f, 10.0f, 0}, {0,0,0}, 45.0f));
-    View3DCamera* boardCam = camManager.getCurrentCamera();
-    boardCam->addMovement("ROTATE_INDEFINITE", 
-        new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this](){
-            boardCam->rotateAroundTarget(27*(1/this->fps), {0,1,0});
-        }, [](){}));
-    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize()*1.25f, 0}, {0,0,0}, 45.0f));
+GUI::GUI(float fps, Board &board) : menu(nullptr), board(new BoardView(board)),
+                                    debuggingEntry(nullptr),
+                                    fps(fps), camManager(CameraManager()), exitRequested(false)
+{
+    camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize() * 1.1f, 10.0f, 0}, {0, 0, 0}, 45.0f));
+    View3DCamera *boardCam = camManager.getCurrentCamera();
+    boardCam->addMovement("ROTATE_INDEFINITE",
+                          new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this]()
+                                             { boardCam->rotateAroundTarget(27 * (1 / this->fps), {0, 1, 0}); }, []() {}));
+    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize() * 1.25f, 0}, {0, 0, 0}, 45.0f));
 }
 
-bool GUI::shouldExit() const {
+bool GUI::shouldExit() const
+{
     return exitRequested;
 }
 
@@ -41,9 +43,15 @@ void GUI::showInputPrompt(const std::string & /*prompt*/)
     // TODO: tampilkan popup input teks
 }
 
-void GUI::renderBoard(const Game & /*game*/)
+void GUI::renderBoard(const Game &game)
 {
-    // TODO
+    Board *b = game.getBoard();
+    if (b == nullptr) return;
+
+    if (board == nullptr)
+    {
+        board = new BoardView(*b);
+    }
 }
 
 void GUI::renderPlayer(const Player & /*player*/)
@@ -115,55 +123,46 @@ void GUI::loadPopup(Popup *popup)
     views.insert(popup);
 }
 
-string GUI::getCommand()
+Command GUI::getCommand()
 {
     for (View2D *view : views)
     {
-        string command = view->catchCommand();
+        string raw = view->catchCommand();
 
-        if (command != "NULL")
+        if (raw == "NULL")
+            continue;
+
+        stringstream ss(raw);
+        string item;
+        vector<string> tokens;
+
+        while (getline(ss, item, ' '))
         {
-            if ("DISPLAY " == command.substr(0, 8))
-            {
-
-                stringstream ss(command);
-                string item;
-                vector<string> tokens;
-
-                while (getline(ss, item, ' '))
-                {
-                    tokens.push_back(item);
-                }
-                if (tokens[1] == "LOAD_CONFIRM_POPUP")
-                {
-                    loadPopup(new LoadConfirmPopup(tokens[2]));
-                }
-                else if (tokens[1] == "SWITCH_TOP_VIEW")
-                {
-                    camManager.switchTo("TOP_VIEW", 1);
-                }
-                else if (tokens.size() >= 4 && tokens[1] == "EXCEPTION_POPUP")
-                {
-                    int errorCode = stoi(tokens[2]);
-
-                    string errorMessage = "";
-                    for (size_t i = 3; i < tokens.size(); ++i)
-                    {
-                        errorMessage += tokens[i];
-                        if (i < tokens.size() - 1)
-                        {
-                            errorMessage += " ";
-                        }
-                    }
-
-                    loadPopup(new ExceptionPopup(errorCode, errorMessage));
-                }
-                return "NULL";
-            }
-            return command;
+            tokens.push_back(item);
         }
+
+        if (tokens.empty())
+            return {"NULL", {}};
+
+        // HANDLE INTERNAL GUI
+        if (tokens[0] == "DISPLAY")
+        {
+            if (tokens[1] == "LOAD_CONFIRM_POPUP")
+            {
+                loadPopup(new LoadConfirmPopup(tokens[2]));
+            }
+            else if (tokens[1] == "SWITCH_TOP_VIEW")
+            {
+                camManager.switchTo("TOP_VIEW", 1);
+            }
+            return {"NULL", {}};
+        }
+
+        // RETURN KE ENGINE
+        return {tokens[0], std::vector<std::string>(tokens.begin() + 1, tokens.end())};
     }
-    return "NULL";
+
+    return {"NULL", {}};
 }
 
 void GUI::enableAll()
@@ -182,12 +181,14 @@ void GUI::disableAll()
     }
 }
 
-
-void GUI::update() {
+void GUI::update()
+{
     camManager.updateCamMap();
-    set<View2D*> closedViews;
-    for (View2D* view : views) {
-        if (view->closed()) {
+    set<View2D *> closedViews;
+    for (View2D *view : views)
+    {
+        if (view->closed())
+        {
             closedViews.insert(view);
         }
         else

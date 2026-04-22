@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils/Command.hpp"
 #include <string>
 #include <vector>
 
@@ -20,7 +21,7 @@ public:
     virtual bool shouldExit() const = 0;
 
     // Input tunggal: command string dari user (kembalikan "NULL" / kosong jika belum ada)
-    virtual std::string getCommand() = 0;
+    virtual Command getCommand() = 0;
 
     // Navigasi view utama
     virtual void loadMainMenu() = 0;

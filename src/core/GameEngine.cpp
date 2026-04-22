@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-GameEngine::GameEngine(IGUI* gui)
+GameEngine::GameEngine(IGUI *gui)
     : game(nullptr),
       logger(new TransactionLogger()),
       gui(gui),
@@ -12,47 +12,45 @@ GameEngine::GameEngine(IGUI* gui)
       bankruptcyManager(nullptr),
       saveLoadManager(nullptr) {}
 
-GameEngine::~GameEngine() {
+GameEngine::~GameEngine()
+{
     // delete manager di sini setelah header-nya tersedia
     delete logger;
     delete game;
 }
 
-void GameEngine::run() {
-    if (gui == nullptr) {
+void GameEngine::update()
+{
+    if (gui == nullptr)
         return;
-    }
 
-    gui->loadMainMenu();
+    gui->update();
+    Command cmd = gui->getCommand();
 
-    // Loop menu utama — menunggu user memilih NEW_GAME atau LOAD_GAME
-    while (!gui->shouldExit()) {
-        gui->update();
-        gui->display();
+    if (!cmd.isNull())
+    {
+        std::string path = cmd.getArgs().empty() ? "data/default" : cmd.getArgs()[0];
 
-        std::string command = gui->getCommand();
-        if (command == "NULL" || command.empty()) {
-            continue;
+        if (cmd.getType() == "NEW_GAME")
+        {
+            initNewGame(path);
+            gui->loadGameView();
+            gui->renderBoard(*game);
         }
-
-        if (command == "NEW_GAME") {
-            initNewGame();
-            gameLoop();
-            break;
-        } else if (command.rfind("LOAD_GAME", 0) == 0) {
-            initLoadGame();
-            gameLoop();
-            break;
-        } else if (command == "EXIT") {
-            break;
+        else if (cmd.getType() == "LOAD_GAME")
+        {
+            initLoadGame(path);
+            gui->loadGameView();
+            gui->renderBoard(*game);
         }
     }
 }
 
-void GameEngine::initNewGame() {
+void GameEngine::initNewGame(const std::string &configPath)
+{
     this->game = new Game();
 
-    ConfigLoader loader("data/");
+    ConfigLoader loader(configPath);
     GameConfig config = loader.loadGameConfig();
 
     game->setConfigValues(
@@ -64,8 +62,7 @@ void GameEngine::initNewGame() {
         config.getTax().getPphPercent(),
         config.getTax().getPbmFlat(),
         config.getRailroadRents(),
-        config.getUtilityMultipliers()
-    );
+        config.getUtilityMultipliers());
 
     game->setBoard(loader.buildBoard(config.getProperties(), config));
 
@@ -75,92 +72,115 @@ void GameEngine::initNewGame() {
     // TODO: tanya jumlah pemain, buat Player, acak turnOrder
 }
 
-void GameEngine::initLoadGame() {
+void GameEngine::initLoadGame(const std::string &configPath)
+{
     // TODO: load dari file via saveLoadManager
+    initNewGame(configPath);
 }
 
-void GameEngine::gameLoop() {
+void GameEngine::gameLoop()
+{
     // TODO: loop tiap giliran sampai game over
 }
 
-void GameEngine::processPlayerTurn(Player* /*player*/) {
+void GameEngine::processPlayerTurn(Player * /*player*/)
+{
     // TODO: startTurn → loop perintah → endTurn
 }
 
-void GameEngine::handleTileLanding(Player* /*player*/, Tile* /*tile*/) {
+void GameEngine::handleTileLanding(Player * /*player*/, Tile * /*tile*/)
+{
     // TODO: dispatch berdasarkan getCategory()
 }
 
-void GameEngine::handlePropertyLanding(Player* /*player*/, PropertyTile* /*tile*/) {
+void GameEngine::handlePropertyLanding(Player * /*player*/, PropertyTile * /*tile*/)
+{
     // TODO
 }
 
-void GameEngine::handleActionLanding(Player* /*player*/, ActionTile* /*tile*/) {
+void GameEngine::handleActionLanding(Player * /*player*/, ActionTile * /*tile*/)
+{
     // TODO
 }
 
-void GameEngine::handleSpecialLanding(Player* /*player*/, SpecialTile* /*tile*/) {
+void GameEngine::handleSpecialLanding(Player * /*player*/, SpecialTile * /*tile*/)
+{
     // TODO
 }
 
-void GameEngine::handleStreetLanding(Player* /*player*/, StreetTile* /*tile*/) {
+void GameEngine::handleStreetLanding(Player * /*player*/, StreetTile * /*tile*/)
+{
     // TODO: beli / sewa / lelang
 }
 
-void GameEngine::handleRailroadLanding(Player* /*player*/, RailroadTile* /*tile*/) {
+void GameEngine::handleRailroadLanding(Player * /*player*/, RailroadTile * /*tile*/)
+{
     // TODO
 }
 
-void GameEngine::handleUtilityLanding(Player* /*player*/, UtilityTile* /*tile*/) {
+void GameEngine::handleUtilityLanding(Player * /*player*/, UtilityTile * /*tile*/)
+{
     // TODO
 }
 
-void GameEngine::handleChanceLanding(Player* /*player*/, ChanceTile* /*tile*/) {
+void GameEngine::handleChanceLanding(Player * /*player*/, ChanceTile * /*tile*/)
+{
     // TODO: draw + execute kartu chance
 }
 
-void GameEngine::handleCommunityChestLanding(Player* /*player*/, CommunityChestTile* /*tile*/) {
+void GameEngine::handleCommunityChestLanding(Player * /*player*/, CommunityChestTile * /*tile*/)
+{
     // TODO
 }
 
-void GameEngine::handleFestivalLanding(Player* /*player*/, FestivalTile* /*tile*/) {
+void GameEngine::handleFestivalLanding(Player * /*player*/, FestivalTile * /*tile*/)
+{
     // TODO
 }
 
-void GameEngine::handleTaxLanding(Player* /*player*/, TaxTile* /*tile*/) {
+void GameEngine::handleTaxLanding(Player * /*player*/, TaxTile * /*tile*/)
+{
     // TODO
 }
 
-void GameEngine::handleGoToJailLanding(Player* /*player*/) {
+void GameEngine::handleGoToJailLanding(Player * /*player*/)
+{
     // TODO
 }
 
-bool GameEngine::executePayment(Player* /*from*/, Player* /*to*/, int /*amount*/) {
+bool GameEngine::executePayment(Player * /*from*/, Player * /*to*/, int /*amount*/)
+{
     // TODO: canAfford → bayar, kalau gagal → bankruptcyManager
     return false;
 }
 
-bool GameEngine::checkWinCondition() {
+bool GameEngine::checkWinCondition()
+{
     // TODO: satu pemain tersisa atau maxTurn tercapai
     return false;
 }
 
-void GameEngine::endGame() {
+void GameEngine::endGame()
+{
     // TODO: tentukan pemenang + render
 }
 
-void GameEngine::executeGadai(Player* /*player*/) {
+void GameEngine::executeGadai(Player * /*player*/)
+{
     // TODO
 }
 
-void GameEngine::executeTebus(Player* /*player*/) {
+void GameEngine::executeTebus(Player * /*player*/)
+{
     // TODO
 }
 
-void GameEngine::executeBangun(Player* /*player*/) {
+void GameEngine::executeBangun(Player * /*player*/)
+{
     // TODO
 }
 
-void GameEngine::executeGunakanKemampuan(Player* /*player*/) {
+void GameEngine::executeGunakanKemampuan(Player * /*player*/)
+{
     // TODO
 }

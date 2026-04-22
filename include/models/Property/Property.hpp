@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 
+class Player;
+
 enum class PropertyStatus
 {
     BANK,

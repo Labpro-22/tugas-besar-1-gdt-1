@@ -1,9 +1,10 @@
 #include "views/GUI.hpp"
 #include "../include/utils/data/GameConfig.hpp"
 #include "../include/utils/data/ConfigLoader.hpp"
+#include "exception/GameException.hpp"
 
-
-int main() {    
+int main()
+{
     const int screenWidth = 1200;
     const int screenHeight = 800;
     SetTraceLogLevel(LOG_NONE);
@@ -30,19 +31,35 @@ int main() {
     app.loadDebuggingEntry();
     while (!WindowShouldClose()) {
         ClearBackground(RAYWHITE);
-        app.update();
-        string command = app.getCommand();
-        if (command != "NULL") { 
-            cout<<command<<endl; 
-            if (command == "START GAME") { app.enterGame(); }
-        };
+        try {
+                app.update();
+                string command = app.getCommand();
+                if (command != "NULL")
+                {
+                    cout << command << endl;
+                    if (command == "START GAME")
+                    {
+                        app.enterGame();
+                    }
+                };
+            }
+            catch (const GameException &e) {
+                app.loadPopup(new ExceptionPopup(e.getErrorCode(), e.what()));
+            }
+            catch (const std::exception &e) {
+                app.loadPopup(new ExceptionPopup(500, e.what()));
+            }catch (const std::exception &e) {
+                std::cerr << "FATAL INIT ERROR: " << e.what() << std::endl;
+            }
         BeginDrawing();
         app.display();
         DrawFPS(10,10);
         EndDrawing();
     }
+    
+
     View2D::unloadFonts();
     CloseWindow();
-   
+
     return 0;
 }

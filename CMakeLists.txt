@@ -1,28 +1,11 @@
 cmake_minimum_required(VERSION 3.11)
 project(Nimonspoli LANGUAGES CXX)
 
-# Use C++17 or higher (recommended for modern wrappers)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(FetchContent)
+find_package(raylib REQUIRED)
 
-# 1. Declare raylib dependency
-FetchContent_Declare(
-  raylib
-  GIT_REPOSITORY https://github.com/raysan5/raylib.git
-  GIT_TAG        master # Or a specific version like 5.0
-)
-
-# 2. Make raylib available to the project
-FetchContent_MakeAvailable(raylib)
-
-# 3. Create your executable
-# add_executable(${PROJECT_NAME} src/views/GUITest.cpp)
-# add_executable(${PROJECT_NAME} src/views/ThrowDice.cpp 
-#                                src/views/animation/physicsEngine/PhysicsObject.cpp
-#                                src/views/animation/physicsEngine/PhysicsEngine.cpp
-#                                src/views/viewElement/View3D.cpp)
 add_executable(${PROJECT_NAME} src/views/ViewTesting.cpp
                                src/views/GUI.cpp
                                src/views/viewElement/View2D.cpp
@@ -74,14 +57,25 @@ add_executable(${PROJECT_NAME} src/views/ViewTesting.cpp
                                src/models/CardAndDeck/SkillCard.cpp
                                src/models/CardAndDeck/TeleportCard.cpp
                                src/exception/GameException.cpp
+                               src/exception/PlayerTurnException.cpp
                                src/exception/InvalidEntryInputException.cpp
                                src/exception/InvalidFileException.cpp
-                               src/exception/InvalidEntryInput/InvalidTileException.cpp
+                               src/exception/PlayerTurn/PropertyManagementException.cpp
+                               src/exception/PlayerTurn/PropertyManagement/PropertyNotMortgagedException.cpp
+                               src/exception/PlayerTurn/PropertyManagement/InsufficientOwnedColorException.cpp
+                               src/exception/PlayerTurn/PropertyManagement/InsufficientMoneyException.cpp
+                               src/exception/PlayerTurn/PropertyManagement/ExistingHotelException.cpp
+                               src/exception/PlayerTurn/InvalidTurnException.cpp
+                               src/exception/PlayerTurn/SkillTurnException.cpp
+                               src/exception/PlayerTurn/SkillTurn/DiceAlreadyRolledException.cpp
+                               src/exception/PlayerTurn/SkillTurn/SkillCardUsedException.cpp
                                src/exception/InvalidEntryInput/InvalidDiceNumberException.cpp
+                               src/exception/InvalidEntryInput/InvalidTileException.cpp
+                               src/exception/InvalidFile/FailedToSaveException.cpp
+                               src/exception/InvalidFile/FileNotFoundException.cpp
                                src/exception/InvalidFile/InvalidConfigException.cpp
-                               src/utils/data/ConfigLoader.cpp
-                               src/core/Game.cpp)
+                               src/exception/InvalidFile/UnreadableFileException.cpp
+                               src/utils/data/ConfigLoader.cpp)
 
-# 4. Link raylib to your executable
 target_link_libraries(${PROJECT_NAME} raylib)
 target_include_directories(${PROJECT_NAME} PUBLIC include)

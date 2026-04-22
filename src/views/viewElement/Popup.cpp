@@ -67,3 +67,57 @@ void LoadConfirmPopup::render() {
     exitButton.render();
     confirmButton.render();
 }
+
+
+ExceptionPopup::ExceptionPopup(int errorCode, const std::string &errorMessage) : 
+    IndefinitePopup(View2D(getScreenCenter(), {480, 360}, [](){})),
+    errorCode(errorCode),
+    errorMessage(errorMessage),
+    okButton(Interactable({320, 50}, true, false, "NULL", [](){}, [this](){ this->closeView = true;})) 
+    {
+    okButton.movePosition(this->pos.x, this->pos.y + this->getRenderDim().y/2 - this->okButton.getBoundingHeight()/2 - 20);
+    
+    okButton.setRender([this](){
+        DrawRectangle(this->okButton.getRenderPos().x, this->okButton.getRenderPos().y,
+                      this->okButton.getRenderWidth(), this->okButton.getRenderHeight(),
+                      this->okButton.getRenderColor(RED));
+                      
+        Vector2 textMeasure = MeasureTextEx(fontMap["Orbitron"], "OK", this->okButton.getRenderFontSize(36), 1);
+        DrawTextEx(fontMap["Orbitron"], "OK", this->okButton.getPos() - textMeasure/2, 
+                   this->okButton.getRenderFontSize(36), 1, this->okButton.getRenderColor(WHITE));
+    });
+}
+
+void ExceptionPopup::enable() {
+    okButton.enable();
+}
+
+void ExceptionPopup::disable() {
+    okButton.disable();
+}
+
+const string ExceptionPopup::catchCommand() {
+    return okButton.catchCommand();
+}
+
+void ExceptionPopup::interactionCheck() {
+    okButton.interactionCheck();
+}
+
+void ExceptionPopup::render() {
+    animationCheck();
+    
+    DrawRectangle(this->getRenderPos().x, this->getRenderPos().y,
+                  this->getRenderWidth(), this->getRenderHeight(),
+                  this->getRenderColor(RAYWHITE));
+                  
+    DrawRectangle(this->getRenderPos().x, this->getRenderPos().y,
+                  this->getRenderWidth(), this->getRenderWidth()*0.1,
+                  this->getRenderColor(MAROON));
+                  
+    std::string fullText = "Code: " + std::to_string(errorCode) + "\n \n" + "Message: " + errorMessage;
+    drawTextLinesWrapped(fontMap["Orbitron"], fullText, pos, 
+                         getRenderFontSize(28), 1, getRenderColor(BLACK), getRenderDim() - (Vector2){20, 0});
+                         
+    okButton.render();
+}

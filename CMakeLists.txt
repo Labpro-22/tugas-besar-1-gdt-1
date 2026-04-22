@@ -21,7 +21,7 @@ add_executable(${PROJECT_NAME} src/views/ViewTesting.cpp
                                src/views/animation/camera/CameraManager.cpp
                                src/views/animation/camera/CameraMovement.cpp
                                src/views/animation/camera/View3DCamera.cpp
-                               
+                               src/core/Game.cpp
                                src/models/Player/Player.cpp
                                src/models/Property/Property.cpp
                                src/models/Property/StreetProperty.cpp

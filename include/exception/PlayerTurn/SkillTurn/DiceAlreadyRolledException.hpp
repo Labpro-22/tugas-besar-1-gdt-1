@@ -4,6 +4,5 @@
 class DiceAlreadyRolledException : public SkillTurnException
 {
 public:
-    explicit DiceAlreadyRolledException();
-    const char *what() const noexcept override;
+    explicit DiceAlreadyRolledException(Player *player, SkillCard *skillCard);
 };

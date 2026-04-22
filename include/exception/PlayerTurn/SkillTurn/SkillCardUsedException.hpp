@@ -4,6 +4,5 @@
 class SkillCardUsedException : public SkillTurnException
 {
 public:
-    explicit SkillCardUsedException();
-    const char *what() const noexcept override;
+    explicit SkillCardUsedException(Player *player, SkillCard *skillCard);
 };

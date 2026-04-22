@@ -33,3 +33,19 @@ class LoadConfirmPopup : public IndefinitePopup {
         const string catchCommand() override;
         void render() override;
 };
+
+class ExceptionPopup : public IndefinitePopup
+{
+private:
+    int errorCode;
+    std::string errorMessage;
+    Interactable okButton;
+
+public:
+    ExceptionPopup(int errorCode, const std::string &errorMessage);
+    void enable() override;
+    void disable() override;
+    void interactionCheck() override;
+    const string catchCommand() override;
+    void render() override;
+};

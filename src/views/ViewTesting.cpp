@@ -48,8 +48,7 @@ int main()
             }
             catch (const std::exception &e) {
                 app.loadPopup(new ExceptionPopup(500, e.what()));
-            }catch (const std::exception &e) {
-                std::cerr << "FATAL INIT ERROR: " << e.what() << std::endl;
+                 std::cerr << "FATAL INIT ERROR: " << e.what() << std::endl;
             }
         BeginDrawing();
         app.display();

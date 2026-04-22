@@ -18,6 +18,7 @@
 #include "models/BoardAndTiles/Tile.hpp"
 #include "models/BoardAndTiles/PropertyTile.hpp"
 #include "models/CardAndDeck/SkillCard.hpp"
+#include "core/SaveLoadManager.hpp"
 #include "utils/data/TransactionLogger.hpp"
 #include "utils/data/LogEntry.hpp"
 

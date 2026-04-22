@@ -2,6 +2,7 @@
 #include "core/CommandProcessor.hpp"
 #include "core/AuctionManager.hpp"
 #include "core/BankruptcyManager.hpp"
+#include "core/SaveLoadManager.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -116,6 +117,7 @@ void GameEngine::initNewGame() {
     commandProcessor = new CommandProcessor(this, game, turnManager, dice, gui);
     auctionManager = new AuctionManager(game, logger, gui);
     bankruptcyManager = new BankruptcyManager(game, logger, gui, auctionManager);
+    saveLoadManager = new SaveLoadManager(game, logger, gui);
 
     int numPlayers = 0;
     while (numPlayers < 2 || numPlayers > 4) {
@@ -146,7 +148,39 @@ void GameEngine::initNewGame() {
 }
 
 void GameEngine::initLoadGame() {
-    // TODO: load dari file via saveLoadManager
+    this->game = new Game();
+
+    ConfigLoader loader("data/");
+    GameConfig config = loader.loadGameConfig();
+
+    game->setConfigValues(
+        config.getMisc().getMaxTurn(),
+        config.getMisc().getInitialBalance(),
+        config.getSpecial().getGoSalary(),
+        config.getSpecial().getJailFine(),
+        config.getTax().getPphFlat(),
+        config.getTax().getPphPercent(),
+        config.getTax().getPbmFlat(),
+        config.getRailroadRents(),
+        config.getUtilityMultipliers()
+    );
+    game->setBoard(loader.buildBoard(config.getProperties(), config));
+    auto decks = loader.buildDecks();
+    game->setDecks(std::get<0>(decks), std::get<1>(decks), std::get<2>(decks));
+
+    turnManager = new TurnManager(game, dice, gui);
+    commandProcessor = new CommandProcessor(this, game, turnManager, dice, gui);
+    auctionManager = new AuctionManager(game, logger, gui);
+    bankruptcyManager = new BankruptcyManager(game, logger, gui, auctionManager);
+    saveLoadManager = new SaveLoadManager(game, logger, gui);
+
+    std::string filepath = waitForInput(gui, "Nama file save:");
+    if (!saveLoadManager->load(filepath)) {
+        gui->showMessage("Load gagal, memulai game baru.");
+        return;
+    }
+    gui->showMessage("Game dimuat dari " + filepath);
+    gui->loadGameView();
 }
 
 void GameEngine::gameLoop() {

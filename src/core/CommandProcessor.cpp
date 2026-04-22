@@ -239,8 +239,16 @@ CommandResult CommandProcessor::handlePrintLog(int nLast) {
 }
 
 CommandResult CommandProcessor::handleSave(const std::string& file) {
-    gui->showMessage("Simpan belum diimplementasi: " + file);
-    return CommandResult::SAVED_MID_TURN;
+    if (engine->saveLoadManager == nullptr) {
+        gui->showMessage("SaveLoadManager belum tersedia.");
+        return CommandResult::INVALID;
+    }
+    if (engine->saveLoadManager->save(file)) {
+        gui->showMessage("Game disimpan ke " + file);
+        return CommandResult::SAVED_MID_TURN;
+    }
+    gui->showMessage("Gagal menyimpan ke " + file);
+    return CommandResult::INVALID;
 }
 
 CommandResult CommandProcessor::handleEndTurn(Player* player) {

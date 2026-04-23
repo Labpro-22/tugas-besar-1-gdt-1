@@ -17,7 +17,7 @@ int main()
 
     try
     {
-        ConfigLoader *CL = new ConfigLoader("data/default");
+        ConfigLoader *CL = new ConfigLoader("data/config/default");
         GameConfig GC = CL->loadGameConfig();
         Board *b = CL->buildBoard(GC.getProperties(), GC);
 

@@ -29,6 +29,8 @@ private:
     TransactionLogger* logger;
     IGUI* gui;  // non-owning
 
+    bool waitingPlayerCount = false;
+
     TurnManager* turnManager;
     CommandProcessor* commandProcessor;
     AuctionManager* auctionManager;

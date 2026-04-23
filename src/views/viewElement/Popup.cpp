@@ -89,10 +89,83 @@ void MessagePopup::render()
     okButton.render();
 }
 
-LoadConfirmPopup::LoadConfirmPopup(const std::string &prompt)
+InputPopup::InputPopup(const std::string& title)
+    : IndefinitePopup(View2D(getScreenCenter(), {500, 300}, [](){})),
+      title(title),
+      inputEntry(Entry({400, 50}, "", 24, "Orbitron", [](){})),
+      submitButton(Interactable({200, 50}, true, false, "SUBMIT_INPUT", [](){}, [](){}))
+{
+    Vector2 center = getScreenCenter();
+
+    inputEntry.movePosition(center + Vector2{0, 0});
+    submitButton.movePosition(center + Vector2{0, 80});
+
+    submitButton.setRender([this]() {
+        DrawRectangle(submitButton.getRenderPos().x, submitButton.getRenderPos().y,
+                      submitButton.getRenderWidth(), submitButton.getRenderHeight(),
+                      submitButton.getRenderColor(LOGO_RED));
+
+        Vector2 dim = MeasureTextEx(fontMap.at("Orbitron"), "OK", 28, 0);
+
+        DrawTextEx(fontMap.at("Orbitron"), "OK",
+                   {submitButton.getX() - dim.x/2, submitButton.getY() - 14},
+                   28, 0, WHITE);
+    });
+}
+
+void InputPopup::enable()
+{
+    inputEntry.enable();
+    submitButton.enable();
+}
+
+void InputPopup::disable()
+{
+    inputEntry.disable();
+    submitButton.disable();
+}
+
+void InputPopup::interactionCheck()
+{
+    inputEntry.interactionCheck();
+    submitButton.interactionCheck();
+}
+
+std::string InputPopup::catchCommand()
+{
+    std::string cmd = submitButton.catchCommand();
+
+    if (cmd == "SUBMIT_INPUT")
+    {
+        return "INPUT " + inputEntry.getEntryText();
+    }
+
+    return "NULL";
+}
+
+void InputPopup::render()
+{
+    Vector2 center = {
+        (float)GetScreenWidth()/2,
+        (float)GetScreenHeight()/2
+    };
+
+    DrawRectangle(center.x - 250, center.y - 150, 500, 300, {40,40,40,230});
+
+    Vector2 titleDim = MeasureTextEx(fontMap.at("Orbitron"), title.c_str(), 28, 0);
+
+    DrawTextEx(fontMap.at("Orbitron"), title.c_str(),
+               {center.x - titleDim.x/2, center.y - 100},
+               28, 0, WHITE);
+
+    inputEntry.render();
+    submitButton.render();
+}
+
+LoadConfirmPopup::LoadConfirmPopup(const std::string& title, const std::string& placeholder)
     : IndefinitePopup(View2D(getScreenCenter(), {600, 300}, []() {})),
-      prompt(prompt),
-      entry(Entry({400, 50}, "data/savedstate1", 24, "Orbitron", []() {})),
+      title(title),
+      entry(Entry({400, 50}, placeholder, 24, "Orbitron", []() {})),
       confirmButton(Interactable({200, 50}, true, false, "CONFIRM_LOAD", []() {}, []() {}))
 {
     Vector2 center = getScreenCenter();
@@ -161,7 +234,7 @@ void LoadConfirmPopup::render()
                   boundingDim.x, boundingDim.y,
                   {50, 50, 50, 230});
 
-    DrawTextEx(fontMap.at("Orbitron"), prompt.c_str(),
+    DrawTextEx(fontMap.at("Orbitron"), title.c_str(),
                {pos.x - 200, pos.y - 80}, 28, 0, WHITE);
 
     entry.render();

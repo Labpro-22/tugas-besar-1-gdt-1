@@ -43,9 +43,9 @@ void GUI::showConfirm(const std::string & /*question*/)
     // TODO: tampilkan popup konfirmasi ya/tidak
 }
 
-void GUI::showInputPrompt(const std::string & /*prompt*/)
+void GUI::showInputPrompt(const std::string &prompt)
 {
-    // TODO: tampilkan popup input teks
+    loadPopup(new InputPopup(prompt));
 }
 
 void GUI::renderBoard(const Game &game)
@@ -131,12 +131,41 @@ void GUI::loadPopup(Popup *popup)
 
 Command GUI::getCommand()
 {
-    // 1. kalau ada pending command dari popup
     if (!pendingCommand.isNull())
     {
         Command temp = pendingCommand;
         pendingCommand = Command::Null();
         return temp;
+    }
+
+    if (!popupStack.empty())
+    {
+        std::string raw = popupStack.top()->catchCommand();
+
+        if (raw != "NULL")
+        {
+            Popup *p = popupStack.top();
+            views.erase(p);
+            delete p;
+            popupStack.pop();
+            
+            std::stringstream ss(raw);
+            std::string item;
+            std::vector<std::string> tokens;
+
+            while (getline(ss, item, ' '))
+            {
+                tokens.push_back(item);
+            }
+
+            if (tokens.empty())
+                return {"NULL", {}};
+
+            return {tokens[0],
+                    std::vector<std::string>(tokens.begin() + 1, tokens.end())};
+        }
+
+        return {"NULL", {}};
     }
 
     for (View2D *view : views)
@@ -161,7 +190,7 @@ Command GUI::getCommand()
         // HANDLE NEW GAME
         if (tokens[0] == "NEW_GAME")
         {
-            auto popup = new LoadConfirmPopup("Masukkan path config:");
+            auto popup = new LoadConfirmPopup("Masukkan path config:", "config/default");
 
             popup->setOnSubmit([this](const std::string &path)
                                { this->pendingCommand = Command("NEW_GAME", {path}); });
@@ -173,7 +202,7 @@ Command GUI::getCommand()
         // HANDLE LOAD GAME
         if (tokens[0] == "LOAD_GAME")
         {
-            auto popup = new LoadConfirmPopup("Masukkan save file:");
+            auto popup = new LoadConfirmPopup("Masukkan save file:", "saves/save1");
 
             popup->setOnSubmit([this](const std::string &path)
                                { this->pendingCommand = Command("LOAD_GAME", {path}); });
@@ -212,7 +241,8 @@ void GUI::disableAll()
 {
     for (View2D *view : views)
     {
-        view->disable();
+        if (view != nullptr)
+            view->disable();
     }
 }
 

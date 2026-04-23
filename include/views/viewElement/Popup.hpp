@@ -37,15 +37,31 @@ public:
     void render() override;
 };
 
+class InputPopup : public IndefinitePopup {
+private:
+    std::string title;
+    Entry inputEntry;
+    Interactable submitButton;
+
+public:
+    InputPopup(const std::string& title);
+
+    void enable() override;
+    void disable() override;
+    void interactionCheck() override;
+    std::string catchCommand() override;
+    void render() override;
+};
+
 class LoadConfirmPopup : public IndefinitePopup {
 private:
-    std::string prompt;
+    std::string title;
     Entry entry;
     Interactable confirmButton;
     std::function<void(const std::string&)> onSubmit;
 
 public:
-    LoadConfirmPopup(const std::string& prompt);
+    LoadConfirmPopup(const std::string& title, const std::string& placeholder);
 
     void setOnSubmit(std::function<void(const std::string&)> func);
 

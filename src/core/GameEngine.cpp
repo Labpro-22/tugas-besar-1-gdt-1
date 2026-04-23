@@ -35,11 +35,12 @@ void GameEngine::update()
     if (cmd.getType() == "NEW_GAME")
     {
         std::string path = (cmd.getArgs().empty() || cmd.getArgs()[0].empty())
-                               ? "data/default"
+                               ? "data/config/default"
                                : cmd.getArgs()[0];
         initNewGame(path);
-        gui->loadGameView();
-        gui->renderBoard(*game);
+        waitingPlayerCount = true;
+        gui->showInputPrompt("Jumlah pemain (2-4):");
+        return;
     }
     else if (cmd.getType() == "LOAD_GAME")
     {
@@ -51,6 +52,36 @@ void GameEngine::update()
 
         std::string path = cmd.getArgs()[0];
         initLoadGame(path);
+        gui->loadGameView();
+        gui->renderBoard(*game);
+    }
+    else if (waitingPlayerCount && cmd.getType() == "INPUT")
+    {
+        if (cmd.getArgs().empty() || cmd.getArgs()[0].empty())
+        {
+            gui->showMessage("Masukkan angka 2-4");
+            return;
+        }
+
+        const std::string &s = cmd.getArgs()[0];
+
+        if (!std::all_of(s.begin(), s.end(), ::isdigit))
+        {
+            gui->showMessage("Input harus angka");
+            return;
+        }
+
+        int count = std::stoi(s);
+
+        if (count < 2 || count > 4)
+        {
+            gui->showMessage("Jumlah pemain harus 2-4");
+            return;
+        }
+
+        // setupPlayers(count);
+        waitingPlayerCount = false;
+
         gui->loadGameView();
         gui->renderBoard(*game);
     }

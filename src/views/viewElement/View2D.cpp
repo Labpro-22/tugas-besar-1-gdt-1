@@ -57,7 +57,7 @@ void View2D::animationCheck() {
     }
 }
 
-const string View2D::catchCommand() { return "NULL"; }
+string View2D::catchCommand() { return "NULL"; }
 void View2D::render() {
     animationCheck();
     renderFunc();

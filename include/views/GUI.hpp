@@ -1,6 +1,7 @@
 #pragma once
 #include "utils/Command.hpp"
 #include "views/IGUI.hpp"
+#include "views/viewElement/Entry.hpp"
 #include "views/viewElement/MenuView.hpp"
 #include "views/viewElement/board/BoardView.hpp"
 #include "views/viewElement/Popup.hpp"

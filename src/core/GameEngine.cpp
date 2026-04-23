@@ -29,6 +29,7 @@ void GameEngine::update()
 
     if (!cmd.isNull())
     {
+        cmd.debugPrint(); // DEBUGGER
         std::string path = cmd.getArgs().empty() ? "data/default" : cmd.getArgs()[0];
 
         if (cmd.getType() == "NEW_GAME")

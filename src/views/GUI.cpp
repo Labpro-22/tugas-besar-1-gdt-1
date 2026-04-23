@@ -1,8 +1,5 @@
 #include "views/GUI.hpp"
 #include "core/Game.hpp"
-#include "exception/InvalidFile/FileNotFoundException.hpp"
-#include "exception/InvalidFile/InvalidConfigException.hpp"
-#include "exception/InvalidFile/UnreadableFileException.hpp"
 
 GUI::GUI(float fps, Board &board) : menu(nullptr), board(new BoardView(board)),
                                     debuggingEntry(nullptr),
@@ -155,7 +152,7 @@ Command GUI::getCommand()
             {
                 if (tokens.size() < 3)
                 {
-                    throw FileNotFoundException("");
+                    loadPopup(new ExceptionPopup(400, "Path belum diisi"));
                     return {"NULL", {}};
                 }
 

@@ -62,7 +62,7 @@ class View2D {
         virtual void enable() {};
         virtual void disable() {};
         virtual void interactionCheck() {};
-        virtual const string catchCommand();
+        virtual std::string catchCommand();
         virtual void render();
         static void addFont(string fontKey, string fontFilename);
         static Font getFont(string fontKey);

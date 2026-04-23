@@ -45,7 +45,7 @@ void LoadConfirmPopup::disable() {
     exitButton.disable();
 }
 
-const string LoadConfirmPopup::catchCommand() {
+string LoadConfirmPopup::catchCommand() {
     return confirmButton.catchCommand();
 }
 
@@ -96,7 +96,7 @@ void ExceptionPopup::disable() {
     okButton.disable();
 }
 
-const string ExceptionPopup::catchCommand() {
+string ExceptionPopup::catchCommand() {
     return okButton.catchCommand();
 }
 
@@ -115,7 +115,7 @@ void ExceptionPopup::render() {
                   this->getRenderWidth(), this->getRenderWidth()*0.1,
                   this->getRenderColor(MAROON));
                   
-    std::string fullText = "Code: " + std::to_string(errorCode) + "\n \n" + "Message: " + errorMessage;
+    std::string fullText = "Code: " + std::to_string(errorCode) + "\n \n" + errorMessage;
     drawTextLinesWrapped(fontMap["Orbitron"], fullText, pos, 
                          getRenderFontSize(28), 1, getRenderColor(BLACK), getRenderDim() - (Vector2){20, 0});
                          
@@ -267,7 +267,7 @@ void PropertyPopup::interactionCheck() {
     exitButton.interactionCheck();
 }
 
-const string PropertyPopup::catchCommand() {
+string PropertyPopup::catchCommand() {
     if (actionCommand != "") return actionCommand;
 
     for (auto& btn : actionButtons) {

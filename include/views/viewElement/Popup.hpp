@@ -30,7 +30,7 @@ class LoadConfirmPopup : public IndefinitePopup {
         void enable() override;
         void disable() override;
         void interactionCheck() override;
-        const string catchCommand() override;
+        string catchCommand() override;
         void render() override;
 };
 
@@ -46,7 +46,7 @@ public:
     void enable() override;
     void disable() override;
     void interactionCheck() override;
-    const string catchCommand() override;
+    string catchCommand() override;
     void render() override;
 };
 
@@ -104,6 +104,6 @@ public:
     void disable() override;
     void interactionCheck() override;
     void addButton(const std::string& label, const std::string& command);
-    const string catchCommand() override;
+    string catchCommand() override;
     void render() override;
 };

@@ -21,6 +21,7 @@ class GUI : public IGUI {
 
         CameraManager camManager;
 
+        Command pendingCommand;
         float fps;
         bool exitRequested;
         void unloadView(View2D* p);

@@ -27,23 +27,32 @@ void GameEngine::update()
     gui->update();
     Command cmd = gui->getCommand();
 
-    if (!cmd.isNull())
-    {
-        cmd.debugPrint(); // DEBUGGER
-        std::string path = cmd.getArgs().empty() ? "data/default" : cmd.getArgs()[0];
+    if (cmd.isNull())
+        return;
 
-        if (cmd.getType() == "NEW_GAME")
+    cmd.debugPrint();
+
+    if (cmd.getType() == "NEW_GAME")
+    {
+        std::string path = (cmd.getArgs().empty() || cmd.getArgs()[0].empty())
+                               ? "data/default"
+                               : cmd.getArgs()[0];
+        initNewGame(path);
+        gui->loadGameView();
+        gui->renderBoard(*game);
+    }
+    else if (cmd.getType() == "LOAD_GAME")
+    {
+        if (cmd.getArgs().empty() || cmd.getArgs()[0].empty())
         {
-            initNewGame(path);
-            gui->loadGameView();
-            gui->renderBoard(*game);
+            gui->showMessage("Path tidak boleh kosong");
+            return;
         }
-        else if (cmd.getType() == "LOAD_GAME")
-        {
-            initLoadGame(path);
-            gui->loadGameView();
-            gui->renderBoard(*game);
-        }
+
+        std::string path = cmd.getArgs()[0];
+        initLoadGame(path);
+        gui->loadGameView();
+        gui->renderBoard(*game);
     }
 }
 

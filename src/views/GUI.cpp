@@ -28,9 +28,9 @@ void GUI::loadFinishMenu()
     // TODO: muat menu akhir permainan
 }
 
-void GUI::showMessage(const std::string & /*message*/)
+void GUI::showMessage(const std::string &message)
 {
-    // TODO: tampilkan popup pesan
+    loadPopup(new MessagePopup(message));
 }
 
 void GUI::showConfirm(const std::string & /*question*/)
@@ -126,16 +126,24 @@ void GUI::loadPopup(Popup *popup)
 
 Command GUI::getCommand()
 {
+    // 1. kalau ada pending command dari popup
+    if (!pendingCommand.isNull())
+    {
+        Command temp = pendingCommand;
+        pendingCommand = Command::Null();
+        return temp;
+    }
+
     for (View2D *view : views)
     {
-        string raw = view->catchCommand();
+        std::string raw = view->catchCommand();
 
         if (raw == "NULL")
             continue;
 
-        stringstream ss(raw);
-        string item;
-        vector<string> tokens;
+        std::stringstream ss(raw);
+        std::string item;
+        std::vector<std::string> tokens;
 
         while (getline(ss, item, ' '))
         {
@@ -145,23 +153,38 @@ Command GUI::getCommand()
         if (tokens.empty())
             return {"NULL", {}};
 
+        // HANDLE NEW GAME
+        if (tokens[0] == "NEW_GAME")
+        {
+            auto popup = new LoadConfirmPopup("Masukkan path config:");
+
+            popup->setOnSubmit([this](const std::string &path)
+                               { this->pendingCommand = Command("NEW_GAME", {path}); });
+
+            loadPopup(popup);
+            return Command::Null();
+        }
+
+        // HANDLE LOAD GAME
+        if (tokens[0] == "LOAD_GAME")
+        {
+            auto popup = new LoadConfirmPopup("Masukkan save file:");
+
+            popup->setOnSubmit([this](const std::string &path)
+                               { this->pendingCommand = Command("LOAD_GAME", {path}); });
+
+            loadPopup(popup);
+            return Command::Null();
+        }
+
         // HANDLE INTERNAL GUI
         if (tokens[0] == "DISPLAY")
         {
-            if (tokens[1] == "LOAD_CONFIRM_POPUP")
-            {
-                if (tokens.size() < 3)
-                {
-                    loadPopup(new ExceptionPopup(400, "Path belum diisi"));
-                    return {"NULL", {}};
-                }
-
-                loadPopup(new LoadConfirmPopup(tokens[2]));
-            }
-            else if (tokens[1] == "SWITCH_TOP_VIEW")
+            if (tokens.size() >= 2 && tokens[1] == "SWITCH_TOP_VIEW")
             {
                 camManager.switchTo("TOP_VIEW", 1);
             }
+
             return {"NULL", {}};
         }
 

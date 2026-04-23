@@ -23,6 +23,10 @@ public:
         drawPile.push_back(card);
     }
 
+    std::vector<T*> getDrawPile() {
+        return drawPile;
+    }
+
     T* draw() {
         reshuffleIfEmpty();
         if (drawPile.empty()) {

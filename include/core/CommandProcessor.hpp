@@ -18,6 +18,14 @@
 #include "models/BoardAndTiles/Tile.hpp"
 #include "models/BoardAndTiles/PropertyTile.hpp"
 #include "models/CardAndDeck/SkillCard.hpp"
+#include "models/CardAndDeck/MoveCard.hpp"
+#include "models/CardAndDeck/TeleportCard.hpp"
+#include "models/CardAndDeck/DiscountCard.hpp"
+#include "models/CardAndDeck/ShieldCard.hpp"
+#include "models/CardAndDeck/LassoCard.hpp"
+#include "models/CardAndDeck/DemolitionCard.hpp"
+#include "models/CardAndDeck/JailFreeCard.hpp"
+#include "models/Property/StreetProperty.hpp"
 #include "core/SaveLoadManager.hpp"
 #include "utils/data/TransactionLogger.hpp"
 #include "utils/data/LogEntry.hpp"
@@ -52,8 +60,18 @@ private:
     CommandResult handleRedeem(Player* player, const std::string& code);
     CommandResult handleBuild(Player* player, const std::string& code);
     CommandResult handleUseSkill(Player* player, int index);
+    CommandResult handleShowCards(Player* player);
+    CommandResult handleDropCard(Player* player, int index);
     CommandResult handlePrintLog(int nLast);
-    CommandResult handleSave(const std::string& file);
+
+    std::string waitInput(const std::string& prompt) const;
+    void applyMoveCard(Player* player, MoveCard* card);
+    void applyTeleportCard(Player* player, TeleportCard* card);
+    void applyDiscountCard(Player* player, DiscountCard* card);
+    void applyShieldCard(Player* player, ShieldCard* card);
+    void applyLassoCard(Player* player, LassoCard* card);
+    void applyDemolitionCard(Player* player, DemolitionCard* card);
+    CommandResult handleSave(Player* player, const std::string& file);
     CommandResult handleLoad(const std::string& file);
     CommandResult handleFestival(Player* player, const std::string& code);
     CommandResult handleEndTurn(Player* player);

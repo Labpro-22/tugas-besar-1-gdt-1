@@ -615,21 +615,32 @@ void GameEngine::handleCommunityChestLanding(Player* player, CommunityChestTile*
             for (Player* other : game->getActivePlayers()) {
                 if (other == player) continue;
                 const int amount = 100;
-                if (executePayment(other, player, amount,
-                                   "biaya ulang tahun " + formatMoney(amount) +
-                                   " kepada " + player->getUsername())) {
+                bool paid = executePayment(other, player, amount,
+                                           "biaya ulang tahun " + formatMoney(amount) +
+                                           " kepada " + player->getUsername());
+                if (paid) {
                     gui->showMessage(other->getUsername() + " memberi M" + std::to_string(amount) +
                                      " kepada " + player->getUsername() + " (ulang tahun).");
+                    if (logger != nullptr) {
+                        logger->log(game->getCurrentTurn(), other->getUsername(),
+                                    "DANA_UMUM",
+                                    "Bayar ulang tahun M" + std::to_string(amount) +
+                                    " ke " + player->getUsername());
+                    }
                 }
             }
             break;
         }
         case CommunityType::DOCTOR_FEE: {
             const int fee = 700;
-            if (executePayment(player, nullptr, fee,
-                               "biaya dokter " + formatMoney(fee))) {
-                    gui->showMessage(player->getUsername() + " membayar biaya dokter M" +
+            bool paid = executePayment(player, nullptr, fee, "biaya dokter " + formatMoney(fee));
+            if (paid) {
+                gui->showMessage(player->getUsername() + " membayar biaya dokter M" +
                                  std::to_string(fee) + ".");
+                if (logger != nullptr) {
+                    logger->log(game->getCurrentTurn(), player->getUsername(),
+                                "DANA_UMUM", "Bayar biaya dokter " + formatMoney(fee));
+                }
             }
             break;
         }
@@ -637,11 +648,18 @@ void GameEngine::handleCommunityChestLanding(Player* player, CommunityChestTile*
             const int fee = 200;
             for (Player* other : game->getActivePlayers()) {
                 if (other == player) continue;
-                if (!executePayment(player, other, fee,
-                                    "biaya kampanye " + formatMoney(fee) +
-                                    " kepada " + other->getUsername())) break;
+                bool paid = executePayment(player, other, fee,
+                                           "biaya kampanye " + formatMoney(fee) +
+                                           " kepada " + other->getUsername());
+                if (!paid) break;
                 gui->showMessage(player->getUsername() + " membayar M" + std::to_string(fee) +
                                  " ke " + other->getUsername() + " (biaya kampanye).");
+                if (logger != nullptr) {
+                    logger->log(game->getCurrentTurn(), player->getUsername(),
+                                "DANA_UMUM",
+                                "Bayar biaya kampanye " + formatMoney(fee) +
+                                " ke " + other->getUsername());
+                }
             }
             break;
         }
@@ -705,7 +723,7 @@ void GameEngine::initNewGame() {
     auto decks = loader.buildDecks();
     game->setDecks(std::get<0>(decks), std::get<1>(decks), std::get<2>(decks));
 
-    turnManager = new TurnManager(game, dice, gui);
+    turnManager = new TurnManager(game, dice, gui, logger);
     commandProcessor = new CommandProcessor(this, game, turnManager, dice, gui);
     auctionManager = new AuctionManager(game, logger, gui);
     bankruptcyManager = new BankruptcyManager(game, logger, gui, auctionManager);
@@ -861,6 +879,12 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
                 gui->showMessage("Uang kamu saat ini: M" + std::to_string(player->getBalance()));
 
                 int price = prop->getPurchasePrice();
+                if (player->getPendingDiscount() > 0) {
+                    price = price * (100 - player->getPendingDiscount()) / 100;
+                    gui->showMessage("Diskon " + std::to_string(player->getPendingDiscount()) +
+                                     "% diterapkan! Harga setelah diskon: M" + std::to_string(price));
+                    player->clearPendingDiscount();
+                }
                 if (player->canAfford(price) &&
                     askYesNo(gui, "Apakah kamu ingin membeli properti ini seharga M" +
                                   std::to_string(price) + "? (y/n):")) {
@@ -1094,6 +1118,11 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
 bool GameEngine::executePayment(Player* from, Player* to, int amount,
                                 const std::string& obligationLabel) {
     if (from == nullptr || amount <= 0) return false;
+    if (turnManager != nullptr && turnManager->isShieldActive()) {
+        gui->showMessage(from->getUsername() + " terlindungi oleh Perisai — " + obligationLabel + " dibatalkan.");
+        turnManager->setShieldActive(false);
+        return true;
+    }
     if (bankruptcyManager != nullptr) {
         return bankruptcyManager->handleInsufficientFunds(*from, amount, to, obligationLabel);
     }
@@ -1113,13 +1142,40 @@ bool GameEngine::checkWinCondition() {
 void GameEngine::endGame() {
     if (game == nullptr || gui == nullptr) return;
 
-    Player* winner = nullptr;
+    const auto& active = game->getActivePlayers();
+    if (active.empty()) { gui->loadFinishMenu(); return; }
+
+    // Multi-criteria: totalWealth desc → property count desc → card count desc → all tied = everyone wins
     int bestWealth = -1;
-    for (Player* p : game->getActivePlayers()) {
-        int w = p->calculateTotalWealth();
-        if (w > bestWealth) { bestWealth = w; winner = p; }
+    for (Player* p : active) bestWealth = std::max(bestWealth, p->calculateTotalWealth());
+
+    std::vector<Player*> candidates;
+    for (Player* p : active)
+        if (p->calculateTotalWealth() == bestWealth) candidates.push_back(p);
+
+    if (candidates.size() > 1) {
+        int bestProps = -1;
+        for (Player* p : candidates) bestProps = std::max(bestProps, (int)p->getOwnedProperties().size());
+        std::vector<Player*> next;
+        for (Player* p : candidates)
+            if ((int)p->getOwnedProperties().size() == bestProps) next.push_back(p);
+        candidates = next;
+    }
+
+    if (candidates.size() > 1) {
+        int bestCards = -1;
+        for (Player* p : candidates) bestCards = std::max(bestCards, p->getCardCount());
+        std::vector<Player*> next;
+        for (Player* p : candidates)
+            if (p->getCardCount() == bestCards) next.push_back(p);
+        candidates = next;
     }
 
     gui->loadFinishMenu();
-    if (winner != nullptr) gui->renderWinner(*winner);
+    // If still multiple, all are tied winners
+    if (candidates.size() == 1) {
+        gui->renderWinner(*candidates[0]);
+    } else {
+        for (Player* p : candidates) gui->renderWinner(*p);
+    }
 }

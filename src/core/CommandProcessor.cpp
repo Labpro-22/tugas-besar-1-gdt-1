@@ -92,6 +92,11 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
             if (tokens.size() < 2) { gui->showMessage("Format: GUNAKAN_KEMAMPUAN <idx>"); return CommandResult::INVALID; }
             return handleUseSkill(player, std::stoi(tokens[1]));
         }
+        if (cmd == "CETAK_KARTU") return handleShowCards(player);
+        if (cmd == "BUANG_KARTU") {
+            if (tokens.size() < 2) { gui->showMessage("Format: BUANG_KARTU <idx>"); return CommandResult::INVALID; }
+            return handleDropCard(player, std::stoi(tokens[1]));
+        }
         if (cmd == "CETAK_LOG") {
             int n = (tokens.size() >= 2) ? std::stoi(tokens[1]) : 0;
             return handlePrintLog(n);
@@ -101,7 +106,7 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
         }
         if (cmd == "SIMPAN") {
             if (tokens.size() < 2) { gui->showMessage("Format: SIMPAN <file>"); return CommandResult::INVALID; }
-            return handleSave(tokens[1]);
+            return handleSave(player, tokens[1]);
         }
         if (cmd == "MUAT") {
             if (tokens.size() < 2) { gui->showMessage("Format: MUAT <file/folder_save>"); return CommandResult::INVALID; }
@@ -276,28 +281,6 @@ CommandResult CommandProcessor::handleBuild(Player* player, const std::string& c
     return CommandResult::INVALID;
 }
 
-CommandResult CommandProcessor::handleUseSkill(Player* player, int index) {
-    if (!turn->canUseSkill(player)) {
-        gui->showMessage("Tidak dapat menggunakan kartu kemampuan sekarang.");
-        return CommandResult::INVALID;
-    }
-    const auto& hand = player->getHandCards();
-    if (index < 0 || index >= static_cast<int>(hand.size())) {
-        gui->showMessage("Indeks kartu tidak valid.");
-        return CommandResult::INVALID;
-    }
-    SkillCard* card = hand[index];
-    player->removeCard(card);
-    player->markSkillUsed();
-    gui->showMessage("Kartu kemampuan digunakan: " + card->getCardName());
-    if (engine->logger != nullptr) {
-        engine->logger->log(game->getCurrentTurn(), player->getUsername(),
-                            "KARTU",
-                            "Pakai " + card->getCardName());
-    }
-    return CommandResult::CONTINUE;
-}
-
 CommandResult CommandProcessor::handlePrintLog(int nLast) {
     auto* logger = engine->logger;
     std::vector<LogEntry> entries = (nLast > 0)
@@ -310,7 +293,7 @@ CommandResult CommandProcessor::handlePrintLog(int nLast) {
     return CommandResult::CONTINUE;
 }
 
-CommandResult CommandProcessor::handleSave(const std::string& file) {
+CommandResult CommandProcessor::handleSave(Player* player, const std::string& file) {
     if (engine->saveLoadManager == nullptr) {
         gui->showMessage("SaveLoadManager belum tersedia.");
         return CommandResult::INVALID;
@@ -320,6 +303,9 @@ CommandResult CommandProcessor::handleSave(const std::string& file) {
             engine->logger->log(game->getCurrentTurn(),
                                 player ? player->getUsername() : "SISTEM",
                                 "SIMPAN", "Game disimpan ke " + file);
+            if (!engine->saveLoadManager->saveLogSnapshot(file)) {
+                gui->showMessage("Peringatan: game tersimpan, tetapi log save gagal diperbarui.");
+            }
         }
         gui->showMessage("Game disimpan ke " + file);
         return CommandResult::CONTINUE;
@@ -434,7 +420,281 @@ CommandResult CommandProcessor::handleHelp(Player* player) {
         gui->showMessage("Setelah lempar dadu: GADAI <kode> | TEBUS <kode> | BANGUN <kode> | CETAK_PAPAN | CETAK_PROPERTI | AKHIRI_GILIRAN | MUAT <file>");
     }
 
+    gui->showMessage("Kartu kemampuan: CETAK_KARTU | GUNAKAN_KEMAMPUAN <idx> | BUANG_KARTU <idx>");
     gui->showMessage("Manajemen save: SIMPAN <file> | MUAT <file>");
     gui->showMessage("Khusus keluar game: EXIT");
+    return CommandResult::CONTINUE;
+}
+
+// ── Skill card helpers ────────────────────────────────────────────────────────
+
+std::string CommandProcessor::waitInput(const std::string& prompt) const {
+    gui->showInputPrompt(prompt);
+    while (true) {
+        gui->update();
+        gui->display();
+        std::string s = gui->getCommand();
+        if (!s.empty() && s != "NULL") return s;
+    }
+}
+
+CommandResult CommandProcessor::handleShowCards(Player* player) {
+    const auto& hand = player->getHandCards();
+    if (hand.empty()) {
+        gui->showMessage("Kamu tidak memiliki kartu kemampuan di tangan.");
+        return CommandResult::CONTINUE;
+    }
+    gui->showMessage("=== Kartu Kemampuan di Tangan ===");
+    for (int i = 0; i < static_cast<int>(hand.size()); ++i) {
+        SkillCard* c = hand[i];
+        gui->showMessage("[" + std::to_string(i) + "] " + c->getCardName() +
+                         " — " + c->getDescription());
+    }
+    return CommandResult::CONTINUE;
+}
+
+CommandResult CommandProcessor::handleDropCard(Player* player, int index) {
+    const auto& hand = player->getHandCards();
+    if (index < 0 || index >= static_cast<int>(hand.size())) {
+        gui->showMessage("Indeks kartu tidak valid.");
+        return CommandResult::INVALID;
+    }
+    SkillCard* card = hand[index];
+    player->removeCard(card);
+    if (game->getSkillDeck() != nullptr) game->getSkillDeck()->discard(card);
+    if (engine->logger != nullptr) {
+        engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "BUANG", "Buang " + card->getCardName());
+    }
+    gui->showMessage("Kartu " + card->getCardName() + " dibuang.");
+    return CommandResult::CONTINUE;
+}
+
+// ── Apply effects per card type ───────────────────────────────────────────────
+
+void CommandProcessor::applyMoveCard(Player* player, MoveCard* card) {
+    int steps = card->getSteps();
+    Board* board = game->getBoard();
+    if (board == nullptr) return;
+    if (board->passesGo(player->getPosition(), steps)) {
+        player->addMoney(game->getGoSalary());
+        gui->showMessage("Melewati GO! Terima M" + std::to_string(game->getGoSalary()) + ".");
+    }
+    int newPos = board->getNextIndex(player->getPosition(), steps);
+    player->setPosition(newPos);
+    Tile* landed = board->getTile(newPos);
+    std::string tileName = landed ? landed->getName() : "?";
+    gui->showMessage("MoveCard: maju " + std::to_string(steps) + " petak -> mendarat di " + tileName + ".");
+    if (engine->logger != nullptr) {
+        engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "KARTU", "Pakai MoveCard maju " + std::to_string(steps) +
+                            " petak -> " + tileName);
+    }
+    if (landed) engine->handleTileLandingPublic(player, landed);
+}
+
+void CommandProcessor::applyTeleportCard(Player* player, TeleportCard* /*card*/) {
+    Board* board = game->getBoard();
+    if (board == nullptr) return;
+    gui->showMessage("TeleportCard: kamu dapat berpindah ke petak manapun.");
+    gui->showMessage("Masukkan kode petak tujuan:");
+    while (true) {
+        std::string code = waitInput("Kode petak tujuan:");
+        std::transform(code.begin(), code.end(), code.begin(),
+                       [](unsigned char c){ return std::toupper(c); });
+        Tile* target = nullptr;
+        try {
+            target = board->getTile(code);
+        } catch (...) {
+            gui->showMessage("Kode petak tidak ditemukan: " + code + ". Coba lagi.");
+            continue;
+        }
+        if (board->passesGo(player->getPosition(), 0) ||
+            target->getIndex() < player->getPosition()) {
+            // hanya berikan GO salary jika benar-benar melewati GO (index menurun)
+        }
+        player->setPosition(target->getIndex());
+        gui->showMessage("Teleport ke " + target->getName() + " (" + code + ").");
+        if (engine->logger != nullptr) {
+            engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                                "KARTU", "Pakai TeleportCard -> pindah ke " +
+                                target->getName() + " (" + code + ")");
+        }
+        engine->handleTileLandingPublic(player, target);
+        break;
+    }
+}
+
+void CommandProcessor::applyDiscountCard(Player* player, DiscountCard* card) {
+    // Efek DiscountCard: diskon pembelian properti selama 1 giliran.
+    // Diskon disimpan di player sebagai pending discount yang dicek saat beli properti.
+    player->setPendingDiscount(card->getDiscount());
+    gui->showMessage("DiscountCard aktif: diskon " + std::to_string(card->getDiscount()) +
+                     "% untuk pembelian properti giliran ini.");
+    if (engine->logger != nullptr) {
+        engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "KARTU", "Pakai DiscountCard diskon " +
+                            std::to_string(card->getDiscount()) + "%");
+    }
+}
+
+void CommandProcessor::applyShieldCard(Player* player, ShieldCard* /*card*/) {
+    turn->setShieldActive(true);
+    gui->showMessage("ShieldCard aktif: kamu kebal dari tagihan sewa dan sanksi giliran ini.");
+    if (engine->logger != nullptr) {
+        engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "KARTU", "Pakai ShieldCard -> kebal sewa & sanksi");
+    }
+}
+
+void CommandProcessor::applyLassoCard(Player* player, LassoCard* /*card*/) {
+    const auto& activePlayers = game->getActivePlayers();
+    // Cari pemain lawan yang berada DI DEPAN posisi player
+    std::vector<Player*> candidates;
+    int myPos = player->getPosition();
+    int boardSize = (game->getBoard() ? game->getBoard()->getSize() : 40);
+    for (Player* other : activePlayers) {
+        if (other == player || other->isJailed()) continue;
+        int diff = (other->getPosition() - myPos + boardSize) % boardSize;
+        if (diff > 0) candidates.push_back(other);
+    }
+    if (candidates.empty()) {
+        gui->showMessage("LassoCard: tidak ada pemain lawan yang berada di depanmu.");
+        if (engine->logger != nullptr) {
+            engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                                "KARTU", "Pakai LassoCard -> tidak ada target");
+        }
+        return;
+    }
+    // Sort by smallest distance (paling dekat di depan)
+    std::sort(candidates.begin(), candidates.end(), [&](Player* a, Player* b){
+        int da = (a->getPosition() - myPos + boardSize) % boardSize;
+        int db = (b->getPosition() - myPos + boardSize) % boardSize;
+        return da < db;
+    });
+    gui->showMessage("LassoCard: pilih pemain yang akan ditarik:");
+    for (int i = 0; i < static_cast<int>(candidates.size()); ++i) {
+        gui->showMessage("[" + std::to_string(i) + "] " + candidates[i]->getUsername() +
+                         " (petak " + std::to_string(candidates[i]->getPosition()) + ")");
+    }
+    int choice = -1;
+    while (choice < 0 || choice >= static_cast<int>(candidates.size())) {
+        std::string in = waitInput("Pilih nomor pemain:");
+        try { choice = std::stoi(in); } catch (...) { choice = -1; }
+        if (choice < 0 || choice >= static_cast<int>(candidates.size()))
+            gui->showMessage("Pilihan tidak valid.");
+    }
+    Player* target = candidates[choice];
+    target->setPosition(myPos);
+    gui->showMessage("LassoCard: " + target->getUsername() + " ditarik ke petakmu (" +
+                     std::to_string(myPos) + ").");
+    if (engine->logger != nullptr) {
+        engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "KARTU", "Pakai LassoCard -> tarik " + target->getUsername() +
+                            " ke petak " + std::to_string(myPos));
+    }
+}
+
+void CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*card*/) {
+    // Kumpulkan semua properti lawan yang punya bangunan
+    std::vector<std::pair<Player*, Property*>> targets;
+    for (Player* other : game->getActivePlayers()) {
+        if (other == player) continue;
+        for (Property* prop : other->getOwnedProperties()) {
+            auto* sp = dynamic_cast<StreetProperty*>(prop);
+            if (sp && sp->getBuildingState() != BuildingState::NONE) {
+                targets.push_back({other, prop});
+            }
+        }
+    }
+    if (targets.empty()) {
+        gui->showMessage("DemolitionCard: tidak ada bangunan milik lawan yang bisa dihancurkan.");
+        if (engine->logger != nullptr) {
+            engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                                "KARTU", "Pakai DemolitionCard -> tidak ada target");
+        }
+        return;
+    }
+    gui->showMessage("DemolitionCard: pilih properti lawan yang akan dihancurkan:");
+    for (int i = 0; i < static_cast<int>(targets.size()); ++i) {
+        auto* sp = dynamic_cast<StreetProperty*>(targets[i].second);
+        std::string bldg;
+        switch (sp->getBuildingState()) {
+            case BuildingState::HOUSE_1: bldg = "1 rumah"; break;
+            case BuildingState::HOUSE_2: bldg = "2 rumah"; break;
+            case BuildingState::HOUSE_3: bldg = "3 rumah"; break;
+            case BuildingState::HOUSE_4: bldg = "4 rumah"; break;
+            case BuildingState::HOTEL:   bldg = "Hotel"; break;
+            default: bldg = "-"; break;
+        }
+        gui->showMessage("[" + std::to_string(i) + "] " +
+                         targets[i].first->getUsername() + " — " +
+                         sp->getName() + " (" + sp->getCode() + ") " + bldg);
+    }
+    int choice = -1;
+    while (choice < 0 || choice >= static_cast<int>(targets.size())) {
+        std::string in = waitInput("Pilih nomor properti:");
+        try { choice = std::stoi(in); } catch (...) { choice = -1; }
+        if (choice < 0 || choice >= static_cast<int>(targets.size()))
+            gui->showMessage("Pilihan tidak valid.");
+    }
+    auto* sp = dynamic_cast<StreetProperty*>(targets[choice].second);
+    std::string before = sp->getBuildingState() == BuildingState::HOTEL ? "Hotel" :
+                         std::to_string(static_cast<int>(sp->getBuildingState())) + " rumah";
+    sp->demolishOneLevel();
+    gui->showMessage("DemolitionCard: satu tingkat bangunan di " + sp->getName() +
+                     " milik " + targets[choice].first->getUsername() + " dihancurkan.");
+    if (engine->logger != nullptr) {
+        engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "KARTU", "Pakai DemolitionCard -> hancur 1 bangunan di " +
+                            sp->getName() + " (" + sp->getCode() + ") milik " +
+                            targets[choice].first->getUsername());
+    }
+}
+
+CommandResult CommandProcessor::handleUseSkill(Player* player, int index) {
+    if (!turn->canUseSkill(player)) {
+        gui->showMessage("Tidak dapat menggunakan kartu kemampuan sekarang.");
+        return CommandResult::INVALID;
+    }
+    const auto& hand = player->getHandCards();
+    if (index < 0 || index >= static_cast<int>(hand.size())) {
+        gui->showMessage("Indeks kartu tidak valid.");
+        return CommandResult::INVALID;
+    }
+    SkillCard* card = hand[index];
+
+    // Dispatch by card type and apply effect BEFORE removing (some effects need card data)
+    if (auto* mc = dynamic_cast<MoveCard*>(card)) {
+        player->removeCard(card);
+        player->markSkillUsed();
+        applyMoveCard(player, mc);
+    } else if (auto* tc = dynamic_cast<TeleportCard*>(card)) {
+        player->removeCard(card);
+        player->markSkillUsed();
+        applyTeleportCard(player, tc);
+    } else if (auto* dc = dynamic_cast<DiscountCard*>(card)) {
+        player->removeCard(card);
+        player->markSkillUsed();
+        applyDiscountCard(player, dc);
+    } else if (auto* sc = dynamic_cast<ShieldCard*>(card)) {
+        player->removeCard(card);
+        player->markSkillUsed();
+        applyShieldCard(player, sc);
+    } else if (auto* lc = dynamic_cast<LassoCard*>(card)) {
+        player->removeCard(card);
+        player->markSkillUsed();
+        applyLassoCard(player, lc);
+    } else if (auto* demolc = dynamic_cast<DemolitionCard*>(card)) {
+        player->removeCard(card);
+        player->markSkillUsed();
+        applyDemolitionCard(player, demolc);
+    } else {
+        // JailFreeCard — hanya bisa dipakai saat di penjara (ditangani handleJailedPlayerTurn)
+        gui->showMessage("Kartu " + card->getCardName() + " hanya bisa dipakai saat di Penjara.");
+        return CommandResult::INVALID;
+    }
+
+    if (game->getSkillDeck() != nullptr) game->getSkillDeck()->discard(card);
     return CommandResult::CONTINUE;
 }

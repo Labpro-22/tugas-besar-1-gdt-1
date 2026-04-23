@@ -71,6 +71,8 @@ public:
     GameEngine(IGUI* gui);
     ~GameEngine();
 
+    void handleTileLandingPublic(Player* player, Tile* tile) { handleTileLanding(player, tile); }
+
     void run();
     void requestLoad(const std::string& filepath);
     bool performPendingLoad();

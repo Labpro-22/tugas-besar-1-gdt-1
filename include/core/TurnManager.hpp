@@ -6,6 +6,7 @@ class Player;
 class Tile;
 class DiceManager;
 class IGUI;
+class TransactionLogger;
 
 enum class TurnPhase {
     START,
@@ -19,6 +20,7 @@ private:
     Game* game;
     DiceManager* dice;
     IGUI* gui;
+    TransactionLogger* logger;
 
     TurnPhase phase;
     bool hasActed;
@@ -29,7 +31,7 @@ private:
     void decrementFestivalDurations();
 
 public:
-    TurnManager(Game* game, DiceManager* dice, IGUI* gui);
+    TurnManager(Game* game, DiceManager* dice, IGUI* gui, TransactionLogger* logger = nullptr);
 
     void startTurn(Player* player);
     void endTurn(Player* player);

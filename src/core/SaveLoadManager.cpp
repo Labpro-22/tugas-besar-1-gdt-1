@@ -340,6 +340,10 @@ bool SaveLoadManager::save(const std::string& filepath) {
     return true;
 }
 
+bool SaveLoadManager::saveLogSnapshot(const std::string& filepath) const {
+    return saveLogFile(filepath);
+}
+
 std::vector<std::string> SaveLoadManager::splitBy(const std::string& s, char sep) {
     std::vector<std::string> out;
     std::stringstream ss(s);

@@ -15,7 +15,8 @@ Player::Player(const std::string &username, int initialBalance)
       jailAttempts(0),
       hasRolledThisTurn(false),
       hasUsedSkillThisTurn(false),
-      pendingFestival(false)
+      pendingFestival(false),
+      pendingDiscount(0)
 {
 }
 
@@ -147,6 +148,10 @@ void Player::startTurn() {
 
 bool Player::hasPendingFestival() const { return pendingFestival; }
 void Player::setPendingFestival(bool v) { pendingFestival = v; }
+
+int Player::getPendingDiscount() const { return pendingDiscount; }
+void Player::setPendingDiscount(int pct) { pendingDiscount = pct; }
+void Player::clearPendingDiscount() { pendingDiscount = 0; }
 
 void Player::markRolled() {
     hasRolledThisTurn = true;

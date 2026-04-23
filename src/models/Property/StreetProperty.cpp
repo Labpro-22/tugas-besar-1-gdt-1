@@ -55,6 +55,11 @@ void StreetProperty::clearBuildings() {
     buildingState = BuildingState::NONE;
 }
 
+void StreetProperty::demolishOneLevel() {
+    if (buildingState == BuildingState::NONE) return;
+    buildingState = static_cast<BuildingState>(static_cast<int>(buildingState) - 1);
+}
+
 int StreetProperty::sellBuildingValue() const {
     int buildingValue = 0;
     if (buildingState == BuildingState::HOTEL) {
@@ -65,7 +70,7 @@ int StreetProperty::sellBuildingValue() const {
     return buildingValue;
 }
 
-int StreetProperty::calculateRent(int diceValue) const {
+int StreetProperty::calculateRent(int /*diceValue*/) const {
     if (rentLevels.empty()) return 0;
     size_t stateIdx = static_cast<size_t>(buildingState); 
     if (stateIdx < rentLevels.size()) {

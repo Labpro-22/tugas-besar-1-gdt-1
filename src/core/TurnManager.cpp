@@ -8,9 +8,11 @@
 #include "models/BoardAndTiles/PropertyTile.hpp"
 #include "models/Property/Property.hpp"
 #include "views/IGUI.hpp"
+#include "utils/data/TransactionLogger.hpp"
+#include "models/CardAndDeck/SkillCard.hpp"
 
-TurnManager::TurnManager(Game* game, DiceManager* dice, IGUI* gui)
-    : game(game), dice(dice), gui(gui),
+TurnManager::TurnManager(Game* game, DiceManager* dice, IGUI* gui, TransactionLogger* logger)
+    : game(game), dice(dice), gui(gui), logger(logger),
       phase(TurnPhase::START), hasActed(false), shieldActive(false) {}
 
 void TurnManager::startTurn(Player* player) {
@@ -71,6 +73,11 @@ void TurnManager::distributeSkillCard(Player* player) {
     SkillCard* card = deck->draw();
     if (!player->addCard(card)) {
         deck->discard(card);
+        return;
+    }
+    if (logger != nullptr) {
+        logger->log(game->getCurrentTurn(), player->getUsername(),
+                    "KARTU", "Mendapat kartu skill: " + card->getCardName());
     }
 }
 

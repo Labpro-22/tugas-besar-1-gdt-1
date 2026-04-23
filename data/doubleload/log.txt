@@ -1,4 +1,0 @@
-3
-1 u1 DADU Lempar: 3+3=6 (double) -> mendarat di BOGOR (BGR)
-1 u1 BELI Beli BOGOR (BGR) seharga M100
-1 u1 DOUBLE Giliran tambahan karena double

@@ -28,6 +28,7 @@ private:
     bool hasRolledThisTurn;
     bool hasUsedSkillThisTurn;
     bool pendingFestival;
+    int pendingDiscount;
 
 public:
     //constructor
@@ -77,6 +78,9 @@ public:
     bool hasUsedSkill() const;
     bool hasPendingFestival() const;
     void setPendingFestival(bool v);
+    int getPendingDiscount() const;
+    void setPendingDiscount(int pct);
+    void clearPendingDiscount();
 
     //skill card---------------------------
     bool addCard(SkillCard* card);

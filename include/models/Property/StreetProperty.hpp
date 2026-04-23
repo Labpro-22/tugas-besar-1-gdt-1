@@ -45,6 +45,7 @@ public:
     bool buildHotel();
 
     void clearBuildings();
+    void demolishOneLevel();
     int sellBuildingValue() const;
 
     int calculateRent(int diceValue = 0) const override;

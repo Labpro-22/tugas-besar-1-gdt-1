@@ -1,13 +1,13 @@
 NIMONSPOLI_SAVE 1
-META turn=1 currentTurnIndex=0 lastDiceTotal=6 gameOver=0 phase=2 acted=1 shield=0
+META turn=1 currentTurnIndex=0 lastDiceTotal=0 gameOver=0 phase=1 acted=0 shield=0
 TURN_ORDER 0,1
-PLAYER u1|900|7|ACTIVE|1|0|1|0|0
-HAND u1|DemolitionCard
-PLAYER u2|1000|1|ACTIVE|0|0|0|0|0
+PLAYER a|1000|1|ACTIVE|0|0|0|0|0
+HAND a|LassoCard
+PLAYER b|1000|1|ACTIVE|0|0|0|0|0
 PROPERTY GRT|BANK|-|NONE|1|0
 PROPERTY TSK|BANK|-|NONE|1|0
 PROPERTY GBR|BANK|-|NONE|1|0
-PROPERTY BGR|OWNED|u1|NONE|1|0
+PROPERTY BGR|BANK|-|NONE|1|0
 PROPERTY DPK|BANK|-|NONE|1|0
 PROPERTY BKS|BANK|-|NONE|1|0
 PROPERTY MGL|BANK|-|NONE|1|0
@@ -36,6 +36,6 @@ DECK CHANCE|DRAW|ChanceCard,ChanceCard,ChanceCard
 DECK CHANCE|DISCARD|
 DECK COMMUNITY|DRAW|CommunityChestCard,CommunityChestCard,CommunityChestCard
 DECK COMMUNITY|DISCARD|
-DECK SKILL|DRAW|LassoCard,MoveCard,TeleportCard,DiscountCard,ShieldCard
+DECK SKILL|DRAW|ShieldCard,DiscountCard,TeleportCard,DemolitionCard,MoveCard
 DECK SKILL|DISCARD|
 END

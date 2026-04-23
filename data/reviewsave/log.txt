@@ -1,0 +1,3 @@
+2
+1 a KARTU Mendapat kartu skill: LassoCard
+1 a SIMPAN Game disimpan ke reviewsave

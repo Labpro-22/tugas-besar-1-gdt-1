@@ -42,6 +42,7 @@ public:
 
     bool save(const std::string& filepath);
     bool load(const std::string& filepath);
+    bool saveLogSnapshot(const std::string& filepath) const;
 };
 
 #endif

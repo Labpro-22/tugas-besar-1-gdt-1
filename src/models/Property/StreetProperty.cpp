@@ -1,4 +1,5 @@
 #include "models/Property/StreetProperty.hpp"
+#include "models/Player/Player.hpp"
 
 StreetProperty::StreetProperty(const std::string &code,
                                const std::string &name,

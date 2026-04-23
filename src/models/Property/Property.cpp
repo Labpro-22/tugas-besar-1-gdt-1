@@ -1,4 +1,5 @@
 #include "models/Property/Property.hpp"
+#include "models/Player/Player.hpp"
 
 Property::Property(const std::string &code,
                    const std::string &name,

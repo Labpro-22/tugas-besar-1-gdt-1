@@ -38,7 +38,7 @@ public:
     virtual void renderProperty(const Property& property) = 0;
     virtual void renderOwnedProperties(const Player& player) = 0;
     virtual void renderDice(int die1, int die2) = 0;
-    virtual void renderLog(const std::vector<LogEntry>& entries) = 0;
+    virtual void renderLog(const std::vector<LogEntry>& entries, const std::string& title) = 0;
     virtual void renderSkillHand(const std::vector<SkillCard*>& hand) = 0;
     virtual void renderAuction(const Property& property, int currentBid, const Player* highBidder) = 0;
     virtual void renderBankruptcy(const Player& player) = 0;

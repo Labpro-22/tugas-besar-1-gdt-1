@@ -38,9 +38,15 @@ private:
     AuctionManager* auctionManager;
     BankruptcyManager* bankruptcyManager;
     SaveLoadManager* saveLoadManager;
+    bool resumeLoadedTurn;
+    bool pendingLoadRequested;
+    bool skipAdvanceAfterLoad;
+    std::string pendingLoadPath;
 
     void initNewGame();
     void initLoadGame();
+    bool loadFromPath(const std::string& filepath);
+    void resetRuntimeState();
 
     void gameLoop();
     void processPlayerTurn(Player* player);
@@ -66,6 +72,8 @@ public:
     ~GameEngine();
 
     void run();
+    void requestLoad(const std::string& filepath);
+    bool performPendingLoad();
 };
 
 #endif

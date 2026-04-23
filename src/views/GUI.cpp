@@ -66,7 +66,7 @@ void GUI::renderDice(int /*die1*/, int /*die2*/)
     // TODO
 }
 
-void GUI::renderLog(const std::vector<LogEntry> & /*entries*/)
+void GUI::renderLog(const std::vector<LogEntry> & /*entries*/, const std::string & /*title*/)
 {
     // TODO
 }

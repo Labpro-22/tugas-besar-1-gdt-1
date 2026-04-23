@@ -55,6 +55,14 @@ public:
         return drawPile.empty() && discardPile.empty();
     }
 
+    const std::vector<T*>& getDrawPile() const {
+        return drawPile;
+    }
+
+    const std::vector<T*>& getDiscardPile() const {
+        return discardPile;
+    }
+
     int size() const {
         return (int)(drawPile.size() + discardPile.size());
     }
@@ -75,6 +83,11 @@ public:
             }
         }
         return nullptr;
+    }
+
+    void loadState(std::vector<T*> newDrawPile, std::vector<T*> newDiscardPile) {
+        drawPile = std::move(newDrawPile);
+        discardPile = std::move(newDiscardPile);
     }
 };
 

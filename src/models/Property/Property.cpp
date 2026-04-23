@@ -42,3 +42,15 @@ void Property::decrementFestivalDuration() {
     if (festivalDuration > 0) festivalDuration--;
     if (festivalDuration == 0) festivalMultiplier = 1;
 }
+
+void Property::setFestivalState(int multiplier, int duration) {
+    festivalMultiplier = multiplier;
+    festivalDuration = duration;
+    if (festivalDuration <= 0) {
+        festivalDuration = 0;
+        festivalMultiplier = 1;
+    }
+    if (festivalMultiplier <= 0) {
+        festivalMultiplier = 1;
+    }
+}

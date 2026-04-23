@@ -34,6 +34,7 @@ bool CommandProcessor::isAllowedDuringBonusRoll(const std::string& cmd) const {
            cmd == "CETAK_PROPERTI" ||
            cmd == "CETAK_LOG" ||
            cmd == "SIMPAN" ||
+           cmd == "MUAT" ||
            cmd == "EXIT" ||
            cmd == "CLOSE" ||
            cmd == "CLOSE GAME";
@@ -101,6 +102,10 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
         if (cmd == "SIMPAN") {
             if (tokens.size() < 2) { gui->showMessage("Format: SIMPAN <file>"); return CommandResult::INVALID; }
             return handleSave(tokens[1]);
+        }
+        if (cmd == "MUAT") {
+            if (tokens.size() < 2) { gui->showMessage("Format: MUAT <file/folder_save>"); return CommandResult::INVALID; }
+            return handleLoad(tokens[1]);
         }
         if (cmd == "FESTIVAL") {
             if (tokens.size() < 2) { gui->showMessage("Format: FESTIVAL <kode>"); return CommandResult::INVALID; }
@@ -192,6 +197,12 @@ CommandResult CommandProcessor::handleMortgage(Player* player, const std::string
     gui->showMessage("Kamu menerima M" + std::to_string(value) + " dari Bank.");
     gui->showMessage("Uang kamu sekarang: M" + std::to_string(player->getBalance()));
     gui->showMessage("Catatan: Sewa tidak dapat dipungut dari properti yang digadaikan.");
+    if (engine->logger != nullptr) {
+        engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "GADAI",
+                            prop->getName() + " (" + prop->getCode() + ") senilai M" +
+                            std::to_string(value));
+    }
     return CommandResult::CONTINUE;
 }
 
@@ -215,6 +226,12 @@ CommandResult CommandProcessor::handleRedeem(Player* player, const std::string& 
     player->deductMoney(cost);
     prop->setStatus(PropertyStatus::OWNED);
     gui->showMessage("Properti " + code + " ditebus seharga " + std::to_string(cost));
+    if (engine->logger != nullptr) {
+        engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "TEBUS",
+                            prop->getName() + " (" + prop->getCode() + ") seharga M" +
+                            std::to_string(cost));
+    }
     return CommandResult::CONTINUE;
 }
 
@@ -237,11 +254,21 @@ CommandResult CommandProcessor::handleBuild(Player* player, const std::string& c
     if (sp->canBuildHouse()) {
         if (sp->buildHouse()) {
             gui->showMessage("Rumah dibangun di " + code);
+            if (engine->logger != nullptr) {
+                engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                                    "BANGUN",
+                                    "Bangun rumah di " + sp->getName() + " (" + sp->getCode() + ")");
+            }
             return CommandResult::CONTINUE;
         }
     } else if (sp->canBuildHotel()) {
         if (sp->buildHotel()) {
             gui->showMessage("Hotel dibangun di " + code);
+            if (engine->logger != nullptr) {
+                engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                                    "BANGUN",
+                                    "Bangun hotel di " + sp->getName() + " (" + sp->getCode() + ")");
+            }
             return CommandResult::CONTINUE;
         }
     }
@@ -263,6 +290,11 @@ CommandResult CommandProcessor::handleUseSkill(Player* player, int index) {
     player->removeCard(card);
     player->markSkillUsed();
     gui->showMessage("Kartu kemampuan digunakan: " + card->getCardName());
+    if (engine->logger != nullptr) {
+        engine->logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "KARTU",
+                            "Pakai " + card->getCardName());
+    }
     return CommandResult::CONTINUE;
 }
 
@@ -271,7 +303,10 @@ CommandResult CommandProcessor::handlePrintLog(int nLast) {
     std::vector<LogEntry> entries = (nLast > 0)
         ? logger->getRecentLog(nLast)
         : logger->getFullLog();
-    gui->renderLog(entries);
+    const std::string title = (nLast > 0)
+        ? "=== Log Transaksi (" + std::to_string(nLast) + " Terakhir) ==="
+        : "=== Log Transaksi Penuh ===";
+    gui->renderLog(entries, title);
     return CommandResult::CONTINUE;
 }
 
@@ -281,11 +316,22 @@ CommandResult CommandProcessor::handleSave(const std::string& file) {
         return CommandResult::INVALID;
     }
     if (engine->saveLoadManager->save(file)) {
+        if (engine->logger != nullptr) {
+            engine->logger->log(game->getCurrentTurn(),
+                                player ? player->getUsername() : "SISTEM",
+                                "SIMPAN", "Game disimpan ke " + file);
+        }
         gui->showMessage("Game disimpan ke " + file);
-        return CommandResult::SAVED_MID_TURN;
+        return CommandResult::CONTINUE;
     }
     gui->showMessage("Gagal menyimpan ke " + file);
     return CommandResult::INVALID;
+}
+
+CommandResult CommandProcessor::handleLoad(const std::string& file) {
+    engine->requestLoad(file);
+    gui->showMessage("Memuat game dari " + file + "...");
+    return CommandResult::LOADED_GAME;
 }
 
 CommandResult CommandProcessor::handleFestival(Player* player, const std::string& code) {
@@ -305,10 +351,41 @@ CommandResult CommandProcessor::handleFestival(Player* player, const std::string
         gui->showMessage("Properti " + code + " sedang digadai, tidak dapat difestivalkan.");
         return CommandResult::INVALID;
     }
+    int rentBefore = target->calculateRent(0);
+    int multBefore = target->getFestivalMultiplier();
+    bool wasActive = target->getFestivalDuration() > 0;
     target->activateFestival();
     player->setPendingFestival(false);
-    gui->showMessage("Festival aktif di " + target->getName() + "! Sewa berlipat selama "
-                     + std::to_string(target->getFestivalDuration()) + " giliran.");
+    int rentAfter  = target->calculateRent(0);
+    int multAfter  = target->getFestivalMultiplier();
+    int dur        = target->getFestivalDuration();
+    if (engine->logger != nullptr) {
+        std::string logDetail = target->getName() + " (" + target->getCode() + "): ";
+        if (!wasActive) {
+            logDetail += "sewa M" + std::to_string(rentBefore) + " -> M" +
+                         std::to_string(rentAfter) + ", durasi " + std::to_string(dur) + " giliran";
+        } else if (multAfter > multBefore) {
+            logDetail += "Efek diperkuat! sewa M" + std::to_string(rentBefore) +
+                         " -> M" + std::to_string(rentAfter) +
+                         ", durasi di-reset " + std::to_string(dur) + " giliran";
+        } else {
+            logDetail += "Efek sudah maksimum (x" + std::to_string(multAfter) +
+                         "), durasi di-reset " + std::to_string(dur) + " giliran";
+        }
+        engine->logger->log(game->getCurrentTurn(), player->getUsername(), "FESTIVAL", logDetail);
+    }
+    if (!wasActive) {
+        gui->showMessage("Festival aktif di " + target->getName() + "! Sewa berlipat selama "
+                         + std::to_string(dur) + " giliran.");
+    } else if (multAfter > multBefore) {
+        gui->showMessage("Efek festival diperkuat di " + target->getName() +
+                         "! Sewa sekarang M" + std::to_string(rentAfter) +
+                         ", durasi di-reset menjadi " + std::to_string(dur) + " giliran.");
+    } else {
+        gui->showMessage("Efek festival sudah maksimum di " + target->getName() +
+                         " (x" + std::to_string(multAfter) + "). Durasi di-reset menjadi " +
+                         std::to_string(dur) + " giliran.");
+    }
     if (isAwaitingBonusRoll(player)) {
         gui->showMessage("Karena lemparan sebelumnya double, lanjutkan dengan LEMPAR_DADU atau ATUR_DADU <x> <y>.");
     } else {
@@ -345,18 +422,19 @@ CommandResult CommandProcessor::handleHelp(Player* player) {
     }
 
     if (!player->hasRolled()) {
-        gui->showMessage("Sebelum lempar dadu: LEMPAR_DADU | ATUR_DADU <x> <y> | GUNAKAN_KEMAMPUAN <idx> | SIMPAN <file>");
+        gui->showMessage("Sebelum lempar dadu: LEMPAR_DADU | ATUR_DADU <x> <y> | GUNAKAN_KEMAMPUAN <idx> | SIMPAN <file> | MUAT <file>");
     } else if (player->hasPendingFestival()) {
-        gui->showMessage("Saat aksi Festival: FESTIVAL <kode_properti> | CETAK_PAPAN | CETAK_PROPERTI | CETAK_LOG [n]");
+        gui->showMessage("Saat aksi Festival: FESTIVAL <kode_properti> | CETAK_PAPAN | CETAK_PROPERTI | CETAK_LOG [n] | MUAT <file>");
         if (player->getConsecutiveDoubles() > 0) {
             gui->showMessage("Setelah Festival selesai, lanjutkan dengan LEMPAR_DADU atau ATUR_DADU <x> <y>.");
         }
     } else if (isAwaitingBonusRoll(player)) {
-        gui->showMessage("Saat menunggu lemparan bonus: LEMPAR_DADU | ATUR_DADU <x> <y> | CETAK_PAPAN | CETAK_AKTA <kode> | CETAK_PROPERTI | CETAK_LOG [n] | SIMPAN <file>");
+        gui->showMessage("Saat menunggu lemparan bonus: LEMPAR_DADU | ATUR_DADU <x> <y> | CETAK_PAPAN | CETAK_AKTA <kode> | CETAK_PROPERTI | CETAK_LOG [n] | SIMPAN <file> | MUAT <file>");
     } else {
-        gui->showMessage("Setelah lempar dadu: GADAI <kode> | TEBUS <kode> | BANGUN <kode> | CETAK_PAPAN | CETAK_PROPERTI | AKHIRI_GILIRAN");
+        gui->showMessage("Setelah lempar dadu: GADAI <kode> | TEBUS <kode> | BANGUN <kode> | CETAK_PAPAN | CETAK_PROPERTI | AKHIRI_GILIRAN | MUAT <file>");
     }
 
+    gui->showMessage("Manajemen save: SIMPAN <file> | MUAT <file>");
     gui->showMessage("Khusus keluar game: EXIT");
     return CommandResult::CONTINUE;
 }

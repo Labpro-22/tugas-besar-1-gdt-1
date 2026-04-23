@@ -82,7 +82,7 @@ public:
     void renderProperty(const Property& property) override;
     void renderOwnedProperties(const Player& player) override;
     void renderDice(int die1, int die2) override;
-    void renderLog(const std::vector<LogEntry>& entries) override;
+    void renderLog(const std::vector<LogEntry>& entries, const std::string& title) override;
     void renderSkillHand(const std::vector<SkillCard*>& hand) override;
     void renderAuction(const Property& property, int currentBid, const Player* highBidder) override;
     void renderBankruptcy(const Player& player) override;

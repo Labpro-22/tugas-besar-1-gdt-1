@@ -658,12 +658,10 @@ void CLIGUI::renderDice(int die1, int die2) {
     std::cout << "Hasil: " << die1 << " + " << die2 << " = " << (die1 + die2) << "\n";
 }
 
-void CLIGUI::renderLog(const std::vector<LogEntry>& entries) {
-    std::cout << "\n--- LOG ---\n";
+void CLIGUI::renderLog(const std::vector<LogEntry>& entries, const std::string& title) {
+    std::cout << "\n" << title << "\n\n";
     for (const LogEntry& e : entries) {
-        std::cout << "[turn " << e.getTurn() << "] "
-                  << e.getUsername() << " " << e.getActionType()
-                  << ": " << e.getDetail() << "\n";
+        std::cout << e.toString() << "\n";
     }
 }
 

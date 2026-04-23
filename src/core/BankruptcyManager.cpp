@@ -232,7 +232,8 @@ int BankruptcyManager::sellPropertyToBank(Player& player, Property* property) {
 
     if (logger != nullptr) {
         logger->log(game->getCurrentTurn(), player.getUsername(),
-                    "JUAL_BANK", property->getCode() + " +" + std::to_string(total));
+                    "JUAL_BANK",
+                    property->getName() + " (" + property->getCode() + ") +" + std::to_string(total));
     }
 
     gui->showMessage(property->getName() + " terjual ke Bank. Kamu menerima " +
@@ -250,7 +251,8 @@ int BankruptcyManager::mortgageProperty(Player& player, Property* property) {
 
     if (logger != nullptr) {
         logger->log(game->getCurrentTurn(), player.getUsername(),
-                    "GADAI", property->getCode() + " +" + std::to_string(value));
+                    "GADAI",
+                    property->getName() + " (" + property->getCode() + ") +" + std::to_string(value));
     }
 
     gui->showMessage(property->getName() + " berhasil digadaikan. Kamu menerima " +
@@ -418,7 +420,8 @@ void BankruptcyManager::declareBankruptcy(Player& debtor, Player* creditor) {
     }
     if (logger != nullptr) {
         logger->log(game->getCurrentTurn(), debtor.getUsername(),
-                    "BANGKRUT", creditor ? creditor->getUsername() : "BANK");
+                    "BANGKRUT",
+                    std::string("Kreditor: ") + (creditor ? creditor->getUsername() : "BANK"));
     }
 
     gui->showMessage(debtor.getUsername() + " telah keluar dari permainan.");
@@ -439,11 +442,23 @@ bool BankruptcyManager::handleInsufficientFunds(Player& debtor, int amount, Play
     showLiquidationEstimate(debtor, amount, creditor, obligationLabel);
 
     if (!canCoverDebt(debtor, amount)) {
+        if (logger != nullptr) {
+            logger->log(game->getCurrentTurn(), debtor.getUsername(),
+                        "GAGAL_BAYAR",
+                        (obligationLabel.empty() ? formatMoney(amount) : obligationLabel) +
+                        " -> bangkrut");
+        }
         declareBankruptcy(debtor, creditor);
         return false;
     }
 
     if (!runLiquidationPanel(debtor, amount)) {
+        if (logger != nullptr) {
+            logger->log(game->getCurrentTurn(), debtor.getUsername(),
+                        "GAGAL_BAYAR",
+                        (obligationLabel.empty() ? formatMoney(amount) : obligationLabel) +
+                        " -> bangkrut");
+        }
         declareBankruptcy(debtor, creditor);
         return false;
     }

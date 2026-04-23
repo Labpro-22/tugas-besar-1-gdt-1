@@ -94,6 +94,11 @@ std::pair<AuctionAction, int> AuctionManager::collectBidOrPass(Player& player, i
 
 void AuctionManager::finalizeAuction(Player* winner, Property* property, int bidAmount) {
     if (winner == nullptr || bidAmount <= 0) {
+        if (logger) {
+            logger->log(game->getCurrentTurn(), "BANK",
+                        "LELANG",
+                        property->getName() + " (" + property->getCode() + ") tanpa pemenang");
+        }
         gui->showMessage("Lelang selesai tanpa pemenang. Properti tetap milik Bank.");
         return;
     }
@@ -103,8 +108,9 @@ void AuctionManager::finalizeAuction(Player* winner, Property* property, int bid
     winner->addProperty(property);
 
     if (logger) logger->log(game->getCurrentTurn(), winner->getUsername(),
-                            "LELANG_MENANG",
-                            property->getName() + " " + std::to_string(bidAmount));
+                            "LELANG",
+                            "Menang " + property->getName() + " (" + property->getCode() +
+                            ") seharga M" + std::to_string(bidAmount));
     gui->showMessage("Lelang selesai!");
     gui->showMessage("Pemenang: " + winner->getUsername());
     gui->showMessage("Harga akhir: M" + std::to_string(bidAmount));
@@ -140,6 +146,11 @@ Player* AuctionManager::runAuction(Property* property, Player* triggeringPlayer)
             } else if (validateBid(*p, amt, currentBid)) {
                 currentBid = amt;
                 highBidder = p;
+                if (logger) {
+                    logger->log(game->getCurrentTurn(), p->getUsername(),
+                                "LELANG",
+                                property->getCode() + " BID M" + std::to_string(currentBid));
+                }
                 gui->showMessage("Penawaran tertinggi: M" + std::to_string(currentBid) +
                                  " (" + highBidder->getUsername() + ")");
                 gui->renderAuction(*property, currentBid, highBidder);

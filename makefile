@@ -36,7 +36,9 @@ run: all
 	./$(TARGET)
 
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
+	rm -rf $(OBJ_DIR)
+	rm -f $(TARGET)
+	rm -rf $(BIN_DIR) 2>/dev/null || true
 
 rebuild: clean all
 

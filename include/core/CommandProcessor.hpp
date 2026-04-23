@@ -27,6 +27,7 @@ enum class CommandResult {
     END_TURN,
     GAME_OVER,
     SAVED_MID_TURN,
+    LOADED_GAME,
     INVALID
 };
 
@@ -53,6 +54,7 @@ private:
     CommandResult handleUseSkill(Player* player, int index);
     CommandResult handlePrintLog(int nLast);
     CommandResult handleSave(const std::string& file);
+    CommandResult handleLoad(const std::string& file);
     CommandResult handleFestival(Player* player, const std::string& code);
     CommandResult handleEndTurn(Player* player);
     CommandResult handleHelp(Player* player);

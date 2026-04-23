@@ -365,23 +365,27 @@ const std::string PropertyPopup::catchCommand() {
 void PropertyPopup::render() {
     animationCheck();
 
+    float x = getRenderPos().x;
+    float y = getRenderPos().y;
+    float w = getRenderWidth();
+    float h = getRenderHeight();
+
     // background
-    DrawRectangle(getRenderPos().x, getRenderPos().y,
-                  getRenderWidth(), getRenderHeight(),
-                  RAYWHITE);
+    DrawRectangle(x, y, w, h, RAYWHITE);
 
     // header
-    DrawRectangle(getRenderPos().x, getRenderPos().y,
-                  getRenderWidth(), getRenderHeight()*0.125f,
-                  RED);
+    float headerH = h * 0.2f;
+    DrawRectangle(x, y, w, headerH, RED);
 
     // title
-    Vector2 t = MeasureTextEx(fontMap["Orbitron"], name.c_str(), 28, 1);
+    Vector2 t = MeasureTextEx(fontMap["Orbitron"], name.c_str(), 26, 1);
     DrawTextEx(fontMap["Orbitron"], name.c_str(),
-               pos - Vector2{t.x/2, getRenderHeight()/2 - 10},
-               28,1, WHITE);
+               {x + w/2 - t.x/2, y + headerH/2 - t.y/2},
+               28, 1, WHITE);
 
     // details
+    float currentY = y + headerH + 20; // MULAI DI BAWAH HEADER
+
     std::string text = buildDetails();
 
     std::stringstream ss(text);
@@ -394,15 +398,10 @@ void PropertyPopup::render() {
         }
     }
 
-    drawTextLinesWrapped(
-        fontMap["Orbitron"],
-        fixedText,
-        pos - Vector2{0, 60},
-        22,
-        1,
-        BLACK,
-        getRenderDim() - (Vector2){40,0}
-    );
+    drawTextLinesWrapped(fontMap["Orbitron"], fixedText,
+                         {x + w/2, currentY+ 60},
+                         20, 1, BLACK,
+                         {w - 40, h}); // padding kiri kanan
 
     // buttons layout
     float spacing = 60;
@@ -418,11 +417,99 @@ void PropertyPopup::render() {
         actionButtons[i].render();
     }
 
+    // exitButton.render();
+}
+
+MessagePopup::MessagePopup(
+    const std::string& title,
+    const std::string& message,
+    const std::string& imagePath
+)
+: IndefinitePopup(View2D(getScreenCenter(), {500, 350}, [](){})),
+  title(title),
+  message(message),
+  hasImage(false)
+{
+    if (!imagePath.empty()) {
+        if (!FileExists(imagePath.c_str())) {
+            std::cout << "Image not found in " << imagePath << endl;
+        } else {
+            Image img = LoadImage(imagePath.c_str());
+            // std::cout << "Image loaded: " << img.width << "x" << img.height << std::endl;
+
+            texture = LoadTextureFromImage(img);
+            // std::cout << "Texture loaded: " << texture.width << "x" << texture.height << std::endl;
+            UnloadImage(img);
+            hasImage = true;
+        }
+        imageSize = {150, 150};
+    }
+}
+
+MessagePopup::~MessagePopup() {
+    if (hasImage) {
+        UnloadTexture(texture);
+    }
+}
+
+void MessagePopup::enable() {
+    exitButton.enable();
+}
+
+void MessagePopup::disable() {
+    exitButton.disable();
+}
+
+void MessagePopup::interactionCheck() {
+    exitButton.interactionCheck();
+}
+
+void MessagePopup::render() {
+    animationCheck();
+
+    float x = getRenderPos().x;
+    float y = getRenderPos().y;
+    float w = getRenderWidth();
+    float h = getRenderHeight();
+
+    // background
+    DrawRectangle(x, y, w, h, RAYWHITE);
+
+    // header
+    float headerH = h * 0.2f;
+    DrawRectangle(x, y, w, headerH, RED);
+
+    // title
+    Vector2 t = MeasureTextEx(fontMap["Orbitron"], title.c_str(), 26, 1);
+    DrawTextEx(fontMap["Orbitron"], title.c_str(),
+               {x + w/2 - t.x/2, y + headerH/2 - t.y/2},
+               28, 1, WHITE);
+
+    // content
+    float currentY = y + headerH + 20; // MULAI DI BAWAH HEADER
+
+    // image (jika ada)
+    if (hasImage) {
+        float scale = imageSize.x / texture.width;
+
+        DrawTextureEx(texture, {x + w/2 - imageSize.x/2, currentY},
+                      0.0f, scale, WHITE);
+
+        currentY += imageSize.y + 20; // geser ke bawah setelah gambar
+    }
+
+    // text
+    drawTextLinesWrapped(fontMap["Orbitron"], message,
+                         {x + w/2, currentY},
+                         20, 1, BLACK,
+                         {w - 40, h}); // padding kiri kanan
+
+    // exit button
     exitButton.render();
 }
 
-//Cara pakai PropertyPopup (contoh di ViewTesting.cpp):
 /*
+Cara pakai PropertyPopup (contoh di ViewTesting.cpp):
 // STREET EXAMPLE
 PropertyPopup* streetPopup = new PropertyPopup(
     "Medan",                          // nama properti
@@ -493,4 +580,18 @@ utilityPopup->setUtilityData(
 utilityPopup->addButton("PAY RENT", "PAY_RENT");
 
 app.loadPopup(utilityPopup);
+
+Cara pakai MessagePopup (contoh di ViewTesting.cpp)
+// Dengan Gambar
+ app.loadPopup(new MessagePopup(
+    "Festival Tile",
+    "Festival is here! Rent for all properties is doubled for 3 turns!",
+    "src/views/Festival1.png"
+));
+
+//Tanpa Gambar
+app.loadPopup(new MessagePopup(
+    "Purchase Property",
+    "Property successfully purchased!"
+));
 */

@@ -35,7 +35,7 @@ int main()
         //     "Player2"
         // );
 
-        // // isi data street
+        // isi data street
         // popup->setStreetData(
         //     "YELLOW",
         //     {20, 40, 60, 100, 150, 200},
@@ -45,11 +45,16 @@ int main()
         //     true    // monopoli
         // );
 
-        // // tombol (karena milik orang lain --> bayar)
+        // tombol (karena milik orang lain --> bayar)
         // popup->addButton("PAY RENT", "PAY_RENT");
         // popup->addButton("SELL 1 HOUSE", "SELL_BUILDING"); // (tambahin tombol lain juga boleh)
+        // app.loadPopup(popup);
 
-        app.loadPopup(popup);
+        // app.loadPopup(new MessagePopup(
+        //     "Festival Tile",
+        //     "Festival is here! Rent for all properties is doubled for 3 turns!",
+        //     "src/views/Festival1.png"
+        // ));
 
         while (!WindowShouldClose())
         {

@@ -158,3 +158,28 @@ public:
 
     void render() override;
 };
+
+class MessagePopup : public IndefinitePopup {
+private:
+    std::string title;
+    std::string message;
+
+    // optional image
+    Texture2D texture;
+    bool hasImage;
+    Vector2 imageSize;
+
+public:
+    MessagePopup(
+        const std::string& title,
+        const std::string& message,
+        const std::string& imagePath = ""
+    );
+
+    ~MessagePopup() override;
+
+    void enable() override;
+    void disable() override;
+    void interactionCheck() override;
+    void render() override;
+};

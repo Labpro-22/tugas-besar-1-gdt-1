@@ -19,6 +19,7 @@ class ViewAnimation {
         const bool isInteruptable() const;
         void setAnimationFunc(function<void()> animationFunc);
         void setAnimationEndFunc(function<void()> animationEndFunc);
+        void setWait(const float duration, function<void()> waitEndFunc);
         void start();
         void pause();
         void end();
@@ -42,4 +43,5 @@ class View3DAnimation : public ViewAnimation {
         View3DAnimation(View3D& view, const float fps, bool interuptable, function<void()> animationFunc, function<void()> animationEndFunc);
         void setMoveAnimation(const Vector3 moveDest, const float duration);
         void setMoveYAnimation(float moveDest, const float duration);
+        void setRotateAnimation(float deg, const Vector3 axis, const float duration);
 };

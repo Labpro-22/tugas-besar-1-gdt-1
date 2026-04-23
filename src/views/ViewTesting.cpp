@@ -10,8 +10,11 @@ int main()
     SetTraceLogLevel(LOG_NONE);
     InitWindow(screenWidth, screenHeight, "Nimonspoli");
     ClearWindowState(FLAG_WINDOW_RESIZABLE);
+    PlayerView::loadPlayerModel("data/GUIAssets/playerpawn.obj");
+    CardView::loadCardTextures();
     View2D::addFont("Kabel", "data/GUIAssets/kabel.ttf");
     View2D::addFont("Orbitron", "data/GUIAssets/Orbitron-VariableFont_wght.ttf");
+    
     SetTargetFPS(120);
     
     ConfigLoader CL("data/default");
@@ -28,6 +31,17 @@ int main()
     app.loadPlayer(player2);
     app.loadPlayer(player3);
     app.loadPlayer(player4);
+    CardDeck<Card> chancePile;
+    CardDeck<Card> comChestPile;
+    chancePile.addCard(new ChanceCard(ChanceType::GO_TO_JAIL));
+    chancePile.addCard(new ChanceCard(ChanceType::GO_TO_JAIL));
+    chancePile.addCard(new ChanceCard(ChanceType::GO_TO_JAIL));
+    chancePile.addCard(new ChanceCard(ChanceType::GO_TO_JAIL));
+    comChestPile.addCard(new CommunityChestCard(CommunityType::CAMPAIGN_FEE));
+    comChestPile.addCard(new CommunityChestCard(CommunityType::CAMPAIGN_FEE));
+    comChestPile.addCard(new CommunityChestCard(CommunityType::CAMPAIGN_FEE));
+    comChestPile.addCard(new CommunityChestCard(CommunityType::CAMPAIGN_FEE));
+    app.loadCardPiles(chancePile, comChestPile);
     app.loadDebuggingEntry();
     while (!WindowShouldClose()) {
         ClearBackground(RAYWHITE);

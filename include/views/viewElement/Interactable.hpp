@@ -23,6 +23,7 @@ class Interactable : public View2D {
         void setHitboxDim(const Vector2& hitbox);
         void setOnHover(function<void()> onHover);
         void setOnClicked(function<void()> onClicked);
+        void sendCommand();
         const bool isInBoundingBox(float x, float y) const;
         const bool isInBoundingBox(const Vector2& v) const;
         virtual void enable() override;

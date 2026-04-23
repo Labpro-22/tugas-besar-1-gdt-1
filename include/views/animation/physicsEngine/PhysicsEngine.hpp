@@ -4,7 +4,7 @@
 
 
 class PhysicsEngine {
-    private :
+    protected :
         map<string, PhysicsObject*> objects;
         const float gravityAcceleration;
         const float floorFriction;
@@ -13,7 +13,7 @@ class PhysicsEngine {
         PhysicsObject emptyObject;
     public :
         PhysicsEngine(const float gravity, const float floorFriction, const float floorY, const float fps);
-        void addObject(string objIdent, PhysicsObject& obj);
+        void addObject(string objIdent, PhysicsObject* obj);
         PhysicsObject* getObject(string objIdent) const;
         const float getLowestDeltaTime() const;
         void handleObjectFloorCollision(string objIdent);

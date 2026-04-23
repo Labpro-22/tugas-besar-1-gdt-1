@@ -1,8 +1,11 @@
 #pragma once
 #include "views/IGUI.hpp"
 #include "views/viewElement/MenuView.hpp"
+#include "views/viewElement/cards/CardView.hpp"
+#include "views/viewElement/cards/CardPileView.hpp"
 #include "views/viewElement/board/BoardView.hpp"
 #include "views/viewElement/player/PlayerView.hpp"
+#include "views/viewElement/player/DiceView.hpp"
 #include "views/viewElement/Popup.hpp"
 #include "views/animation/ViewAnimation.hpp"
 #include "views/animation/camera/CameraManager.hpp"
@@ -17,7 +20,11 @@ class GUI : public IGUI {
         MenuView* menu;
         Entry* debuggingEntry;
         BoardView* board;
+        DiceView* dice;
         vector<PlayerView*> players;
+        CardPileView* chancePile;
+        CardPileView* communityChestPile;
+        
 
         CameraManager camManager;
 
@@ -61,6 +68,8 @@ class GUI : public IGUI {
         // Utility khusus GUI raylib (bukan bagian IGUI)
         void loadPopup(Popup* popup);
         void loadPlayer(Player& player);
+        void loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile);
+        void loadDice(PlayerView* player);
         void enableAll();
         void disableAll();
 

@@ -17,6 +17,16 @@ const bool ViewAnimation::isInteruptable() const { return interuptable; }
 
 void ViewAnimation::setAnimationFunc(function<void()> animationFunc) { this->animationFunc = animationFunc; }
 void ViewAnimation::setAnimationEndFunc(function<void()> animationEndFunc) { this->animationEndFunc = animationEndFunc; }
+
+void ViewAnimation::setWait(const float duration, function<void()> waitEndFunc) {
+    animationFunc = [duration, this](){
+        if (frameProgress/fps >= duration) {
+            ended = true;
+        } 
+    };
+    animationEndFunc = waitEndFunc;
+}
+ 
 void View2DAnimation::setMoveAnimation(const Vector2 moveDest, const float duration) {
     Vector2 startingPos = view.getPos();
     animationFunc = [moveDest, duration, startingPos, this](){
@@ -49,6 +59,19 @@ void View3DAnimation::setMoveYAnimation(float moveDest, const float duration) {
             ended = true;
         } else {
             view.setPosY(startingY + (moveDest - startingY)*((frameProgress/fps)/duration));
+        }
+    };
+}
+
+void View3DAnimation::setRotateAnimation(float deg, const Vector3 axis, const float duration) {
+    float radian = deg * DEG2RAD;
+    Matrix originalTransform = view.getTransformation();
+    animationFunc = [axis, radian, duration, this, originalTransform](){
+        if (frameProgress/fps >= duration) {
+            view.setTransform(MatrixRotate(axis, radian)*originalTransform);
+            ended = true;
+        } else {
+            view.setTransform(MatrixRotate(axis, radian*((frameProgress/fps)/duration))*originalTransform);
         }
     };
 }

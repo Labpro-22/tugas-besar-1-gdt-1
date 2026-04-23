@@ -1,3 +1,4 @@
+#pragma once
 #include "../View3D.hpp"
 #include "../../animation/camera/View3DCamera.hpp"
 #include "../../animation/camera/CameraManager.hpp"
@@ -14,6 +15,7 @@ class PlayerView : public View3D {
         TileView* currentTile;
         BoardView* board;
         View3DCamera* playerCam;
+        static Model* playerModel;
     public :
         PlayerView(Player& player, BoardView* board, Color color, CameraManager* camManager);
         ~PlayerView();
@@ -21,6 +23,8 @@ class PlayerView : public View3D {
         View3DCamera* getPlayerCamera();
         void setCurrentTile(TileView* currentTile);
         void moveToTile(TileView& tile);
+        void moveSpaces(int moveVal);
+        static void loadPlayerModel(string filePath);
 };
 
 

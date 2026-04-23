@@ -4,10 +4,10 @@
 #include "../include/views/animation/ViewAnimation.hpp"
 #include "../include/views/animation/camera/CameraMovement.hpp"
 
-
+Model* PlayerView::playerModel = nullptr;
 
 PlayerView::PlayerView(Player& player, BoardView* board, Color color, CameraManager* camManager) : player(player), board(board), currentTile(board->getGoTile()),
-    View3D(board->getGoTile()->getPos(), LoadModel("data/GUIAssets/playerpawn.obj"), color) {
+    View3D(board->getGoTile()->getPos(), *playerModel, color) {
     transform(MatrixRotate({1,0,0}, -M_PI/2));
     BoundingBox modelBB = GetModelBoundingBox(model);
     float scale = (TileView::getTileDim().y/4)/(modelBB.max.x - modelBB.min.x);
@@ -71,4 +71,13 @@ void PlayerView::moveToTile(TileView& destTile) {
     moveStartAnim->setMoveAnimation((Vector3){currentTile->getPos().x, getPos().y, currentTile->getPos().z} + (Vector3){0,1,0}, 0.2);
     addAnimation("MOVE_START", moveStartAnim);
     this->getAnimation("MOVE_START")->start();
+}
+
+void PlayerView::moveSpaces(int moveVal) {
+    int moveDest = currentTile->getTile()->getIndex() + moveVal;
+    moveToTile(*board->getTileFromIdx(moveDest));
+}
+
+void PlayerView::loadPlayerModel(string filepath) {
+    playerModel = new Model (LoadModel(filepath.c_str()));
 }

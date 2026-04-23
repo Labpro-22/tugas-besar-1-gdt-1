@@ -47,6 +47,9 @@ class View2D {
         const Color getRenderColor(const Color& color) const;
         const bool isVisible() const;
         const bool closed() const;
+        const Vector2& getPosition() const;
+        
+        void setPosition(const Vector2& v);
         virtual void movePosition(const Vector2& v);
         void movePosition(float x, float y);
         void movePositionDelta(const Vector2& dv);
@@ -56,13 +59,13 @@ class View2D {
         void setOpacity(float opacity);
         void setVisible(bool visible);
         void setRender(function<void()> renderFunc);
-        void addAnimation(string animKey, View2DAnimation* anim);
-        View2DAnimation* getAnimation(string animKey) const;
+        void addAnimation(std::string animKey, View2DAnimation* anim);
+        View2DAnimation* getAnimation(std::string animKey) const;
         void animationCheck();
         virtual void enable() {};
         virtual void disable() {};
         virtual void interactionCheck() {};
-        virtual const string catchCommand();
+        virtual std::string catchCommand();
         virtual void render();
         static void addFont(string fontKey, string fontFilename);
         static Font getFont(string fontKey);

@@ -1,24 +1,49 @@
 #include "views/GUI.hpp"
+#include "views/viewElement/GameHUDView.hpp"
+#include "core/Game.hpp"
 
-GUI::GUI(float fps, Board& board) : menu(nullptr), board(new BoardView(board)),
-         debuggingEntry(nullptr),
-         fps(fps), camManager(CameraManager()), exitRequested(false) {
-    camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize()*1.1f, 10.0f, 0}, {0,0,0}, 45.0f));
-    View3DCamera* boardCam = camManager.getCurrentCamera();
-    boardCam->addMovement("ROTATE_INDEFINITE", 
-        new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this](){
-            boardCam->rotateAroundTarget(27*(1/this->fps), {0,1,0});
-        }, [](){}));
-    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize()*1.25f, 0}, {0,0,0}, 45.0f));
+GUI::GUI(float fps, Board &board) : menu(nullptr), board(new BoardView(board)),
+                                    debuggingEntry(nullptr),
+                                    fps(fps), camManager(CameraManager()), exitRequested(false)
+{
+    camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize() * 1.1f, 10.0f, 0}, {0, 0, 0}, 45.0f));
+    View3DCamera *boardCam = camManager.getCurrentCamera();
+    boardCam->addMovement("ROTATE_INDEFINITE",
+                          new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this]()
+                                             { boardCam->rotateAroundTarget(27 * (1 / this->fps), {0, 1, 0}); }, []() {}));
+    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize() * 1.25f, 0}, {0, 0, 0}, 45.0f));
 }
 
-bool GUI::shouldExit() const {
+bool GUI::shouldExit() const
+{
     return exitRequested;
+}
+
+void GUI::requestExit()
+{
+    exitRequested = true;
 }
 
 void GUI::loadGameView()
 {
-    // TODO: muat view permainan utama
+    while (!popupStack.empty()) {
+        delete popupStack.top();
+        popupStack.pop();
+    }
+
+    for (auto v : views)
+        delete v;
+    views.clear();
+
+    for (auto p : playerProfiles) delete p;
+    playerProfiles.clear();
+
+    for (auto p : players) delete p;
+    players.clear();
+
+    menu = nullptr;
+
+    views.insert(new GameHUDView());
 }
 
 void GUI::loadFinishMenu()
@@ -26,9 +51,9 @@ void GUI::loadFinishMenu()
     // TODO: muat menu akhir permainan
 }
 
-void GUI::showMessage(const std::string & /*message*/)
+void GUI::showMessage(const std::string &message)
 {
-    // TODO: tampilkan popup pesan
+    loadPopup(new MessagePopup(message));
 }
 
 void GUI::showConfirm(const std::string & /*question*/)
@@ -36,14 +61,21 @@ void GUI::showConfirm(const std::string & /*question*/)
     // TODO: tampilkan popup konfirmasi ya/tidak
 }
 
-void GUI::showInputPrompt(const std::string & /*prompt*/)
+void GUI::showInputPrompt(const std::string &prompt)
 {
-    // TODO: tampilkan popup input teks
+    loadPopup(new InputPopup(prompt));
 }
 
-void GUI::renderBoard(const Game & /*game*/)
+void GUI::renderBoard(const Game &game)
 {
-    // TODO
+    Board *b = game.getBoard();
+    if (b == nullptr)
+        return;
+
+    if (board == nullptr)
+    {
+        board = new BoardView(*b);
+    }
 }
 
 void GUI::renderPlayer(const Player & /*player*/)
@@ -120,68 +152,158 @@ void GUI::loadPopup(Popup *popup)
     views.insert(popup);
 }
 
-void GUI::loadPlayer(Player& player) {
-    Color playerColor;
-    switch(players.size()) {
-        case 0: playerColor = RED; break;
-        case 1: playerColor = BLUE; break;
-        case 2: playerColor = GREEN; break;
-        case 3: playerColor = YELLOW; break;
-        default: playerColor = LIGHTGRAY;
+void GUI::loadPlayer(Player &player)
+{
+    Color color;
+    switch (playerProfiles.size())
+    {
+    case 0:
+        color = RED;
+        break;
+    case 1:
+        color = BLUE;
+        break;
+    case 2:
+        color = GREEN;
+        break;
+    case 3:
+        color = YELLOW;
+        break;
+    default:
+        color = LIGHTGRAY;
     }
-    players.push_back(new PlayerView(player, board, playerColor, &camManager));
+
+    PlayerView *playerView = new PlayerView(player, board, color, &camManager);
+    players.push_back(playerView);
+
+    PlayerProfileView *profile = new PlayerProfileView();
+    profile->setPlayer(&player);
+    profile->setColor(color);
+
+    profile->setHitboxDim({250, 80});
+
+    float screenW = GetScreenWidth();
+    float screenH = GetScreenHeight();
+
+    float w = 250.0f;
+    float h = 80.0f;
+    float margin = 20.0f;
+
+    int idx = playerProfiles.size();
+
+    profile->setActive(true);
+
+    playerProfiles.push_back(profile);
+    views.insert(profile);
 }
 
-string GUI::getCommand() {
-    for (View2D* view : views) {
-        string command = view->catchCommand();
-
-        if (command != "NULL")
-        {
-            if ("DISPLAY " == command.substr(0, 8))
-            {
-
-                stringstream ss(command);
-                string item;
-                vector<string> tokens;
-
-                while (getline(ss, item, ' '))
-                {
-                    tokens.push_back(item);
-                }
-                if (tokens[1] == "LOAD_CONFIRM_POPUP") { 
-                    loadPopup(new LoadConfirmPopup(tokens[2])); 
-                } else if (tokens[1] == "TOP_VIEW") {
-                    camManager.switchTo("TOP_VIEW", 1, [](){});
-                } else if (tokens[1] == "MOVE_PLAYER") {
-                    camManager.switchTo(players[stoi(tokens[2])]->getPlayerCamKey(), 1, [this, tokens](){
-                        players[stoi(tokens[2])]->moveToTile(*board->getTileFromIdx(stoi(tokens[3])));
-                    });
-                } else if (tokens[1] == "BOARD_CAM") {
-                    camManager.switchTo("BOARD_CAM", 1, [](){});
-                }
-                else if (tokens.size() >= 4 && tokens[1] == "EXCEPTION_POPUP")
-                {
-                    int errorCode = stoi(tokens[2]);
-
-                    string errorMessage = "";
-                    for (size_t i = 3; i < tokens.size(); ++i)
-                    {
-                        errorMessage += tokens[i];
-                        if (i < tokens.size() - 1)
-                        {
-                            errorMessage += " ";
-                        }
-                    }
-
-                    loadPopup(new ExceptionPopup(errorCode, errorMessage));
-                }
-                return "NULL";
-            }
-            return command;
-        }
+Command GUI::getCommand()
+{
+    if (!pendingCommand.isNull())
+    {
+        Command temp = pendingCommand;
+        pendingCommand = Command::Null();
+        return temp;
     }
-    return "NULL";
+
+    if (!popupStack.empty())
+    {
+        std::string raw = popupStack.top()->catchCommand();
+
+        if (raw != "NULL")
+        {
+            Popup *p = popupStack.top();
+            views.erase(p);
+            delete p;
+            popupStack.pop();
+
+            std::stringstream ss(raw);
+            std::string item;
+            std::vector<std::string> tokens;
+
+            while (getline(ss, item, ' '))
+            {
+                tokens.push_back(item);
+            }
+
+            if (tokens.empty())
+                return {"NULL", {}};
+
+            return {tokens[0],
+                    std::vector<std::string>(tokens.begin() + 1, tokens.end())};
+        }
+
+        return {"NULL", {}};
+    }
+
+    for (View2D *view : views)
+    {
+        std::string raw = view->catchCommand();
+
+        if (raw == "NULL")
+            continue;
+
+        std::stringstream ss(raw);
+        std::string item;
+        std::vector<std::string> tokens;
+
+        while (getline(ss, item, ' '))
+        {
+            tokens.push_back(item);
+        }
+
+        if (tokens.empty())
+            return {"NULL", {}};
+
+        // HANDLE NEW GAME
+        if (tokens[0] == "NEW_GAME")
+        {
+            auto popup = new LoadConfirmPopup("Masukkan path config:", "config/default");
+
+            popup->setOnSubmit([this](const std::string &path)
+                               { this->pendingCommand = Command("NEW_GAME", {path}); });
+
+            loadPopup(popup);
+            return Command::Null();
+        }
+
+        // HANDLE LOAD GAME
+        if (tokens[0] == "LOAD_GAME")
+        {
+            auto popup = new LoadConfirmPopup("Masukkan save file:", "saves/save1");
+
+            popup->setOnSubmit([this](const std::string &path)
+                               { this->pendingCommand = Command("LOAD_GAME", {path}); });
+
+            loadPopup(popup);
+            return Command::Null();
+        }
+
+        // HANDLE INTERNAL GUI
+        if (tokens[0] == "DISPLAY")
+        {
+            if (tokens.size() >= 2 && tokens[1] == "TOP_VIEW")
+            {
+                camManager.switchTo("TOP_VIEW", 1, []() {});
+            }
+            else if (tokens[1] == "MOVE_PLAYER")
+            {
+                camManager.switchTo(players[stoi(tokens[2])]->getPlayerCamKey(), 1, [this, tokens]()
+                                    { players[stoi(tokens[2])]->moveToTile(*board->getTileFromIdx(stoi(tokens[3]))); });
+            }
+            else if (tokens[1] == "BOARD_CAM")
+            {
+                camManager.switchTo("BOARD_CAM", 1, []() {});
+            }
+
+            return {"NULL", {}};
+        }
+
+        // RETURN KE ENGINE
+        return {tokens[0], std::vector<std::string>(tokens.begin() + 1, tokens.end())};
+    }
+
+    return {"NULL", {}};
 }
 
 void GUI::enableAll()
@@ -196,16 +318,53 @@ void GUI::disableAll()
 {
     for (View2D *view : views)
     {
-        view->disable();
+        if (view != nullptr)
+            view->disable();
     }
 }
 
+void GUI::updatePlayerProfilesLayout()
+{
+    float screenW = GetScreenWidth();
+    float screenH = GetScreenHeight();
 
-void GUI::update() {
+    float w = 250.0f;
+    float h = 80.0f;
+    float margin = 20.0f;
+
+    for (int i = 0; i < playerProfiles.size(); i++)
+    {
+        Vector2 pos;
+
+        switch (i)
+        {
+        case 0:
+            pos = { w/2 + margin, h/2 + margin };
+            break;
+        case 1:
+            pos = { screenW - w/2 - margin, h/2 + margin };
+            break;
+        case 2:
+            pos = { w/2 + margin, screenH - h/2 - margin };
+            break;
+        case 3:
+            pos = { screenW - w/2 - margin, screenH - h/2 - margin };
+            break;
+        }
+
+        playerProfiles[i]->setPosition(pos);
+    }
+}
+
+void GUI::update()
+{
     camManager.updateCamMap();
-    set<View2D*> closedViews;
-    for (View2D* view : views) {
-        if (view->closed()) {
+    updatePlayerProfilesLayout();
+    set<View2D *> closedViews;
+    for (View2D *view : views)
+    {
+        if (view->closed())
+        {
             closedViews.insert(view);
         }
         else
@@ -250,22 +409,16 @@ void GUI::update() {
 void GUI::display()
 {
     BeginMode3D(camManager.mount());
-        DrawGrid(40,1);
-        board->render();
-        for (PlayerView* player : players) {
-            player->render();
-        }
+    DrawGrid(40, 1);
+    board->render();
+
+    for (PlayerView *player : players)
+        player->render();
+
     EndMode3D();
-    if (menu != nullptr)
-        menu->render();
-    if (debuggingEntry != nullptr)
-        debuggingEntry->render();
-    stack<Popup *> temp = popupStack;
-    while (!temp.empty())
-    {
-        temp.top()->render();
-        temp.pop();
-    }
+
+    for (View2D *view : views)
+        view->render();
 }
 
 void GUI::loadDebuggingEntry()

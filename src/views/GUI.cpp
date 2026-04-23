@@ -195,7 +195,7 @@ Command GUI::getCommand()
     for (View2D *view : views)
     {
         std::string raw = view->catchCommand();
-
+        cout<<raw<<endl;
         if (raw == "NULL")
             continue;
 
@@ -238,40 +238,35 @@ Command GUI::getCommand()
         // HANDLE INTERNAL GUI
         if (tokens[0] == "DISPLAY")
         {
-            if (tokens.size() >= 2 && tokens[1] == "SWITCH_TOP_VIEW")
-            {
+            if (tokens[1] == "TOP_VIEW") {
                 camManager.switchTo("TOP_VIEW", 1, [](){});
+            } else if (tokens[1] == "ACTION_CAM") {
+                camManager.switchTo("ACTION_CAM", 1, [](){});
+            } else if (tokens[1] == "BOARD_CAM") {
+                camManager.switchTo("BOARD_CAM", 1, [](){});
+            } else if (tokens[1] == "ROLL_DICE") {
+                camManager.switchTo("ACTION_CAM", 1, [this, tokens](){ loadDice(players[stoi(tokens[2])]); });
+            } else if (tokens[1] == "THROW") {
+                //call GameEngine buat dapetin angka dadu
+                dice->initializeThrowDice(3, 4);
+                dice->getThrowButton()->setActive(false);
+            } else if (tokens[1] == "THROW_DONE") {
+                dice->moveDiceOffScreen();
+                PlayerView* movingPlayer = dice->getPlayer();
+                int moveVal = dice->getMoveValue();
+                camManager.switchTo(dice->getPlayer()->getPlayerCamKey(), 1, [this, movingPlayer, moveVal](){
+                    movingPlayer->moveSpaces(moveVal);
+                });
+            } else if (tokens[1] == "DRAW") {
+                if (tokens[2] == "CC") {
+                    communityChestPile->drawCard();
+                } else if (tokens[2] == "CH") {
+                    chancePile->drawCard();
+                }
             }
 
             return {"NULL", {}};
         }
-      
-      if (tokens[1] == "TOP_VIEW") {
-                    camManager.switchTo("TOP_VIEW", 1, [](){});
-                } else if (tokens[1] == "ACTION_CAM") {
-                    camManager.switchTo("ACTION_CAM", 1, [](){});
-                } else if (tokens[1] == "BOARD_CAM") {
-                    camManager.switchTo("BOARD_CAM", 1, [](){});
-                } else if (tokens[1] == "ROLL_DICE") {
-                    camManager.switchTo("ACTION_CAM", 1, [this, tokens](){ loadDice(players[stoi(tokens[2])]); });
-                } else if (tokens[1] == "THROW") {
-                    //call GameEngine buat dapetin angka dadu
-                    dice->initializeThrowDice(3, 4);
-                    dice->getThrowButton()->setActive(false);
-                } else if (tokens[1] == "THROW_DONE") {
-                    dice->moveDiceOffScreen();
-                    PlayerView* movingPlayer = dice->getPlayer();
-                    int moveVal = dice->getMoveValue();
-                    camManager.switchTo(dice->getPlayer()->getPlayerCamKey(), 1, [this, movingPlayer, moveVal](){
-                        movingPlayer->moveSpaces(moveVal);
-                    });
-                } else if (tokens[1] == "DRAW") {
-                    if (tokens[2] == "CC") {
-                        communityChestPile->drawCard();
-                    } else if (tokens[2] == "CH") {
-                        chancePile->drawCard();
-                    }
-                }
 
         // RETURN KE ENGINE
         return {tokens[0], std::vector<std::string>(tokens.begin() + 1, tokens.end())};

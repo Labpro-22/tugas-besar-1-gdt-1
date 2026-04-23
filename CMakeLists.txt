@@ -16,8 +16,13 @@ add_executable(${PROJECT_NAME} src/views/ViewTesting.cpp
                                src/views/viewElement/MenuView.cpp
                                src/views/viewElement/board/TileView.cpp
                                src/views/viewElement/board/BoardView.cpp
+                               src/views/viewElement/cards/CardView.cpp
+                               src/views/viewElement/cards/CardPileView.cpp
                                src/views/viewElement/player/PlayerView.cpp
+                               src/views/viewElement/player/DiceView.cpp
                                src/views/animation/ViewAnimation.cpp
+                               src/views/animation/physicsEngine/PhysicsObject.cpp
+                               src/views/animation/physicsEngine/PhysicsEngine.cpp
                                src/views/animation/camera/CameraManager.cpp
                                src/views/animation/camera/CameraMovement.cpp
                                src/views/animation/camera/View3DCamera.cpp

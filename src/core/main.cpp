@@ -6,14 +6,14 @@
 
 int main()
 {
-    const int screenWidth = 1200;
-    const int screenHeight = 800;
     SetTraceLogLevel(LOG_NONE);
-    InitWindow(screenWidth, screenHeight, "Nimonspoli");
-    ClearWindowState(FLAG_WINDOW_RESIZABLE);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    InitWindow(1200, 800, "Nimonspoli");
+    ToggleFullscreen();
+    SetTargetFPS(120);
+
     View2D::addFont("Kabel", "data/GUIAssets/kabel.ttf");
     View2D::addFont("Orbitron", "data/GUIAssets/Orbitron-VariableFont_wght.ttf");
-    SetTargetFPS(120);
 
     try
     {

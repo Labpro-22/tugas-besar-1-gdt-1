@@ -46,4 +46,6 @@ public:
 
     int calculateRent(int diceValue = 0) const override;
     int getAssetValue() const override;
+    int getHouseBuildCost() const { return houseBuildCost; }
+    int getHotelBuildCost() const { return hotelBuildCost; }
 };

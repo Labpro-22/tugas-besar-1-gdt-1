@@ -1,6 +1,10 @@
 #pragma once
 #include "View2D.hpp"
 #include "Interactable.hpp"
+#include "models/Property/Property.hpp"
+#include "models/Property/StreetProperty.hpp"
+#include "models/Property/RailroadProperty.hpp"
+#include "models/Property/UtilityProperty.hpp"
 #include <optional>
 
 class Popup : public View2D {
@@ -53,12 +57,8 @@ public:
 
 class PropertyPopup : public IndefinitePopup {
 protected:
-    std::string name;
-    std::string ownerName;
+    Property* property;
     bool isOtherPlayer;
-
-    int buyPrice;
-    int mortgageValue;
 
     std::string actionCommand;
     std::vector<Interactable> actionButtons;
@@ -67,11 +67,8 @@ protected:
 
 public:
     PropertyPopup(
-        const std::string& name,
-        int buyPrice,
-        int mortgageValue,
-        bool isOtherPlayer = false,
-        const std::string& ownerName = ""
+        Property* property,
+        bool isOtherPlayer = false
     );
 
     virtual ~PropertyPopup() = default;
@@ -88,27 +85,13 @@ public:
 
 class StreetPopup : public PropertyPopup {
 private:
-    std::string colorGroup;
-    std::vector<int> rentTable;
-
-    int baseRent;
-    int buildCost;
-    int level;
     bool colorGroupComplete;
 
 public:
     StreetPopup(
-        const std::string& name,
-        int buyPrice,
-        int mortgageValue,
-        const std::string& colorGroup,
-        const std::vector<int>& rentTable,
-        int baseRent,
-        int buildCost,
-        int level,
-        bool colorGroupComplete,
+        StreetProperty* street,
         bool isOtherPlayer = false,
-        const std::string& ownerName = ""
+        bool colorGroupComplete = false
     );
 
 protected:
@@ -117,18 +100,13 @@ protected:
 
 class RailroadPopup : public PropertyPopup {
 private:
-    std::vector<int> rentTable;
     int ownedCount;
 
 public:
     RailroadPopup(
-        const std::string& name,
-        int buyPrice,
-        int mortgageValue,
-        const std::vector<int>& rentTable,
-        int ownedCount,
+        RailroadProperty* railroad,
         bool isOtherPlayer = false,
-        const std::string& ownerName = ""
+        int ownedCount = 0
     );
 
 protected:
@@ -137,20 +115,15 @@ protected:
 
 class UtilityPopup : public PropertyPopup {
 private:
-    std::vector<int> multiplier;
     int ownedCount;
     int lastDiceRoll;
 
 public:
     UtilityPopup(
-        const std::string& name,
-        int buyPrice,
-        int mortgageValue,
-        const std::vector<int>& multiplier,
-        int ownedCount,
-        int diceRoll,
+        UtilityProperty* utility,
         bool isOtherPlayer = false,
-        const std::string& ownerName = ""
+        int ownedCount = 0,
+        int diceRoll = 0
     );
 
 protected:

@@ -25,24 +25,17 @@ int main()
         app.loadDebuggingEntry();
 
         // Test Popup untuk Property
-        // StreetPopup* s2 = new StreetPopup(
-        //     "Medan",
-        //     220,
-        //     110,
-        //     "RED",
-        //     {30,60,90,150,220,300},
-        //     30,
-        //     75,
-        //     2,          // level → 2 rumah
-        //     true,       // monopoli
-        //     false,      // milik sendiri
-        //     "Player1"
+        // RailroadProperty* r = new RailroadProperty(
+        //     "GBR",                          // code
+        //     "Stasiun Gambir",               // name
+        //     200,                            // purchasePrice
+        //     100,                            // mortgageValue
+        //     {{1, 25}, {2, 50}, {3, 100}, {4, 200}} // rentTable
         // );
 
-        // tombol
-        // s2->addButton("BUILD", "BUILD_HOUSE");
-        // s2->addButton("MORTGAGE", "MORTGAGE_PROPERTY");
-        // app.loadPopup(s2);
+        // RailroadPopup* rp = new RailroadPopup(r, true, 1);
+        // rp->addButton("BUY", "BUY_PROPERTY");
+        // app.loadPopup(rp);
 
         // app.loadPopup(new MessagePopup(
         //     "Festival Tile",

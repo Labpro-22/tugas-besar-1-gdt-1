@@ -145,7 +145,8 @@ MiscConfig ConfigLoader::loadMiscConfig(std::string filename) {
 
 // Convert data into Street Property objects
 StreetProperty* ConfigLoader::createStreetProperty(std::vector<std::string> tokens) {
-    // Format: ID KODE NAMA JENIS WARNA HARGA_LAHAN NILAI_GADAI UPG_RUMAH UPG_HT RENT_L0…RENT_L5
+    // ID KODE NAMA JENIS WARNA HARGA_LAHAN NILAI_GADAI UPG_RUMAH UPG_HT
+    // RENT_L0 RENT_L1 RENT_L2 RENT_L3 RENT_L4 RENT_L5
     std::string code = tokens[1];
     std::string name = tokens[2];
     std::string colorGroup = tokens[4];
@@ -153,11 +154,14 @@ StreetProperty* ConfigLoader::createStreetProperty(std::vector<std::string> toke
     int mortgageValue = std::stoi(tokens[6]);
     int houseBuildCost = std::stoi(tokens[7]);
     int hotelBuildCost = std::stoi(tokens[8]);
-    
+
+    if (tokens.size() < 15) {
+        throw std::runtime_error("Format property STREET tidak lengkap untuk " + code);
+    }
+
     std::vector<int> rentLevels;
-    for (size_t i = 9; i < tokens.size() && i < 15; ++i) {
-        try { rentLevels.push_back(std::stoi(tokens[i])); }
-        catch (...) { continue; }
+    for (size_t i = 9; i <= 14; ++i) {
+        rentLevels.push_back(std::stoi(tokens[i]));
     }
     
     return new StreetProperty(code, name, purchasePrice, mortgageValue,
@@ -210,49 +214,7 @@ Board* ConfigLoader::createStandardBoard(std::vector<Property*> properties, cons
     return board;
 }
 
-//  Standard Nimonspoli layout (40 tiles):
-//   0  GO
-//   1  StreetProperty (COKLAT)
-//   2  Community Chest
-//   3  StreetProperty (COKLAT)
-//   4  Pajak Penghasilan (Income Tax)
-//   5  RailroadProperty
-//   6  StreetProperty (BIRU_MUDA)
-//   7  Chance
-//   8  StreetProperty (BIRU_MUDA)
-//   9  StreetProperty (BIRU_MUDA)
-//  10  Penjara / Just Visiting
-//  11  StreetProperty (MERAH_MUDA)
-//  12  UtilityProperty
-//  13  StreetProperty (MERAH_MUDA)
-//  14  StreetProperty (MERAH_MUDA)
-//  15  RailroadProperty
-//  16  StreetProperty (ORANGE)
-//  17  Community Chest
-//  18  StreetProperty (ORANGE)
-//  19  StreetProperty (ORANGE)
-//  20  Free Parking / Festival
-//  21  StreetProperty (MERAH)
-//  22  Chance
-//  23  StreetProperty (MERAH)
-//  24  StreetProperty (MERAH)
-//  25  RailroadProperty
-//  26  StreetProperty (KUNING)
-//  27  StreetProperty (KUNING)
-//  28  UtilityProperty
-//  29  StreetProperty (KUNING)
-//  30  Go To Jail
-//  31  StreetProperty (HIJAU)
-//  32  StreetProperty (HIJAU)
-//  33  Community Chest
-//  34  StreetProperty (HIJAU)
-//  35  RailroadProperty
-//  36  Chance
-//  37  StreetProperty (BIRU_TUA)
-//  38  Pajak Barang Mewah (Luxury Tax)
-//  39  StreetProperty (BIRU_TUA)
-
-static TileColor colorGroupToTileColor(const std::string& group) {
+TileColor ConfigLoader::colorGroupToTileColor(const std::string& group) {
     if (group == "COKLAT")     return TileColor::COKLAT;
     if (group == "BIRU_MUDA")  return TileColor::BIRU_MUDA;
     if (group == "MERAH_MUDA") return TileColor::MERAH_MUDA;

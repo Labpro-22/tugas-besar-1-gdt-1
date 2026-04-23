@@ -182,6 +182,15 @@ void Player::removeCard(SkillCard* card) {
     }
 }
 
+SkillCard* Player::findJailFreeCard() const {
+    for (SkillCard* card : handCards) {
+        if (card != nullptr && card->isJailFreeCard()) {
+            return card;
+        }
+    }
+    return nullptr;
+}
+
 const std::vector<SkillCard*>& Player::getHandCards() const {
     return handCards;
 }

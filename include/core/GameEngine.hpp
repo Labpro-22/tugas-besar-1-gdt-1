@@ -12,6 +12,7 @@ class AuctionManager;
 class BankruptcyManager;
 class Property;
 class SaveLoadManager;
+enum class CommandResult : int;
 
 class PropertyTile;
 class ActionTile;
@@ -43,12 +44,21 @@ private:
 
     void gameLoop();
     void processPlayerTurn(Player* player);
+    CommandResult handleJailedPlayerTurn(Player* player);
+    CommandResult resolveRoll(Player* player, bool manual, int d1, int d2, bool fromJailAttempt);
+    void handleChanceLanding(Player* player, ChanceTile* tile);
+    void handleCommunityChestLanding(Player* player, CommunityChestTile* tile);
 
     void handleTileLanding(Player* player, Tile* tile);
 
     bool executePayment(Player* from, Player* to, int amount);
     bool checkWinCondition();
     void endGame();
+
+    static std::string waitForInput(IGUI* gui, const std::string& prompt);
+    static std::string normalizeInput(std::string s);
+    static bool askYesNo(IGUI* gui, const std::string& prompt);
+    static int askIncomeTaxChoice(IGUI* gui);
 
 public:
     GameEngine(IGUI* gui);

@@ -56,6 +56,11 @@ void GUI::renderProperty(const Property & /*property*/)
     // TODO
 }
 
+void GUI::renderOwnedProperties(const Player & /*player*/)
+{
+    // TODO
+}
+
 void GUI::renderDice(int /*die1*/, int /*die2*/)
 {
     // TODO

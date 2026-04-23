@@ -81,6 +81,7 @@ public:
     //skill card---------------------------
     bool addCard(SkillCard* card);
     void removeCard(SkillCard* card);
+    SkillCard* findJailFreeCard() const;
     const std::vector<SkillCard*>& getHandCards() const;
     int getCardCount() const;
 

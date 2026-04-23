@@ -19,6 +19,9 @@ StreetProperty::StreetProperty(const std::string &code,
 std::string StreetProperty::getColorGroup() const { return colorGroup; }
 
 BuildingState StreetProperty::getBuildingState() const { return buildingState; }
+int StreetProperty::getHouseBuildCost() const { return houseBuildCost; }
+int StreetProperty::getHotelBuildCost() const { return hotelBuildCost; }
+const std::vector<int>& StreetProperty::getRentLevels() const { return rentLevels; }
 
 bool StreetProperty::hasHotel() const {
     return buildingState == BuildingState::HOTEL;

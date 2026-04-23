@@ -29,6 +29,7 @@ bool CommandProcessor::isAllowedDuringBonusRoll(const std::string& cmd) const {
            cmd == "ATUR_DADU" ||
            cmd == "HELP" ||
            cmd == "CETAK_PAPAN" ||
+           cmd == "CETAK_AKTA" ||
            cmd == "CETAK_DEED" ||
            cmd == "CETAK_PROPERTI" ||
            cmd == "CETAK_LOG" ||
@@ -70,9 +71,8 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
             return handleRoll(player, true, d1, d2);
         }
         if (cmd == "CETAK_PAPAN")     return handlePrintBoard();
-        if (cmd == "CETAK_DEED") {
-            if (tokens.size() < 2) { gui->showMessage("Format: CETAK_DEED <kode>"); return CommandResult::INVALID; }
-            return handlePrintDeed(tokens[1]);
+        if (cmd == "CETAK_DEED" || cmd == "CETAK_AKTA") {
+            return handlePrintDeed(tokens.size() >= 2 ? tokens[1] : "");
         }
         if (cmd == "CETAK_PROPERTI")  return handlePrintProperty(player);
         if (cmd == "GADAI") {
@@ -121,78 +121,7 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
 }
 
 CommandResult CommandProcessor::handleRoll(Player* player, bool manual, int d1, int d2) {
-    if (!turn->canRoll(player)) {
-        gui->showMessage("Tidak dapat melempar dadu sekarang.");
-        return CommandResult::INVALID;
-    }
-
-    if (manual) {
-        gui->showMessage("Dadu diatur secara manual.");
-        dice->setManual(d1, d2);
-    } else {
-        gui->showMessage("Mengocok dadu...");
-        dice->rollRandom();
-    }
-
-    int total = dice->getTotal();
-    bool rolledDouble = dice->isDouble();
-    gui->renderDice(dice->getDie1(), dice->getDie2());
-    game->setLastDiceTotal(total);
-    player->markRolled();
-
-    if (rolledDouble) {
-        player->incrementConsecutiveDoubles();
-        if (player->getConsecutiveDoubles() >= 3) {
-            Board* board = game->getBoard();
-            if (board != nullptr && board->getJailTile() != nullptr) {
-                player->setPosition(board->getJailTile()->getIndex());
-            }
-            player->setStatus(PlayerStatus::JAILED);
-            gui->showMessage("Dadu double ketiga berturut-turut.");
-            gui->showMessage("Bidak tidak digerakkan sesuai hasil dadu dan kamu langsung masuk Penjara.");
-            turn->endTurn(player);
-            return CommandResult::END_TURN;
-        }
-    } else {
-        player->resetConsecutiveDoubles();
-    }
-
-    Tile* landed = turn->processMovement(player, total);
-    turn->setPhase(TurnPhase::POST_ROLL);
-    turn->markActed();
-
-    std::string landedName = landed ? landed->getName() : "?";
-    gui->renderMovement(player->getUsername(), total, landedName);
-
-    if (landed) engine->handleTileLanding(player, landed);
-
-    if (player->getStatus() == PlayerStatus::JAILED) {
-        gui->showMessage("Giliran berakhir karena kamu berada di Penjara.");
-        turn->endTurn(player);
-        return CommandResult::END_TURN;
-    }
-
-    if (player->getStatus() == PlayerStatus::BANKRUPT) {
-        if (engine->checkWinCondition()) return CommandResult::GAME_OVER;
-        return CommandResult::CONTINUE;
-    }
-
-    if (player->hasPendingFestival()) {
-        if (rolledDouble) {
-            gui->showMessage("Lanjutkan dengan FESTIVAL <kode_properti> untuk menyelesaikan aksi petak ini.");
-            gui->showMessage("Setelah itu, gunakan LEMPAR_DADU atau ATUR_DADU <x> <y> untuk lemparan bonus.");
-        } else {
-            gui->showMessage("Lanjutkan dengan FESTIVAL <kode_properti>, lalu gunakan command lain atau AKHIRI_GILIRAN.");
-        }
-    } else if (rolledDouble) {
-        gui->showMessage("Dadu double. Kamu mendapat lemparan bonus.");
-        gui->showMessage("Gunakan LEMPAR_DADU atau ATUR_DADU <x> <y> untuk lemparan berikutnya.");
-    } else {
-        gui->showMessage("Giliran lempar dadu selesai. Gunakan command lain atau AKHIRI_GILIRAN.");
-        gui->showMessage("Ketik HELP untuk melihat command yang tersedia.");
-    }
-
-    return CommandResult::CONTINUE;
+    return engine->resolveRoll(player, manual, d1, d2, false);
 }
 
 CommandResult CommandProcessor::handlePrintBoard() {
@@ -201,10 +130,27 @@ CommandResult CommandProcessor::handlePrintBoard() {
 }
 
 CommandResult CommandProcessor::handlePrintDeed(const std::string& code) {
-    Tile* tile = game->getBoard()->getTile(code);
+    std::string targetCode = code;
+    if (targetCode.empty()) {
+        gui->showInputPrompt("Masukkan kode petak:");
+        targetCode = gui->getCommand();
+        if (targetCode.empty() || targetCode == "NULL") {
+            gui->showMessage("Kode petak tidak boleh kosong.");
+            return CommandResult::INVALID;
+        }
+    }
+
+    targetCode = normalize(targetCode);
+    Tile* tile = nullptr;
+    try {
+        tile = game->getBoard()->getTile(targetCode);
+    } catch (...) {
+        gui->showMessage("Petak \"" + targetCode + "\" tidak ditemukan atau bukan properti.");
+        return CommandResult::INVALID;
+    }
     auto* pt = dynamic_cast<PropertyTile*>(tile);
     if (!pt || !pt->getProperty()) {
-        gui->showMessage("Kode properti tidak ditemukan: " + code);
+        gui->showMessage("Petak \"" + targetCode + "\" tidak ditemukan atau bukan properti.");
         return CommandResult::INVALID;
     }
     gui->renderProperty(*pt->getProperty());
@@ -214,10 +160,10 @@ CommandResult CommandProcessor::handlePrintDeed(const std::string& code) {
 CommandResult CommandProcessor::handlePrintProperty(Player* player) {
     const auto& owned = player->getOwnedProperties();
     if (owned.empty()) {
-        gui->showMessage(player->getUsername() + " belum memiliki properti.");
+        gui->showMessage("Kamu belum memiliki properti apapun.");
         return CommandResult::CONTINUE;
     }
-    for (Property* p : owned) gui->renderProperty(*p);
+    gui->renderOwnedProperties(*player);
     return CommandResult::CONTINUE;
 }
 
@@ -388,7 +334,7 @@ CommandResult CommandProcessor::handleEndTurn(Player* player) {
 
 CommandResult CommandProcessor::handleHelp(Player* player) {
     gui->showMessage("Daftar command umum:");
-    gui->showMessage("CETAK_PAPAN | CETAK_DEED <kode> | CETAK_PROPERTI | CETAK_LOG [n]");
+    gui->showMessage("CETAK_PAPAN | CETAK_AKTA <kode> | CETAK_PROPERTI | CETAK_LOG [n]");
 
     if (player == nullptr) {
         gui->showMessage("LEMPAR_DADU | ATUR_DADU <x> <y> | AKHIRI_GILIRAN");
@@ -403,7 +349,7 @@ CommandResult CommandProcessor::handleHelp(Player* player) {
             gui->showMessage("Setelah Festival selesai, lanjutkan dengan LEMPAR_DADU atau ATUR_DADU <x> <y>.");
         }
     } else if (isAwaitingBonusRoll(player)) {
-        gui->showMessage("Saat menunggu lemparan bonus: LEMPAR_DADU | ATUR_DADU <x> <y> | CETAK_PAPAN | CETAK_DEED <kode> | CETAK_PROPERTI | CETAK_LOG [n] | SIMPAN <file>");
+        gui->showMessage("Saat menunggu lemparan bonus: LEMPAR_DADU | ATUR_DADU <x> <y> | CETAK_PAPAN | CETAK_AKTA <kode> | CETAK_PROPERTI | CETAK_LOG [n] | SIMPAN <file>");
     } else {
         gui->showMessage("Setelah lempar dadu: GADAI <kode> | TEBUS <kode> | BANGUN <kode> | CETAK_PAPAN | CETAK_PROPERTI | AKHIRI_GILIRAN");
     }

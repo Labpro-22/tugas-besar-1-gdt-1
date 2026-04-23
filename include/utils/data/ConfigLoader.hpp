@@ -59,6 +59,7 @@ private:
     SpecialConfig loadSpecialConfig(std::string filename);
     MiscConfig loadMiscConfig(std::string filename);
 
+    static TileColor colorGroupToTileColor(const std::string& group);
     StreetProperty* createStreetProperty(std::vector<std::string> tokens);
     RailroadProperty* createRailroadProperty(std::vector<std::string> tokens, const std::map<int, int>& rentTable);
     UtilityProperty* createUtilityProperty(std::vector<std::string> tokens, const std::map<int, int>& multiplierTable);

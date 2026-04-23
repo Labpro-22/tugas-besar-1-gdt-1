@@ -14,6 +14,7 @@ public:
                     int mortgageValue,
                     const std::map<int, int> &multiplierTable);
 
+    const std::map<int, int>& getMultiplierTable() const;
     int calculateRent(int diceValue = 0) const override;
     int getAssetValue() const override;
 };

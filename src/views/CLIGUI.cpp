@@ -3,6 +3,8 @@
 #include "models/BoardAndTiles/PropertyTile.hpp"
 #include "models/BoardAndTiles/SpecialTile/JailTile.hpp"
 #include "models/Property/StreetProperty.hpp"
+#include "models/Property/RailroadProperty.hpp"
+#include "models/Property/UtilityProperty.hpp"
 
 #include <iostream>
 #include <string>
@@ -10,37 +12,147 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <map>
 
-// ── ANSI helpers ─────────────────────────────────────────────────────────────
+namespace {
+std::string formatMoney(int amount) {
+    std::string digits = std::to_string(amount);
+    std::string grouped;
+    int count = 0;
+    for (auto it = digits.rbegin(); it != digits.rend(); ++it) {
+        if (count == 3) {
+            grouped.push_back('.');
+            count = 0;
+        }
+        grouped.push_back(*it);
+        ++count;
+    }
+    std::reverse(grouped.begin(), grouped.end());
+    return "M" + grouped;
+}
 
-#define RESET   "\033[0m"
-#define FG_BROWN     "\033[38;5;130m"
-#define FG_LBLUE     "\033[38;5;117m"
-#define FG_PINK      "\033[38;5;201m"
-#define FG_ORANGE    "\033[38;5;208m"
-#define FG_RED       "\033[38;5;196m"
-#define FG_YELLOW    "\033[38;5;220m"
-#define FG_GREEN     "\033[38;5;76m"
-#define FG_DBLUE     "\033[38;5;27m"
-#define FG_GRAY      "\033[38;5;250m"
-#define FG_DEFAULT   "\033[39m"
+std::string propertyStatusLabel(const Property& property) {
+    std::string label;
+    switch (property.getStatus()) {
+        case PropertyStatus::BANK: label = "BANK"; break;
+        case PropertyStatus::OWNED: label = "OWNED"; break;
+        case PropertyStatus::MORTGAGED: label = "MORTGAGED"; break;
+    }
+    if (property.getOwner() != nullptr) {
+        label += " (" + property.getOwner()->getUsername() + ")";
+    }
+    return label;
+}
 
-static std::string colorPrefix(TileColor c) {
-    switch (c) {
-        case TileColor::COKLAT:     return FG_BROWN;
-        case TileColor::BIRU_MUDA:  return FG_LBLUE;
-        case TileColor::MERAH_MUDA: return FG_PINK;
-        case TileColor::ORANYE:     return FG_ORANGE;
-        case TileColor::MERAH:      return FG_RED;
-        case TileColor::KUNING:     return FG_YELLOW;
-        case TileColor::HIJAU:      return FG_GREEN;
-        case TileColor::BIRU_TUA:   return FG_DBLUE;
-        case TileColor::ABU_ABU:    return FG_GRAY;
-        default:                    return FG_DEFAULT;
+std::string streetColorLabel(const std::string& colorGroup) {
+    if (colorGroup == "COKLAT") return "COKLAT";
+    if (colorGroup == "BIRU_MUDA") return "BIRU MUDA";
+    if (colorGroup == "MERAH_MUDA") return "PINK";
+    if (colorGroup == "ORANGE") return "ORANGE";
+    if (colorGroup == "MERAH") return "MERAH";
+    if (colorGroup == "KUNING") return "KUNING";
+    if (colorGroup == "HIJAU") return "HIJAU";
+    if (colorGroup == "BIRU_TUA") return "BIRU TUA";
+    if (colorGroup == "ABU_ABU") return "ABU ABU";
+    return colorGroup;
+}
+
+std::string propertyColorLabel(const Property& property) {
+    if (auto* street = dynamic_cast<const StreetProperty*>(&property)) {
+        return streetColorLabel(street->getColorGroup());
+    }
+    if (property.getType() == PropertyType::UTILITY) {
+        return "ABU ABU";
+    }
+    return "DEFAULT";
+}
+
+std::string propertyGroupLabel(const Property& property) {
+    if (auto* street = dynamic_cast<const StreetProperty*>(&property)) {
+        return streetColorLabel(street->getColorGroup());
+    }
+    if (property.getType() == PropertyType::RAILROAD) {
+        return "STASIUN";
+    }
+    if (property.getType() == PropertyType::UTILITY) {
+        return "UTILITAS";
+    }
+    return "LAINNYA";
+}
+
+std::string buildingLabel(const Property& property) {
+    auto* street = dynamic_cast<const StreetProperty*>(&property);
+    if (street == nullptr) return "";
+
+    switch (street->getBuildingState()) {
+        case BuildingState::HOUSE_1: return "1 rumah";
+        case BuildingState::HOUSE_2: return "2 rumah";
+        case BuildingState::HOUSE_3: return "3 rumah";
+        case BuildingState::HOUSE_4: return "4 rumah";
+        case BuildingState::HOTEL:   return "Hotel";
+        default:                     return "";
     }
 }
 
-static std::string colorTag(TileColor c) {
+std::string shortStatusLabel(const Property& property) {
+    switch (property.getStatus()) {
+        case PropertyStatus::BANK:      return "BANK";
+        case PropertyStatus::OWNED:     return "OWNED";
+        case PropertyStatus::MORTGAGED: return "MORTGAGED [M]";
+    }
+    return "UNKNOWN";
+}
+
+std::string boxLine(const std::string& text, int innerWidth) {
+    std::string body = text;
+    if ((int)body.size() > innerWidth) body = body.substr(0, innerWidth);
+    if ((int)body.size() < innerWidth) body += std::string(innerWidth - (int)body.size(), ' ');
+    return "|" + body + "|";
+}
+
+std::string kvText(const std::string& key, const std::string& value) {
+    const int keyWidth = 18;
+    std::string left = key;
+    if ((int)left.size() < keyWidth) {
+        left += std::string(keyWidth - (int)left.size(), ' ');
+    }
+    return " " + left + " : " + value;
+}
+
+}
+
+// ── ANSI color constants ──────────────────────────────────────────────────────
+const std::string CLIGUI::ANSI_RESET = "\033[0m";
+const std::string CLIGUI::FG_BROWN   = "\033[38;5;130m";
+const std::string CLIGUI::FG_LBLUE   = "\033[38;5;117m";
+const std::string CLIGUI::FG_PINK    = "\033[38;5;201m";
+const std::string CLIGUI::FG_ORANGE  = "\033[38;5;208m";
+const std::string CLIGUI::FG_RED     = "\033[38;5;196m";
+const std::string CLIGUI::FG_YELLOW  = "\033[38;5;220m";
+const std::string CLIGUI::FG_GREEN   = "\033[38;5;76m";
+const std::string CLIGUI::FG_DBLUE   = "\033[38;5;27m";
+const std::string CLIGUI::FG_GRAY    = "\033[38;5;250m";
+const std::string CLIGUI::FG_DEFAULT = "\033[39m";
+
+const int CLIGUI::CELL_W   = 10;
+const int CLIGUI::CENTER_W = 9 * (CLIGUI::CELL_W + 1) - 1;
+
+std::string CLIGUI::colorPrefix(TileColor c) {
+    switch (c) {
+        case TileColor::COKLAT:     return CLIGUI::FG_BROWN;
+        case TileColor::BIRU_MUDA:  return CLIGUI::FG_LBLUE;
+        case TileColor::MERAH_MUDA: return CLIGUI::FG_PINK;
+        case TileColor::ORANYE:     return CLIGUI::FG_ORANGE;
+        case TileColor::MERAH:      return CLIGUI::FG_RED;
+        case TileColor::KUNING:     return CLIGUI::FG_YELLOW;
+        case TileColor::HIJAU:      return CLIGUI::FG_GREEN;
+        case TileColor::BIRU_TUA:   return CLIGUI::FG_DBLUE;
+        case TileColor::ABU_ABU:    return CLIGUI::FG_GRAY;
+        default:                    return CLIGUI::FG_DEFAULT;
+    }
+}
+
+std::string CLIGUI::colorTag(TileColor c) {
     switch (c) {
         case TileColor::COKLAT:     return "CK";
         case TileColor::BIRU_MUDA:  return "BM";
@@ -93,7 +205,7 @@ public:
     int                getJailVisiting() const { return jailVisiting; }
 };
 
-static std::string buildingStr(BuildingState s) {
+std::string CLIGUI::buildingStr(BuildingState s) {
     switch (s) {
         case BuildingState::HOUSE_1: return "^";
         case BuildingState::HOUSE_2: return "^^";
@@ -104,7 +216,7 @@ static std::string buildingStr(BuildingState s) {
     }
 }
 
-static CellInfo makeCellInfo(Tile* t, const Game& game) {
+CellInfo CLIGUI::makeCellInfo(Tile* t, const Game& game) {
     CellInfo ci;
     ci.setCode(t->getCode());
     ci.setColor(t->getColor());
@@ -156,41 +268,37 @@ static CellInfo makeCellInfo(Tile* t, const Game& game) {
     return ci;
 }
 
-// Each cell is 10 chars wide to match the sample CLI board layout.
-static const int CELL_W = 10;
-
-static std::string fitLeft(const std::string& s, int w) {
+std::string CLIGUI::fitLeft(const std::string& s, int w) {
     if ((int)s.size() >= w) return s.substr(0, w);
     return s + std::string(w - (int)s.size(), ' ');
 }
 
-static std::string padCenter(const std::string& s, int w) {
+std::string CLIGUI::padCenter(const std::string& s, int w) {
     if ((int)s.size() >= w) return s.substr(0, w);
     int left = (w - (int)s.size()) / 2;
     int right = w - (int)s.size() - left;
     return std::string(left, ' ') + s + std::string(right, ' ');
 }
 
-static std::string paint(TileColor color, const std::string& text) {
+std::string CLIGUI::paint(TileColor color, const std::string& text) {
     if (color == TileColor::DEFAULT) return text;
-    return colorPrefix(color) + text + RESET;
+    return colorPrefix(color) + text + CLIGUI::ANSI_RESET;
 }
 
-static std::string centreLine(const std::string& s, int width) {
+std::string CLIGUI::centreLine(const std::string& s, int width) {
     return padCenter(s, width);
 }
 
-static std::string padRight(const std::string& s, int width) {
+std::string CLIGUI::padRight(const std::string& s, int width) {
     if ((int)s.size() >= width) return s.substr(0, width);
     return s + std::string(width - (int)s.size(), ' ');
 }
 
-static std::string centredBlockLine(const std::string& s, int blockWidth, int totalWidth) {
+std::string CLIGUI::centredBlockLine(const std::string& s, int blockWidth, int totalWidth) {
     return centreLine(padRight(s, blockWidth), totalWidth);
 }
 
-// Returns pair<row0, row1> as raw strings (no color escape inside content)
-static std::pair<std::string,std::string> cellContent(const CellInfo& ci) {
+std::pair<std::string,std::string> CLIGUI::cellContent(const CellInfo& ci) {
     std::string tag  = "[" + ci.getColorTag() + "] " + ci.getCode();
     std::string row0 = fitLeft(tag, CELL_W);
 
@@ -207,7 +315,7 @@ static std::pair<std::string,std::string> cellContent(const CellInfo& ci) {
     return {row0, row1};
 }
 
-static void printHLine(const std::vector<CellInfo>& cells) {
+void CLIGUI::printHLine(const std::vector<CellInfo>& cells) {
     std::cout << "+";
     for (const CellInfo& ci : cells) {
         std::cout << paint(ci.getColor(), std::string(CELL_W, '-')) << "+";
@@ -215,8 +323,7 @@ static void printHLine(const std::vector<CellInfo>& cells) {
     std::cout << "\n";
 }
 
-// Print one horizontal strip of cells (with color)
-static void printCellRow(const std::vector<CellInfo>& cells, bool closeBottom = false) {
+void CLIGUI::printCellRow(const std::vector<CellInfo>& cells, bool closeBottom) {
     printHLine(cells);
     if (cells.empty()) {
         std::cout << "\n\n";
@@ -243,13 +350,7 @@ static void printCellRow(const std::vector<CellInfo>& cells, bool closeBottom = 
     }
 }
 
-// ── Middle rows (left cell + center panel + right cell) ───────────────────────
-
-// center panel lines (fixed 9 * CELL_W + 8 = 98 chars wide)
-static const int CENTER_W = 9 * (CELL_W + 1) - 1; // 9 inner cells
-
-// Returns exactly 27 lines (separator + 2 content lines for each of 9 middle rows)
-static std::vector<std::string> buildCenterPanel(const Game& game) {
+std::vector<std::string> CLIGUI::buildCenterPanel(const Game& game) {
     const int BLOCK_W = 40;
     const std::string titleBar = "====================================";
     const std::string divider = "------------------------------------";
@@ -429,12 +530,128 @@ void CLIGUI::renderPlayer(const Player& player) {
 }
 
 void CLIGUI::renderProperty(const Property& property) {
-    std::cout << "[" << property.getCode() << "] " << property.getName()
-              << " | harga: " << property.getPurchasePrice()
-              << " | gadai: " << property.getMortgageValue();
-    if (property.getOwner() != nullptr)
-        std::cout << " | owner: " << property.getOwner()->getUsername();
-    std::cout << "\n";
+    std::string title = "[" + propertyColorLabel(property) + "] " +
+                        property.getName() + " (" + property.getCode() + ")";
+
+    std::vector<std::string> mainLines = {
+        kvText("Harga Beli", formatMoney(property.getPurchasePrice())),
+        kvText("Nilai Gadai", formatMoney(property.getMortgageValue()))
+    };
+    std::vector<std::string> detailLines;
+    std::vector<std::string> buildLines;
+
+    if (auto* street = dynamic_cast<const StreetProperty*>(&property)) {
+        const auto& rents = street->getRentLevels();
+        if (!rents.empty()) {
+            static const std::vector<std::string> rentLabels = {
+                "Sewa (unimproved)",
+                "Sewa (1 rumah)",
+                "Sewa (2 rumah)",
+                "Sewa (3 rumah)",
+                "Sewa (4 rumah)",
+                "Sewa (hotel)"
+            };
+            for (size_t i = 0; i < rents.size() && i < rentLabels.size(); ++i) {
+                detailLines.push_back(kvText(rentLabels[i], formatMoney(rents[i])));
+            }
+        }
+        buildLines.push_back(kvText("Harga Rumah", formatMoney(street->getHouseBuildCost())));
+        buildLines.push_back(kvText("Harga Hotel", formatMoney(street->getHotelBuildCost())));
+    } else if (auto* railroad = dynamic_cast<const RailroadProperty*>(&property)) {
+        for (const auto& [count, rent] : railroad->getRentTable()) {
+            detailLines.push_back(kvText("Sewa (" + std::to_string(count) + " stasiun)",
+                                         formatMoney(rent)));
+        }
+    } else if (auto* utility = dynamic_cast<const UtilityProperty*>(&property)) {
+        for (const auto& [count, mult] : utility->getMultiplierTable()) {
+            detailLines.push_back(kvText("Sewa (" + std::to_string(count) + " utilitas)",
+                                         std::to_string(mult) + "x dadu"));
+        }
+    }
+
+    std::string statusLine = kvText("Status", propertyStatusLabel(property));
+
+    int innerWidth = 30;
+    innerWidth = std::max(innerWidth, (int)std::string("AKTA KEPEMILIKAN").size() + 2);
+    innerWidth = std::max(innerWidth, (int)title.size() + 2);
+    innerWidth = std::max(innerWidth, (int)statusLine.size() + 1);
+    for (const std::string& line : mainLines) innerWidth = std::max(innerWidth, (int)line.size() + 1);
+    for (const std::string& line : detailLines) innerWidth = std::max(innerWidth, (int)line.size() + 1);
+    for (const std::string& line : buildLines) innerWidth = std::max(innerWidth, (int)line.size() + 1);
+
+    const std::string top    = "+" + std::string(innerWidth, '=') + "+";
+    const std::string middle = "+" + std::string(innerWidth, '-') + "+";
+
+    std::cout << top << "\n";
+    std::cout << boxLine(padCenter("AKTA KEPEMILIKAN", innerWidth), innerWidth) << "\n";
+    std::cout << boxLine(padCenter(title, innerWidth), innerWidth) << "\n";
+    std::cout << top << "\n";
+
+    for (const std::string& line : mainLines) {
+        std::cout << boxLine(line, innerWidth) << "\n";
+    }
+
+    if (!detailLines.empty()) {
+        std::cout << middle << "\n";
+        for (const std::string& line : detailLines) {
+            std::cout << boxLine(line, innerWidth) << "\n";
+        }
+    }
+
+    if (!buildLines.empty()) {
+        std::cout << middle << "\n";
+        for (const std::string& line : buildLines) {
+            std::cout << boxLine(line, innerWidth) << "\n";
+        }
+    }
+
+    std::cout << top << "\n";
+    std::cout << boxLine(statusLine, innerWidth) << "\n";
+    std::cout << top << "\n";
+}
+
+void CLIGUI::renderOwnedProperties(const Player& player) {
+    const auto& owned = player.getOwnedProperties();
+
+    std::vector<std::string> groupOrder;
+    std::map<std::string, std::vector<Property*>> grouped;
+    for (Property* property : owned) {
+        if (property == nullptr) continue;
+        std::string group = propertyGroupLabel(*property);
+        if (grouped.find(group) == grouped.end()) {
+            groupOrder.push_back(group);
+        }
+        grouped[group].push_back(property);
+    }
+
+    std::cout << "=== Properti Milik: " << player.getUsername() << " ===\n\n";
+
+    for (size_t g = 0; g < groupOrder.size(); ++g) {
+        const std::string& group = groupOrder[g];
+        std::cout << "[" << group << "]\n";
+
+        for (Property* property : grouped[group]) {
+            std::ostringstream line;
+            std::string nameCode = "- " + property->getName() + " (" + property->getCode() + ")";
+            line << "  " << std::left << std::setw(28) << nameCode;
+
+            std::string building = buildingLabel(*property);
+            line << "  " << std::left << std::setw(10) << building;
+
+            line << " " << std::left << std::setw(8) << formatMoney(property->getPurchasePrice());
+            line << " " << shortStatusLabel(*property);
+
+            std::cout << line.str() << "\n";
+        }
+
+        if (g + 1 < groupOrder.size()) {
+            std::cout << "\n";
+        }
+    }
+
+    std::cout << "\nTotal kekayaan properti: "
+              << formatMoney(player.calculatePropertyAssetValue() + player.calculateBuildingAssetValue())
+              << "\n";
 }
 
 void CLIGUI::renderDice(int die1, int die2) {

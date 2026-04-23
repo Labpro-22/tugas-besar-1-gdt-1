@@ -33,6 +33,9 @@ public:
 
     std::string getColorGroup() const;
     BuildingState getBuildingState() const;
+    int getHouseBuildCost() const;
+    int getHotelBuildCost() const;
+    const std::vector<int>& getRentLevels() const;
 
     bool hasHotel() const;
     bool canBuildHouse() const;

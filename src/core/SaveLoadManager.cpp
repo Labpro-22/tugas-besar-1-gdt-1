@@ -157,7 +157,7 @@ bool SaveLoadManager::save(const std::string& filepath) {
     return true;
 }
 
-static std::vector<std::string> splitBy(const std::string& s, char sep) {
+std::vector<std::string> SaveLoadManager::splitBy(const std::string& s, char sep) {
     std::vector<std::string> out;
     std::stringstream ss(s);
     std::string tok;
@@ -165,7 +165,7 @@ static std::vector<std::string> splitBy(const std::string& s, char sep) {
     return out;
 }
 
-static std::string afterEq(const std::string& kv) {
+std::string SaveLoadManager::afterEq(const std::string& kv) {
     auto pos = kv.find('=');
     if (pos == std::string::npos) return "";
     return kv.substr(pos + 1);
@@ -187,16 +187,27 @@ bool SaveLoadManager::load(const std::string& filepath) {
         return false;
     }
 
-    struct PendingProp {
+    class PendingProp {
+    public:
         std::string code;
         PropertyStatus status;
         std::string ownerName;
         int buildingIdx;
+        PendingProp() : status(PropertyStatus::BANK), buildingIdx(0) {}
+        PendingProp(std::string c, PropertyStatus s, std::string o, int b)
+            : code(std::move(c)), status(s), ownerName(std::move(o)), buildingIdx(b) {}
     };
     std::vector<PendingProp> pendingProps;
     std::vector<LogEntry> logEntries;
 
-    struct PendingHand { std::string uname; std::vector<std::string> cardNames; };
+    class PendingHand {
+    public:
+        std::string uname;
+        std::vector<std::string> cardNames;
+        PendingHand() = default;
+        PendingHand(std::string u, std::vector<std::string> c)
+            : uname(std::move(u)), cardNames(std::move(c)) {}
+    };
     std::vector<PendingHand> pendingHands;
 
     int savedTurn = 1, savedCti = 0, savedDice = 0, savedOver = 0;

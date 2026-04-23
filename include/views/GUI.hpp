@@ -51,6 +51,7 @@ class GUI : public IGUI {
         void renderBoard(const Game& game) override;
         void renderPlayer(const Player& player) override;
         void renderProperty(const Property& property) override;
+        void renderOwnedProperties(const Player& player) override;
         void renderDice(int die1, int die2) override;
         void renderLog(const std::vector<LogEntry>& entries) override;
         void renderSkillHand(const std::vector<SkillCard*>& hand) override;

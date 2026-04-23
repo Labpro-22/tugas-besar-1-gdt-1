@@ -10,6 +10,9 @@ UtilityProperty::UtilityProperty(const std::string &code,
       multiplierTable(multiplierTable)
 {
 }
+const std::map<int, int>& UtilityProperty::getMultiplierTable() const {
+    return multiplierTable;
+}
 int UtilityProperty::calculateRent(int diceValue) const {
     if (owner == nullptr) return 0;
     int count = owner->countOwnedUtilities();

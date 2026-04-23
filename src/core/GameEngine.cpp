@@ -52,7 +52,7 @@ GameEngine::~GameEngine() {
     delete game;
 }
 
-static std::string waitForInput(IGUI* gui, const std::string& prompt) {
+std::string GameEngine::waitForInput(IGUI* gui, const std::string& prompt) {
     gui->showInputPrompt(prompt);
     while (!gui->shouldExit()) {
         gui->update();
@@ -63,13 +63,13 @@ static std::string waitForInput(IGUI* gui, const std::string& prompt) {
     return "";
 }
 
-static std::string normalizeInput(std::string s) {
+std::string GameEngine::normalizeInput(std::string s) {
     std::transform(s.begin(), s.end(), s.begin(),
                    [](unsigned char c) { return std::toupper(c); });
     return s;
 }
 
-static bool askYesNo(IGUI* gui, const std::string& prompt) {
+bool GameEngine::askYesNo(IGUI* gui, const std::string& prompt) {
     while (!gui->shouldExit()) {
         std::string ans = normalizeInput(waitForInput(gui, prompt));
         if (ans == "Y" || ans == "YA" || ans == "YES") return true;
@@ -79,7 +79,7 @@ static bool askYesNo(IGUI* gui, const std::string& prompt) {
     return false;
 }
 
-static int askIncomeTaxChoice(IGUI* gui) {
+int GameEngine::askIncomeTaxChoice(IGUI* gui) {
     while (!gui->shouldExit()) {
         std::string ans = waitForInput(gui,
             "Pilih opsi pembayaran pajak: 1) Flat  2) 10% kekayaan");
@@ -87,6 +87,346 @@ static int askIncomeTaxChoice(IGUI* gui) {
         gui->showMessage("Pilihan tidak valid. Masukkan 1 atau 2.");
     }
     return 1;
+}
+
+CommandResult GameEngine::resolveRoll(Player* player, bool manual, int d1, int d2, bool fromJailAttempt) {
+    if (player == nullptr || turnManager == nullptr || dice == nullptr || gui == nullptr) {
+        return CommandResult::INVALID;
+    }
+
+    if (!turnManager->canRoll(player)) {
+        gui->showMessage("Tidak dapat melempar dadu sekarang.");
+        return CommandResult::INVALID;
+    }
+
+    if (fromJailAttempt) {
+        gui->showMessage("Mencoba keluar dari Penjara dengan melempar dadu.");
+    }
+
+    if (manual) {
+        gui->showMessage("Dadu diatur secara manual.");
+        dice->setManual(d1, d2);
+    } else {
+        gui->showMessage("Mengocok dadu...");
+        dice->rollRandom();
+    }
+
+    int total = dice->getTotal();
+    bool rolledDouble = dice->isDouble();
+    gui->renderDice(dice->getDie1(), dice->getDie2());
+    game->setLastDiceTotal(total);
+
+    if (fromJailAttempt && player->isJailed()) {
+        player->markRolled();
+        turnManager->setPhase(TurnPhase::POST_ROLL);
+        turnManager->markActed();
+
+        if (!rolledDouble) {
+            player->incrementJailAttempts();
+            gui->showMessage("Belum mendapatkan double. Kamu tetap berada di Penjara dan tidak bergerak.");
+            gui->showMessage("Percobaan keluar penjara: " +
+                             std::to_string(player->getJailAttempts()) + "/3.");
+            return CommandResult::END_TURN;
+        }
+
+        gui->showMessage("Double! Kamu bebas dari Penjara.");
+        player->setStatus(PlayerStatus::ACTIVE);
+        player->resetJailAttempts();
+    } else {
+        player->markRolled();
+    }
+
+    if (rolledDouble) {
+        player->incrementConsecutiveDoubles();
+        if (player->getConsecutiveDoubles() >= 3) {
+            Board* board = game->getBoard();
+            if (board != nullptr && board->getJailTile() != nullptr) {
+                player->setPosition(board->getJailTile()->getIndex());
+            }
+            player->setStatus(PlayerStatus::JAILED);
+            player->resetJailAttempts();
+            gui->showMessage("Dadu double ketiga berturut-turut.");
+            gui->showMessage("Bidak tidak digerakkan sesuai hasil dadu dan kamu langsung masuk Penjara.");
+            turnManager->endTurn(player);
+            return CommandResult::END_TURN;
+        }
+    } else {
+        player->resetConsecutiveDoubles();
+    }
+
+    Tile* landed = turnManager->processMovement(player, total);
+    turnManager->setPhase(TurnPhase::POST_ROLL);
+    turnManager->markActed();
+
+    std::string landedName = landed ? landed->getName() : "?";
+    gui->renderMovement(player->getUsername(), total, landedName);
+
+    if (landed) handleTileLanding(player, landed);
+
+    if (player->getStatus() == PlayerStatus::JAILED) {
+        gui->showMessage("Giliran berakhir karena kamu berada di Penjara.");
+        turnManager->endTurn(player);
+        return CommandResult::END_TURN;
+    }
+
+    if (player->getStatus() == PlayerStatus::BANKRUPT) {
+        if (checkWinCondition()) return CommandResult::GAME_OVER;
+        return CommandResult::CONTINUE;
+    }
+
+    if (player->hasPendingFestival()) {
+        if (rolledDouble) {
+            gui->showMessage("Lanjutkan dengan FESTIVAL <kode_properti> untuk menyelesaikan aksi petak ini.");
+            gui->showMessage("Setelah itu, gunakan LEMPAR_DADU atau ATUR_DADU <x> <y> untuk lemparan bonus.");
+        } else {
+            gui->showMessage("Lanjutkan dengan FESTIVAL <kode_properti>, lalu gunakan command lain atau AKHIRI_GILIRAN.");
+        }
+    } else if (rolledDouble) {
+        if (fromJailAttempt) {
+            gui->showMessage("Karena berhasil keluar dengan double, kamu juga mendapat lemparan bonus.");
+        } else {
+            gui->showMessage("Dadu double. Kamu mendapat lemparan bonus.");
+        }
+        gui->showMessage("Gunakan LEMPAR_DADU atau ATUR_DADU <x> <y> untuk lemparan berikutnya.");
+    } else {
+        gui->showMessage("Giliran lempar dadu selesai. Gunakan command lain atau AKHIRI_GILIRAN.");
+        gui->showMessage("Ketik HELP untuk melihat command yang tersedia.");
+    }
+
+    return CommandResult::CONTINUE;
+}
+
+CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
+    if (player == nullptr || !player->isJailed()) {
+        return CommandResult::CONTINUE;
+    }
+
+    const int fine = game->getJailFine();
+
+    while (!gui->shouldExit()) {
+        gui->showMessage(player->getUsername() + " sedang berada di Penjara.");
+
+        if (player->getJailAttempts() >= 3) {
+            gui->showMessage("Ini adalah giliran ke-4 di Penjara.");
+            gui->showMessage("Kamu wajib membayar denda M" + std::to_string(fine) + " sebelum melempar dadu.");
+            bool paid = executePayment(player, nullptr, fine);
+            if (paid) {
+                player->setStatus(PlayerStatus::ACTIVE);
+                player->resetJailAttempts();
+                gui->showMessage("Denda penjara dibayar. Kamu bebas dari Penjara.");
+                gui->showMessage("Sekarang kamu bisa melempar dadu seperti biasa.");
+                return CommandResult::CONTINUE;
+            }
+            if (player->getStatus() == PlayerStatus::BANKRUPT && checkWinCondition()) {
+                return CommandResult::GAME_OVER;
+            }
+            return CommandResult::END_TURN;
+        }
+
+        SkillCard* jailCard = player->findJailFreeCard();
+        gui->showMessage("Pilih cara keluar penjara:");
+        gui->showMessage("1) Bayar denda M" + std::to_string(fine));
+        gui->showMessage("2) Gunakan kartu Bebas dari Penjara" +
+                         std::string(jailCard ? "" : " (tidak tersedia)"));
+        gui->showMessage("3) Coba lempar dadu dan harus mendapatkan double");
+
+        std::string choice = normalizeInput(waitForInput(gui, "Opsi penjara (1/2/3):"));
+
+        if (choice == "1") {
+            bool paid = executePayment(player, nullptr, fine);
+            if (paid) {
+                player->setStatus(PlayerStatus::ACTIVE);
+                player->resetJailAttempts();
+                gui->showMessage("Denda penjara dibayar. Kamu bebas dari Penjara.");
+                gui->showMessage("Sekarang kamu bisa melempar dadu seperti biasa.");
+                return CommandResult::CONTINUE;
+            }
+            if (player->getStatus() == PlayerStatus::BANKRUPT && checkWinCondition()) {
+                return CommandResult::GAME_OVER;
+            }
+            return CommandResult::END_TURN;
+        }
+
+        if (choice == "2") {
+            if (jailCard == nullptr) {
+                gui->showMessage("Kamu tidak memiliki kartu Bebas dari Penjara.");
+                continue;
+            }
+            player->removeCard(jailCard);
+            if (game->getSkillDeck() != nullptr) {
+                game->getSkillDeck()->discard(jailCard);
+            }
+            player->setStatus(PlayerStatus::ACTIVE);
+            player->resetJailAttempts();
+            gui->showMessage("Kartu Bebas dari Penjara digunakan. Kamu bebas dari Penjara.");
+            gui->showMessage("Sekarang kamu bisa melempar dadu seperti biasa.");
+            return CommandResult::CONTINUE;
+        }
+
+        if (choice == "3") {
+            gui->showMessage("Gunakan LEMPAR_DADU atau ATUR_DADU <x> <y> untuk mencoba keluar dari Penjara.");
+            gui->showMessage("Command informasi yang tetap tersedia: HELP, CETAK_PAPAN, CETAK_AKTA <kode>, CETAK_PROPERTI, CETAK_LOG [n], SIMPAN <file>, EXIT.");
+
+            while (!gui->shouldExit()) {
+                std::string raw = waitForInput(gui, "Perintah penjara:");
+                if (raw.empty() || raw == "NULL") continue;
+
+                std::istringstream iss(raw);
+                std::vector<std::string> tokens;
+                std::string tok;
+                while (iss >> tok) tokens.push_back(tok);
+                if (tokens.empty()) continue;
+
+                std::string cmd = normalizeInput(tokens[0]);
+
+                if (cmd == "HELP") {
+                    gui->showMessage("Saat di Penjara, pilih salah satu:");
+                    gui->showMessage("1) Bayar denda, 2) Gunakan kartu Bebas dari Penjara, 3) Coba lempar dadu.");
+                    gui->showMessage("Untuk opsi lempar dadu, gunakan LEMPAR_DADU atau ATUR_DADU <x> <y>.");
+                    continue;
+                }
+
+                if (cmd == "LEMPAR_DADU") {
+                    return resolveRoll(player, false, 0, 0, true);
+                }
+
+                if (cmd == "ATUR_DADU") {
+                    if (tokens.size() < 3) {
+                        gui->showMessage("Format: ATUR_DADU <d1> <d2>");
+                        continue;
+                    }
+                    int d1 = 0, d2 = 0;
+                    try {
+                        d1 = std::stoi(tokens[1]);
+                        d2 = std::stoi(tokens[2]);
+                    } catch (...) {
+                        gui->showMessage("Nilai dadu tidak valid.");
+                        continue;
+                    }
+                    if (d1 < 1 || d1 > 6 || d2 < 1 || d2 > 6) {
+                        gui->showMessage("Nilai dadu harus berada pada rentang 1 sampai 6.");
+                        continue;
+                    }
+                    return resolveRoll(player, true, d1, d2, true);
+                }
+
+                if (cmd == "CETAK_PAPAN" || cmd == "CETAK_AKTA" || cmd == "CETAK_DEED" || cmd == "CETAK_PROPERTI" ||
+                    cmd == "CETAK_LOG" || cmd == "SIMPAN" || cmd == "EXIT") {
+                    CommandResult res = commandProcessor->process(raw, player);
+                    if (res == CommandResult::GAME_OVER || res == CommandResult::SAVED_MID_TURN) {
+                        return res;
+                    }
+                    continue;
+                }
+
+                gui->showMessage("Saat mencoba keluar dari Penjara, gunakan LEMPAR_DADU atau ATUR_DADU <x> <y>.");
+            }
+        }
+
+        gui->showMessage("Pilihan tidak valid. Masukkan 1, 2, atau 3.");
+    }
+
+    game->setGameOver(true);
+    return CommandResult::GAME_OVER;
+}
+
+void GameEngine::handleChanceLanding(Player* player, ChanceTile* /*tile*/) {
+    if (player == nullptr || game == nullptr || game->getChanceDeck() == nullptr ||
+        game->getChanceDeck()->isEmpty()) {
+        return;
+    }
+
+    ChanceCard* card = game->getChanceDeck()->draw();
+    if (card == nullptr) return;
+
+    gui->showMessage(player->getUsername() + " mengambil kartu Kesempatan: " + card->getDescription());
+
+    Board* board = game->getBoard();
+    switch (card->getType()) {
+        case ChanceType::GO_TO_NEAREST_STATION: {
+            if (board != nullptr) {
+                RailroadTile* nearest = board->getNearestRailroad(player->getPosition());
+                if (nearest != nullptr) {
+                    player->setPosition(nearest->getIndex());
+                    gui->showMessage(player->getUsername() + " pindah ke stasiun terdekat.");
+                    gui->showMessage("Bidak mendarat di: " + nearest->getName() + ".");
+                    handleTileLanding(player, nearest);
+                }
+            }
+            break;
+        }
+        case ChanceType::MOVE_BACK_3: {
+            if (board != nullptr) {
+                const int boardSize = board->getSize() > 0 ? board->getSize() : 40;
+                const int newPos = (player->getPosition() - 3 + boardSize) % boardSize;
+                player->setPosition(newPos);
+                Tile* target = board->getTile(newPos);
+                gui->showMessage(player->getUsername() + " mundur 3 petak.");
+                if (target != nullptr) {
+                    gui->showMessage("Bidak mendarat di: " + target->getName() + ".");
+                    handleTileLanding(player, target);
+                }
+            }
+            break;
+        }
+        case ChanceType::GO_TO_JAIL: {
+            player->setStatus(PlayerStatus::JAILED);
+            player->resetJailAttempts();
+            if (board != nullptr && board->getJailTile() != nullptr) {
+                player->setPosition(board->getJailTile()->getIndex());
+            }
+            gui->showMessage(player->getUsername() + " masuk Penjara!");
+            break;
+        }
+    }
+
+    game->getChanceDeck()->discard(card);
+}
+
+void GameEngine::handleCommunityChestLanding(Player* player, CommunityChestTile* /*tile*/) {
+    if (player == nullptr || game == nullptr || game->getCommunityDeck() == nullptr ||
+        game->getCommunityDeck()->isEmpty()) {
+        return;
+    }
+
+    CommunityChestCard* card = game->getCommunityDeck()->draw();
+    if (card == nullptr) return;
+
+    gui->showMessage(player->getUsername() + " mengambil kartu Dana Umum: " + card->getDescription());
+
+    switch (card->getType()) {
+        case CommunityType::BIRTHDAY: {
+            for (Player* other : game->getActivePlayers()) {
+                if (other == player) continue;
+                const int amount = 100;
+                if (executePayment(other, player, amount)) {
+                    gui->showMessage(other->getUsername() + " memberi M" + std::to_string(amount) +
+                                     " kepada " + player->getUsername() + " (ulang tahun).");
+                }
+            }
+            break;
+        }
+        case CommunityType::DOCTOR_FEE: {
+            const int fee = 700;
+            if (executePayment(player, nullptr, fee)) {
+                gui->showMessage(player->getUsername() + " membayar biaya dokter M" +
+                                 std::to_string(fee) + ".");
+            }
+            break;
+        }
+        case CommunityType::CAMPAIGN_FEE: {
+            const int fee = 200;
+            for (Player* other : game->getActivePlayers()) {
+                if (other == player) continue;
+                if (!executePayment(player, other, fee)) break;
+                gui->showMessage(player->getUsername() + " membayar M" + std::to_string(fee) +
+                                 " ke " + other->getUsername() + " (biaya kampanye).");
+            }
+            break;
+        }
+    }
+
+    game->getCommunityDeck()->discard(card);
 }
 
 void GameEngine::run() {
@@ -246,6 +586,24 @@ void GameEngine::processPlayerTurn(Player* player) {
     turnManager->startTurn(player);
     gui->renderPlayer(*player);
 
+    if (player->isJailed()) {
+        CommandResult jailResult = handleJailedPlayerTurn(player);
+        if (jailResult == CommandResult::END_TURN) {
+            if (turnManager->getPhase() != TurnPhase::ENDED) {
+                turnManager->endTurn(player);
+            }
+            return;
+        }
+        if (jailResult == CommandResult::GAME_OVER) {
+            game->setGameOver(true);
+            return;
+        }
+        if (jailResult == CommandResult::SAVED_MID_TURN) {
+            return;
+        }
+        gui->renderPlayer(*player);
+    }
+
     while (!gui->shouldExit()) {
         gui->update();
         gui->display();
@@ -266,6 +624,16 @@ void GameEngine::processPlayerTurn(Player* player) {
 
 void GameEngine::handleTileLanding(Player* player, Tile* tile) {   
     if (player == nullptr || tile == nullptr || game == nullptr) {
+        return;
+    }
+
+    if (auto* chanceTile = dynamic_cast<ChanceTile*>(tile)) {
+        handleChanceLanding(player, chanceTile);
+        return;
+    }
+
+    if (auto* communityTile = dynamic_cast<CommunityChestTile*>(tile)) {
+        handleCommunityChestLanding(player, communityTile);
         return;
     }
 
@@ -428,8 +796,6 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         gui->showMessage(player->getUsername() + " mendarat di Bebas Parkir.");
         return;
     }
-
-    tile->onLanded(*player, *game);
 }
 
 bool GameEngine::executePayment(Player* from, Player* to, int amount) {

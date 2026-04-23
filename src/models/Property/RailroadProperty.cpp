@@ -9,6 +9,9 @@ RailroadProperty::RailroadProperty( const std::string& code,
     :   Property(code, name, PropertyType::RAILROAD, purchasePrice, mortgageValue), 
         rentTable(rentTable) {
 }
+const std::map<int, int>& RailroadProperty::getRentTable() const {
+    return rentTable;
+}
 int RailroadProperty::calculateRent(int diceValue) const {
     if (owner == nullptr) return 0;
     int count = owner->countOwnedRailroads();

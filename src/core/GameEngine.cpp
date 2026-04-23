@@ -174,36 +174,41 @@ void GameEngine::initNewGame(const std::string &configPath)
 
     gui->showInputPrompt("Jumlah pemain (2-4):");
 
+    // currentHandler = [this](const Command &cmd)
+    // {
+    //     if (cmd.getType() != "INPUT")
+    //     {
+    //         return;
+    //     }
+
+    //     if (cmd.getArgs().empty() || cmd.getArgs()[0].empty())
+    //     {
+    //         gui->showMessage("Masukkan angka 2-4");
+    //         return;
+    //     }
+
+    //     const std::string &s = cmd.getArgs()[0];
+
+    //     if (!std::all_of(s.begin(), s.end(), ::isdigit))
+    //     {
+    //         gui->showMessage("Input harus angka");
+    //         return;
+    //     }
+
+    //     int count = std::stoi(s);
+
+    //     if (count < 2 || count > 4)
+    //     {
+    //         gui->showMessage("Jumlah pemain harus 2-4");
+    //         return;
+    //     }
+
+    //     startNameInputFlow(count);
+    // };
     currentHandler = [this](const Command &cmd)
     {
-        if (cmd.getType() != "INPUT")
-        {
-            return;
-        }
-
-        if (cmd.getArgs().empty() || cmd.getArgs()[0].empty())
-        {
-            gui->showMessage("Masukkan angka 2-4");
-            return;
-        }
-
-        const std::string &s = cmd.getArgs()[0];
-
-        if (!std::all_of(s.begin(), s.end(), ::isdigit))
-        {
-            gui->showMessage("Input harus angka");
-            return;
-        }
-
-        int count = std::stoi(s);
-
-        if (count < 2 || count > 4)
-        {
-            gui->showMessage("Jumlah pemain harus 2-4");
-            return;
-        }
-
-        startNameInputFlow(count);
+        std::vector<std::string> names = {"Player1", "Player2"};
+        finalizePlayers(names);
     };
 }
 

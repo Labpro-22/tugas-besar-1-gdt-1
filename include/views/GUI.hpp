@@ -6,6 +6,7 @@
 #include "views/viewElement/board/BoardView.hpp"
 #include "views/viewElement/player/PlayerView.hpp"
 #include "views/viewElement/Popup.hpp"
+#include "views/viewElement/player/PlayerProfileView.hpp"
 #include "views/animation/ViewAnimation.hpp"
 #include "views/animation/camera/CameraManager.hpp"
 #include "views/animation/camera/CameraMovement.hpp"
@@ -20,6 +21,7 @@ class GUI : public IGUI {
         Entry* debuggingEntry;
         BoardView* board;
         vector<PlayerView*> players;
+        vector<PlayerProfileView*> playerProfiles;
 
         CameraManager camManager;
 

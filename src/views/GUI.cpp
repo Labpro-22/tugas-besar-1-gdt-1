@@ -131,25 +131,69 @@ void GUI::loadPopup(Popup *popup)
 
 void GUI::loadPlayer(Player &player)
 {
-    Color playerColor;
-    switch (players.size())
+    Color color;
+    switch (playerProfiles.size())
     {
     case 0:
-        playerColor = RED;
+        color = RED;
         break;
     case 1:
-        playerColor = BLUE;
+        color = BLUE;
         break;
     case 2:
-        playerColor = GREEN;
+        color = GREEN;
         break;
     case 3:
-        playerColor = YELLOW;
+        color = YELLOW;
         break;
     default:
-        playerColor = LIGHTGRAY;
+        color = LIGHTGRAY;
     }
-    players.push_back(new PlayerView(player, board, playerColor, &camManager));
+
+    PlayerView *playerView = new PlayerView(player, board, color, &camManager);
+    players.push_back(playerView);
+
+    PlayerProfileView *profile = new PlayerProfileView();
+    profile->setPlayer(&player);
+    profile->setColor(color);
+
+    profile->setHitboxDim({250, 80});
+
+    float screenW = GetScreenWidth();
+    float screenH = GetScreenHeight();
+
+    float w = 250.0f;
+    float h = 80.0f;
+    float margin = 20.0f;
+
+    int idx = playerProfiles.size();
+
+    Vector2 pos;
+
+    switch (idx)
+    {
+    case 0: // kiri atas
+        pos = {w / 2 + margin, h / 2 + margin};
+        break;
+    case 1: // kanan atas
+        pos = {screenW - w / 2 - margin, h / 2 + margin};
+        break;
+    case 2: // kiri bawah
+        pos = {w / 2 + margin, screenH - h / 2 - margin};
+        break;
+    case 3: // kanan bawah
+        pos = {screenW - w / 2 - margin, screenH - h / 2 - margin};
+        break;
+    default:
+        pos = {screenW / 2, screenH / 2}; // fallback
+    }
+
+    profile->setPosition(pos);
+
+    profile->setActive(true);
+
+    playerProfiles.push_back(profile);
+    views.insert(profile);
 }
 
 Command GUI::getCommand()
@@ -332,21 +376,14 @@ void GUI::display()
     BeginMode3D(camManager.mount());
     DrawGrid(40, 1);
     board->render();
+
     for (PlayerView *player : players)
-    {
         player->render();
-    }
+
     EndMode3D();
-    if (menu != nullptr)
-        menu->render();
-    if (debuggingEntry != nullptr)
-        debuggingEntry->render();
-    stack<Popup *> temp = popupStack;
-    while (!temp.empty())
-    {
-        temp.top()->render();
-        temp.pop();
-    }
+
+    for (View2D *view : views)
+        view->render();
 }
 
 void GUI::loadDebuggingEntry()

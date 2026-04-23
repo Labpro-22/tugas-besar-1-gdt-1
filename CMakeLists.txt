@@ -19,6 +19,7 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/views/viewElement/board/TileView.cpp
                                src/views/viewElement/board/BoardView.cpp
                                src/views/viewElement/player/PlayerView.cpp
+                               src/views/viewElement/player/PlayerProfileView.cpp
                                src/views/animation/ViewAnimation.cpp
                                src/views/animation/camera/CameraManager.cpp
                                src/views/animation/camera/CameraMovement.cpp

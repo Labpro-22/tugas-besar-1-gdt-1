@@ -22,14 +22,14 @@ int main()
         Board &b = *CL.buildBoard(GC.getProperties(), GC);
         GUI app(120, b);
         app.loadMainMenu();
-      Player player = Player("Big Man", 500);
-    Player player2 = Player("Little Man", 500);
-    Player player3 = Player("Medium Man", 500);
-    Player player4 = Player("Nonexistent Man", 500);
-    app.loadPlayer(player);
-    app.loadPlayer(player2);
-    app.loadPlayer(player3);
-    app.loadPlayer(player4);
+        Player player = Player("Big Man", 500);
+        Player player2 = Player("Little Man", 500);
+        Player player3 = Player("Medium Man", 500);
+        Player player4 = Player("Nonexistent Man", 500);
+        app.loadPlayer(player);
+        app.loadPlayer(player2);
+        app.loadPlayer(player3);
+        app.loadPlayer(player4);
         app.loadDebuggingEntry();
 
         // Test Popup untuk Property
@@ -40,7 +40,7 @@ int main()
         //     200,                             // harga beli
         //     100,                             // nilai gadai (mortgage value)
 
-        //     2,                               // 2 rumah dibangun  
+        //     2,                               // 2 rumah dibangun
         //     false,                           // milik orang lain
 
         //     "Player2",                       // owner properti
@@ -64,9 +64,9 @@ int main()
         //     {},                              // rentTable DIKOSONGKAN karena bukan Street
         //     0,                               // harga bangun DIKOSONGKAN karena bukan Street
         //     {25, 50, 100, 200}               // railroadRent berdasarkan jumlah kepemilikan Railroad yang sama (index 0-3: punya 1-4 railroad)
-        // ));  
+        // ));
 
-        // app.loadPopup(new PropertyPopup( 
+        // app.loadPopup(new PropertyPopup(
         //     "PLN",                           // nama properti
         //     "UTILITY",                       // tipe properti ("STREET", "RAILROAD", atau "UTILITY")
         //     "OWNED",                         // status kepemilikan ("BANK", "OWNED", atau "MORTGAGED")
@@ -100,22 +100,23 @@ int main()
                     }
                 };
             }
-            catch (const GameException &e) {
+            catch (const GameException &e)
+            {
                 app.loadPopup(new ExceptionPopup(e.getErrorCode(), e.what()));
             }
-            catch (const std::exception &e) {
+            catch (const std::exception &e)
+            {
                 app.loadPopup(new ExceptionPopup(500, e.what()));
-                 std::cerr << "FATAL INIT ERROR: " << e.what() << std::endl;
+                std::cerr << "FATAL INIT ERROR: " << e.what() << std::endl;
             }
-        BeginDrawing();
-        app.display();
-        DrawFPS(10,10);
-        EndDrawing();
+            BeginDrawing();
+            app.display();
+            DrawFPS(10, 10);
+            EndDrawing();
+        }
+
+        View2D::unloadFonts();
+        CloseWindow();
+
+        return 0;
     }
-    
-
-    View2D::unloadFonts();
-    CloseWindow();
-
-    return 0;
-}

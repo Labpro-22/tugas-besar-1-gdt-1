@@ -112,7 +112,7 @@ BoardView::BoardView(Board& board) : View3D({0,0.015,0}, getBoardModel(board), W
         }
         i++;
         tileView->transform(tileRotation);
-        tiles.push_back(*tileView);
+        tiles.push_back(tileView);
     }
     cout<<tiles.size()<<endl;
 }
@@ -125,8 +125,8 @@ void BoardView::render() {
     model.transform = transformation;
     DrawModel(model, pos, 1, color);
     int i = 0;
-    for (TileView& tile : tiles) {
-        tile.render();
+    for (TileView* tile : tiles) {
+        tile->render();
         i++;
     }
 }

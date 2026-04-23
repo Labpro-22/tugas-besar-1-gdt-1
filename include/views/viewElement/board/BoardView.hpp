@@ -7,7 +7,7 @@
 class BoardView : View3D {
     private :
         Board& board;
-        vector<TileView> tiles;
+        vector<TileView*> tiles;
     public :
         BoardView(Board& board);
         const float getBoardSize() const;

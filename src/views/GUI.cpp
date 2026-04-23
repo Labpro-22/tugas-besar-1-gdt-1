@@ -1,5 +1,8 @@
 #include "views/GUI.hpp"
 #include "core/Game.hpp"
+#include "exception/InvalidFile/FileNotFoundException.hpp"
+#include "exception/InvalidFile/InvalidConfigException.hpp"
+#include "exception/InvalidFile/UnreadableFileException.hpp"
 
 GUI::GUI(float fps, Board &board) : menu(nullptr), board(new BoardView(board)),
                                     debuggingEntry(nullptr),
@@ -46,7 +49,8 @@ void GUI::showInputPrompt(const std::string & /*prompt*/)
 void GUI::renderBoard(const Game &game)
 {
     Board *b = game.getBoard();
-    if (b == nullptr) return;
+    if (b == nullptr)
+        return;
 
     if (board == nullptr)
     {
@@ -149,6 +153,12 @@ Command GUI::getCommand()
         {
             if (tokens[1] == "LOAD_CONFIRM_POPUP")
             {
+                if (tokens.size() < 3)
+                {
+                    throw FileNotFoundException("");
+                    return {"NULL", {}};
+                }
+
                 loadPopup(new LoadConfirmPopup(tokens[2]));
             }
             else if (tokens[1] == "SWITCH_TOP_VIEW")

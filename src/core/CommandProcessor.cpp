@@ -188,7 +188,10 @@ CommandResult CommandProcessor::handleMortgage(Player* player, const std::string
     int value = prop->getMortgageValue();
     prop->setStatus(PropertyStatus::MORTGAGED);
     player->addMoney(value);
-    gui->showMessage("Properti " + code + " digadai, menerima " + std::to_string(value));
+    gui->showMessage(prop->getName() + " berhasil digadaikan.");
+    gui->showMessage("Kamu menerima M" + std::to_string(value) + " dari Bank.");
+    gui->showMessage("Uang kamu sekarang: M" + std::to_string(player->getBalance()));
+    gui->showMessage("Catatan: Sewa tidak dapat dipungut dari properti yang digadaikan.");
     return CommandResult::CONTINUE;
 }
 

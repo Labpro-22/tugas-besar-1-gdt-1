@@ -30,6 +30,46 @@
 #include "models/BoardAndTiles/SpecialTile/GoTile.hpp"
 #include "models/BoardAndTiles/SpecialTile/FreeParkingTile.hpp"
 
+namespace {
+std::string formatMoney(int amount) {
+    return "M" + std::to_string(amount);
+}
+
+std::string buildingStateLabel(const StreetProperty* property) {
+    if (property == nullptr) return "tanah kosong";
+
+    switch (property->getBuildingState()) {
+        case BuildingState::NONE:    return "tanah kosong";
+        case BuildingState::HOUSE_1: return "1 rumah";
+        case BuildingState::HOUSE_2: return "2 rumah";
+        case BuildingState::HOUSE_3: return "3 rumah";
+        case BuildingState::HOUSE_4: return "4 rumah";
+        case BuildingState::HOTEL:   return "Hotel";
+        default:                     return "tanah kosong";
+    }
+}
+
+std::string rentConditionLabel(const Property* property) {
+    if (property == nullptr) return "";
+
+    std::string label;
+    if (auto* street = dynamic_cast<const StreetProperty*>(property)) {
+        label = buildingStateLabel(street);
+    } else if (property->getType() == PropertyType::RAILROAD) {
+        label = "Railroad";
+    } else if (property->getType() == PropertyType::UTILITY) {
+        label = "Utility";
+    }
+
+    if (property->getFestivalDuration() > 0) {
+        if (!label.empty()) label += " | ";
+        label += "Festival aktif x" + std::to_string(property->getFestivalMultiplier()) +
+                 " (" + std::to_string(property->getFestivalDuration()) + " giliran)";
+    }
+    return label;
+}
+}
+
 GameEngine::GameEngine(IGUI* gui)
     : game(nullptr),
       logger(new TransactionLogger()),
@@ -81,8 +121,7 @@ bool GameEngine::askYesNo(IGUI* gui, const std::string& prompt) {
 
 int GameEngine::askIncomeTaxChoice(IGUI* gui) {
     while (!gui->shouldExit()) {
-        std::string ans = waitForInput(gui,
-            "Pilih opsi pembayaran pajak: 1) Flat  2) 10% kekayaan");
+        std::string ans = waitForInput(gui, "Pilihan (1/2):");
         if (ans == "1" || ans == "2") return std::stoi(ans);
         gui->showMessage("Pilihan tidak valid. Masukkan 1 atau 2.");
     }
@@ -209,7 +248,8 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
         if (player->getJailAttempts() >= 3) {
             gui->showMessage("Ini adalah giliran ke-4 di Penjara.");
             gui->showMessage("Kamu wajib membayar denda M" + std::to_string(fine) + " sebelum melempar dadu.");
-            bool paid = executePayment(player, nullptr, fine);
+            bool paid = executePayment(player, nullptr, fine,
+                                       "denda penjara " + formatMoney(fine));
             if (paid) {
                 player->setStatus(PlayerStatus::ACTIVE);
                 player->resetJailAttempts();
@@ -233,7 +273,8 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
         std::string choice = normalizeInput(waitForInput(gui, "Opsi penjara (1/2/3):"));
 
         if (choice == "1") {
-            bool paid = executePayment(player, nullptr, fine);
+            bool paid = executePayment(player, nullptr, fine,
+                                       "denda penjara " + formatMoney(fine));
             if (paid) {
                 player->setStatus(PlayerStatus::ACTIVE);
                 player->resetJailAttempts();
@@ -399,7 +440,9 @@ void GameEngine::handleCommunityChestLanding(Player* player, CommunityChestTile*
             for (Player* other : game->getActivePlayers()) {
                 if (other == player) continue;
                 const int amount = 100;
-                if (executePayment(other, player, amount)) {
+                if (executePayment(other, player, amount,
+                                   "biaya ulang tahun " + formatMoney(amount) +
+                                   " kepada " + player->getUsername())) {
                     gui->showMessage(other->getUsername() + " memberi M" + std::to_string(amount) +
                                      " kepada " + player->getUsername() + " (ulang tahun).");
                 }
@@ -408,7 +451,8 @@ void GameEngine::handleCommunityChestLanding(Player* player, CommunityChestTile*
         }
         case CommunityType::DOCTOR_FEE: {
             const int fee = 700;
-            if (executePayment(player, nullptr, fee)) {
+            if (executePayment(player, nullptr, fee,
+                               "biaya dokter " + formatMoney(fee))) {
                 gui->showMessage(player->getUsername() + " membayar biaya dokter M" +
                                  std::to_string(fee) + ".");
             }
@@ -418,7 +462,9 @@ void GameEngine::handleCommunityChestLanding(Player* player, CommunityChestTile*
             const int fee = 200;
             for (Player* other : game->getActivePlayers()) {
                 if (other == player) continue;
-                if (!executePayment(player, other, fee)) break;
+                if (!executePayment(player, other, fee,
+                                    "biaya kampanye " + formatMoney(fee) +
+                                    " kepada " + other->getUsername())) break;
                 gui->showMessage(player->getUsername() + " membayar M" + std::to_string(fee) +
                                  " ke " + other->getUsername() + " (biaya kampanye).");
             }
@@ -642,26 +688,32 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         if (prop == nullptr) return;
 
         if (prop->getStatus() == PropertyStatus::BANK) {
+            gui->showMessage("Kamu mendarat di " + prop->getName() +
+                             " (" + prop->getCode() + ")!");
+
             if (prop->getType() == PropertyType::STREET) {
-                gui->showMessage("Kamu mendarat di " + prop->getName() +
-                                 " (" + prop->getCode() + ")!");
                 gui->renderProperty(*prop);
+                gui->showMessage("Uang kamu saat ini: M" + std::to_string(player->getBalance()));
 
                 int price = prop->getPurchasePrice();
                 if (player->canAfford(price) &&
-                    askYesNo(gui, "Beli properti ini seharga M" + std::to_string(price) + "? (y/n)")) {
+                    askYesNo(gui, "Apakah kamu ingin membeli properti ini seharga M" +
+                                  std::to_string(price) + "? (y/n):")) {
                     player->deductMoney(price);
                     prop->setOwner(player);
                     prop->setStatus(PropertyStatus::OWNED);
                     player->addProperty(prop);
-                    gui->showMessage(prop->getName() + " kini menjadi milikmu. Uang tersisa: M"
+                    gui->showMessage(prop->getName() + " kini menjadi milikmu! Uang tersisa: M"
                                      + std::to_string(player->getBalance()));
                     if (logger) {
                         logger->log(game->getCurrentTurn(), player->getUsername(),
                                     "BELI", prop->getCode() + " M" + std::to_string(price));
                     }
                 } else {
-                    gui->showMessage("Properti ini akan masuk ke sistem lelang.");
+                    if (!player->canAfford(price)) {
+                        gui->showMessage("Uang kamu tidak cukup untuk membeli properti ini.");
+                    }
+                    gui->showMessage("Properti ini akan masuk ke sistem lelang...");
                     if (auctionManager != nullptr) {
                         auctionManager->runAuction(prop, player);
                     }
@@ -669,13 +721,36 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
                 return;
             }
 
+            int price = prop->getPurchasePrice();
+            if (price > 0 && !player->canAfford(price)) {
+                gui->showMessage("Uang kamu tidak cukup untuk mengambil alih " +
+                                 prop->getName() + " secara otomatis.");
+                gui->showMessage("Properti ini akan masuk ke sistem lelang...");
+                if (auctionManager != nullptr) {
+                    auctionManager->runAuction(prop, player);
+                }
+                return;
+            }
+
+            if (price > 0) {
+                player->deductMoney(price);
+            }
             prop->setOwner(player);
             prop->setStatus(PropertyStatus::OWNED);
             player->addProperty(prop);
-            gui->showMessage(prop->getName() + " kini menjadi milikmu!");
+            if (prop->getType() == PropertyType::RAILROAD) {
+                gui->showMessage("Belum ada yang menginjaknya duluan, stasiun ini kini menjadi milikmu!");
+            } else {
+                gui->showMessage("Belum ada yang menginjaknya duluan, " + prop->getName() +
+                                 " kini menjadi milikmu!");
+            }
+            if (price > 0) {
+                gui->showMessage("Uang tersisa: M" + std::to_string(player->getBalance()));
+            }
             if (logger) {
                 logger->log(game->getCurrentTurn(), player->getUsername(),
-                            "BELI_OTOMATIS", prop->getCode());
+                            "BELI_OTOMATIS", prop->getCode() +
+                            (price > 0 ? " M" + std::to_string(price) : ""));
             }
             return;
         }
@@ -686,8 +761,9 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
             return;
         }
         if (prop->isMortgaged()) {
-            gui->showMessage("Kamu mendarat di " + prop->getName() +
-                             ", tetapi properti ini sedang digadaikan. Tidak ada sewa.");
+            gui->showMessage("Kamu mendarat di " + prop->getName() + " (" + prop->getCode() +
+                             "), milik " + owner->getUsername() + "!");
+            gui->showMessage("Properti ini sedang digadaikan [M]. Tidak ada sewa yang dikenakan.");
             return;
         }
 
@@ -695,16 +771,24 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
                                        ? game->getLastDiceTotal()
                                        : 0);
         gui->showMessage("Kamu mendarat di " + prop->getName() + " (" + prop->getCode() +
-                         "), milik " + owner->getUsername() + ".");
-        gui->showMessage("Sewa: M" + std::to_string(rent));
+                         "), milik " + owner->getUsername() + "!");
+        std::string condition = rentConditionLabel(prop);
+        if (!condition.empty()) {
+            gui->showMessage("Kondisi      : " + condition);
+        }
+        gui->showMessage("Sewa         : M" + std::to_string(rent));
         int payerBefore = player->getBalance();
         int ownerBefore = owner->getBalance();
-        bool paid = executePayment(player, owner, rent);
+        bool paid = executePayment(player, owner, rent,
+                                   "sewa " + formatMoney(rent) +
+                                   " kepada " + owner->getUsername());
         if (paid) {
-            gui->showMessage("Uang kamu: M" + std::to_string(payerBefore) + " -> M"
-                             + std::to_string(player->getBalance()));
-            gui->showMessage("Uang " + owner->getUsername() + ": M" + std::to_string(ownerBefore)
-                             + " -> M" + std::to_string(owner->getBalance()));
+            if (payerBefore >= rent) {
+                gui->showMessage("Uang kamu     : M" + std::to_string(payerBefore) + " -> M"
+                                 + std::to_string(player->getBalance()));
+                gui->showMessage("Uang " + owner->getUsername() + " : M" + std::to_string(ownerBefore)
+                                 + " -> M" + std::to_string(owner->getBalance()));
+            }
             if (logger) {
                 logger->log(game->getCurrentTurn(), player->getUsername(),
                             "SEWA", prop->getCode() + " M" + std::to_string(rent));
@@ -715,22 +799,36 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
 
     if (auto* incomeTax = dynamic_cast<IncomeTaxTile*>(tile)) {
         gui->showMessage("Kamu mendarat di Pajak Penghasilan (PPH)!");
+        gui->showMessage("1. Bayar flat M" + std::to_string(incomeTax->getFlatAmount()));
+        gui->showMessage("2. Bayar " + std::to_string(incomeTax->getTaxPercentage()) +
+                         "% dari total kekayaan (Pilih sebelum menghitung kekayaan!)");
         int choice = askIncomeTaxChoice(gui);
         int amount = 0;
+        int before = player->getBalance();
         if (choice == 1) {
             amount = incomeTax->getFlatAmount();
             gui->showMessage("Memilih bayar flat M" + std::to_string(amount) + ".");
         } else {
-            int wealth = player->calculateTotalWealth();
+            int cash = player->getBalance();
+            int propertyValue = player->calculatePropertyAssetValue();
+            int buildingValue = player->calculateBuildingAssetValue();
+            int wealth = cash + propertyValue + buildingValue;
             amount = (wealth * incomeTax->getTaxPercentage()) / 100;
-            gui->showMessage("Total kekayaan kamu: M" + std::to_string(wealth));
-            gui->showMessage("Pajak 10%: M" + std::to_string(amount));
+            gui->showMessage("Total kekayaan kamu:");
+            gui->showMessage("- Uang tunai          : M" + std::to_string(cash));
+            gui->showMessage("- Harga beli properti : M" + std::to_string(propertyValue));
+            gui->showMessage("- Harga beli bangunan : M" + std::to_string(buildingValue));
+            gui->showMessage("Total                 : M" + std::to_string(wealth));
+            gui->showMessage("Pajak " + std::to_string(incomeTax->getTaxPercentage()) +
+                             "%             : M" + std::to_string(amount));
         }
-        int before = player->getBalance();
-        bool paid = executePayment(player, nullptr, amount);
+        bool paid = executePayment(player, nullptr, amount,
+                                   "Pajak Penghasilan " + formatMoney(amount));
         if (paid) {
-            gui->showMessage("Uang kamu: M" + std::to_string(before) + " -> M"
-                             + std::to_string(player->getBalance()));
+            if (before >= amount) {
+                gui->showMessage("Uang kamu: M" + std::to_string(before) + " -> M"
+                                 + std::to_string(player->getBalance()));
+            }
             if (logger) {
                 logger->log(game->getCurrentTurn(), player->getUsername(),
                             "PAJAK", "PPH M" + std::to_string(amount));
@@ -742,12 +840,15 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
     if (auto* luxuryTax = dynamic_cast<LuxuryTaxTile*>(tile)) {
         int amount = luxuryTax->getFlatAmount();
         gui->showMessage("Kamu mendarat di Pajak Barang Mewah (PBM)!");
-        gui->showMessage("Pajak sebesar M" + std::to_string(amount) + ".");
+        gui->showMessage("Pajak sebesar M" + std::to_string(amount) + " langsung dipotong.");
         int before = player->getBalance();
-        bool paid = executePayment(player, nullptr, amount);
+        bool paid = executePayment(player, nullptr, amount,
+                                   "Pajak Barang Mewah " + formatMoney(amount));
         if (paid) {
-            gui->showMessage("Uang kamu: M" + std::to_string(before) + " -> M"
-                             + std::to_string(player->getBalance()));
+            if (before >= amount) {
+                gui->showMessage("Uang kamu: M" + std::to_string(before) + " -> M"
+                                 + std::to_string(player->getBalance()));
+            }
             if (logger) {
                 logger->log(game->getCurrentTurn(), player->getUsername(),
                             "PAJAK", "PBM M" + std::to_string(amount));
@@ -798,10 +899,11 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
     }
 }
 
-bool GameEngine::executePayment(Player* from, Player* to, int amount) {
+bool GameEngine::executePayment(Player* from, Player* to, int amount,
+                                const std::string& obligationLabel) {
     if (from == nullptr || amount <= 0) return false;
     if (bankruptcyManager != nullptr) {
-        return bankruptcyManager->handleInsufficientFunds(*from, amount, to);
+        return bankruptcyManager->handleInsufficientFunds(*from, amount, to, obligationLabel);
     }
     if (!from->canAfford(amount)) return false;
     from->deductMoney(amount);

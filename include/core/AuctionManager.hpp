@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-enum class AuctionAction { BID, PASS };
+enum class AuctionAction { BID, PASS, INVALID };
 
 class AuctionManager {
 private:

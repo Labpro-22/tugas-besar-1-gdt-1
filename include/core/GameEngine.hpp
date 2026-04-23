@@ -51,7 +51,8 @@ private:
 
     void handleTileLanding(Player* player, Tile* tile);
 
-    bool executePayment(Player* from, Player* to, int amount);
+    bool executePayment(Player* from, Player* to, int amount,
+                        const std::string& obligationLabel = "");
     bool checkWinCondition();
     void endGame();
 

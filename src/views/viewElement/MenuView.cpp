@@ -1,19 +1,16 @@
 #include "views/viewElement/MenuView.hpp"
 #include "../include/views/animation/ViewAnimation.hpp"
 
-
-MainMenuView::MainMenuView() : 
-    MenuView(View2D(getScreenCenter(), 
-                    {(float)GetScreenWidth(), (float)GetScreenHeight()}, [](){})),
-    startButton(Interactable({500, 60}, true, false, "NEW_GAME", [](){}, [](){})),
-    loadButton(Interactable({500, 60}, true, false, "LOAD_GAME", [](){}, [](){})),
-    exitButton(Interactable({500, 60}, true, false, "EXIT", [](){}, [](){}))
+MainMenuView::MainMenuView() : MenuView(View2D(getScreenCenter(),
+                                               {(float)GetScreenWidth(), (float)GetScreenHeight()}, []() {})),
+                               startButton(Interactable({500, 60}, true, false, "NEW_GAME", []() {}, []() {})), loadButton(Interactable({500, 60}, true, false, "LOAD_GAME", []() {}, []() {})), exitButton(Interactable({500, 60}, true, false, "EXIT", []() {}, []() {}))
 {
     Vector2 screenCenter = getScreenCenter();
 
     // NEW GAME BUTTON
     startButton.movePosition(screenCenter + (Vector2){0.0f, 80.0f});
-    startButton.setRender([this](){
+    startButton.setRender([this]()
+                          {
         DrawRectangle(this->startButton.getRenderPos().x, this->startButton.getRenderPos().y,
                       this->startButton.getRenderWidth(), this->startButton.getRenderHeight(),
                       this->startButton.getRenderColor(LOGO_RED));
@@ -25,12 +22,12 @@ MainMenuView::MainMenuView() :
                    {this->startButton.getX() - textDim.x/2,
                     this->startButton.getY() - 18},
                    this->startButton.getRenderFontSize(36), 0,
-                   this->startButton.getRenderColor(WHITE));
-    });
+                   this->startButton.getRenderColor(WHITE)); });
 
     // LOAD GAME BUTTON
     loadButton.movePosition(screenCenter + (Vector2){0.0f, 160.0f});
-    loadButton.setRender([this](){
+    loadButton.setRender([this]()
+                         {
         DrawRectangle(this->loadButton.getRenderPos().x, this->loadButton.getRenderPos().y,
                       this->loadButton.getRenderWidth(), this->loadButton.getRenderHeight(),
                       this->loadButton.getRenderColor(LOGO_RED));
@@ -42,12 +39,12 @@ MainMenuView::MainMenuView() :
                    {this->loadButton.getX() - textDim.x/2,
                     this->loadButton.getY() - 18},
                    this->loadButton.getRenderFontSize(36), 0,
-                   this->loadButton.getRenderColor(WHITE));
-    });
+                   this->loadButton.getRenderColor(WHITE)); });
 
     // EXIT BUTTON
     exitButton.movePosition(screenCenter + (Vector2){0.0f, 240.0f});
-    exitButton.setRender([this](){
+    exitButton.setRender([this]()
+                         {
         DrawRectangle(this->exitButton.getRenderPos().x, this->exitButton.getRenderPos().y,
                       this->exitButton.getRenderWidth(), this->exitButton.getRenderHeight(),
                       this->exitButton.getRenderColor(LOGO_RED));
@@ -59,13 +56,11 @@ MainMenuView::MainMenuView() :
                    {this->exitButton.getX() - textDim.x/2,
                     this->exitButton.getY() - 18},
                    this->exitButton.getRenderFontSize(36), 0,
-                   this->exitButton.getRenderColor(WHITE));
-    });
+                   this->exitButton.getRenderColor(WHITE)); });
 
     // ANIMATION
-    ViewAnimation* anim = new ViewAnimation(*this, 120, true,
-                                           [](){},
-                                           [this](){ closeView = true; });
+    ViewAnimation *anim = new ViewAnimation(*this, 120, true, []() {}, [this]()
+                                            { closeView = true; });
 
     anim->setMoveAnimation({pos.x, pos.y - getRenderHeight()}, 1);
     this->addAnimation("START", anim);
@@ -76,7 +71,8 @@ MainMenuView::MainMenuView() :
     UnloadImage(img);
 }
 
-MainMenuView::~MainMenuView() {
+MainMenuView::~MainMenuView()
+{
     UnloadTexture(logo);
 }
 
@@ -94,18 +90,23 @@ void MainMenuView::render()
 {
     animationCheck();
 
+    Vector2 center = {
+        (float)GetScreenWidth() / 2,
+        (float)GetScreenHeight() / 2};
+
+    startButton.setPosition(center + Vector2{0, 80});
+    loadButton.setPosition(center + Vector2{0, 160});
+    exitButton.setPosition(center + Vector2{0, 240});
+
     // background
-    DrawRectangle(getRenderPos().x, getRenderPos().y,
-                  boundingDim.x, boundingDim.y,
-                  {100, 100, 100, 150});
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), {100, 100, 100, 150});
 
     // logo
     DrawTexture(logo,
-                pos.x - logo.width / 2,
-                pos.y - logo.height / 2 - 220,
+                center.x - logo.width / 2,
+                center.y - logo.height / 2 - 220,
                 WHITE);
 
-    // buttons
     startButton.render();
     loadButton.render();
     exitButton.render();
@@ -123,13 +124,16 @@ std::string MainMenuView::catchCommand()
     std::string cmd;
 
     cmd = startButton.catchCommand();
-    if (cmd != "NULL") return cmd;
+    if (cmd != "NULL")
+        return cmd;
 
     cmd = loadButton.catchCommand();
-    if (cmd != "NULL") return cmd;
+    if (cmd != "NULL")
+        return cmd;
 
     cmd = exitButton.catchCommand();
-    if (cmd != "NULL") return cmd;
+    if (cmd != "NULL")
+        return cmd;
 
     return "NULL";
 }

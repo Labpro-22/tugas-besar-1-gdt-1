@@ -47,6 +47,9 @@ class View2D {
         const Color getRenderColor(const Color& color) const;
         const bool isVisible() const;
         const bool closed() const;
+        const Vector2& getPosition() const;
+        
+        void setPosition(const Vector2& v);
         virtual void movePosition(const Vector2& v);
         void movePosition(float x, float y);
         void movePositionDelta(const Vector2& dv);

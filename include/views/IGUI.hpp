@@ -11,15 +11,17 @@ class Tile;
 class SkillCard;
 class LogEntry;
 
-class IGUI {
+class IGUI
+{
 public:
     virtual ~IGUI() = default;
 
-    // Lifecycle 
+    // Lifecycle
     virtual void update() = 0;
     virtual void display() = 0;
     virtual bool shouldExit() const = 0;
-
+    virtual void requestExit() = 0;
+    
     // Input tunggal: command string dari user (kembalikan "NULL" / kosong jika belum ada)
     virtual Command getCommand() = 0;
 
@@ -29,18 +31,18 @@ public:
     virtual void loadFinishMenu() = 0;
 
     // Popup / prompt
-    virtual void showMessage(const std::string& message) = 0;
-    virtual void showConfirm(const std::string& question) = 0;
-    virtual void showInputPrompt(const std::string& prompt) = 0;
+    virtual void showMessage(const std::string &message) = 0;
+    virtual void showConfirm(const std::string &question) = 0;
+    virtual void showInputPrompt(const std::string &prompt) = 0;
 
     // Render state game
-    virtual void renderBoard(const Game& game) = 0;
-    virtual void renderPlayer(const Player& player) = 0;
-    virtual void renderProperty(const Property& property) = 0;
+    virtual void renderBoard(const Game &game) = 0;
+    virtual void renderPlayer(const Player &player) = 0;
+    virtual void renderProperty(const Property &property) = 0;
     virtual void renderDice(int die1, int die2) = 0;
-    virtual void renderLog(const std::vector<LogEntry>& entries) = 0;
-    virtual void renderSkillHand(const std::vector<SkillCard*>& hand) = 0;
-    virtual void renderAuction(const Property& property, int currentBid, const Player* highBidder) = 0;
-    virtual void renderBankruptcy(const Player& player) = 0;
-    virtual void renderWinner(const Player& winner) = 0;
+    virtual void renderLog(const std::vector<LogEntry> &entries) = 0;
+    virtual void renderSkillHand(const std::vector<SkillCard *> &hand) = 0;
+    virtual void renderAuction(const Property &property, int currentBid, const Player *highBidder) = 0;
+    virtual void renderBankruptcy(const Player &player) = 0;
+    virtual void renderWinner(const Player &winner) = 0;
 };

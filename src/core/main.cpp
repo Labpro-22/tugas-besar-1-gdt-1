@@ -26,7 +26,7 @@ int main()
         app.loadMainMenu();
         app.loadDebuggingEntry();
 
-        while (!WindowShouldClose())
+        while (!WindowShouldClose() && !app.shouldExit())
         {
             if (IsKeyPressed(KEY_F11))
             {

@@ -33,6 +33,7 @@ class GUI : public IGUI {
         void update() override;
         void display() override;
         bool shouldExit() const override;
+        void requestExit() override;
 
         // Input
         Command getCommand() override;

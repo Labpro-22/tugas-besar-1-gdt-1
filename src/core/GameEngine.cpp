@@ -54,6 +54,10 @@ void GameEngine::update()
         gui->loadGameView();
         gui->renderBoard(*game);
     }
+    else if (cmd.getType() == "EXIT")
+    {
+        gui->requestExit();
+    }
 }
 
 void GameEngine::initNewGame(const std::string &configPath)

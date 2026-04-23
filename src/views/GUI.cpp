@@ -18,6 +18,11 @@ bool GUI::shouldExit() const
     return exitRequested;
 }
 
+void GUI::requestExit()
+{
+    exitRequested = true;
+}
+
 void GUI::loadGameView()
 {
     // TODO: muat view permainan utama

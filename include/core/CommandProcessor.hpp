@@ -40,6 +40,8 @@ private:
 
     std::vector<std::string> tokenize(const std::string& cmd) const;
     std::string normalize(const std::string& s) const;
+    bool isAwaitingBonusRoll(Player* player) const;
+    bool isAllowedDuringBonusRoll(const std::string& cmd) const;
 
     CommandResult handleRoll(Player* player, bool manual, int d1, int d2);
     CommandResult handlePrintBoard();
@@ -53,6 +55,7 @@ private:
     CommandResult handleSave(const std::string& file);
     CommandResult handleFestival(Player* player, const std::string& code);
     CommandResult handleEndTurn(Player* player);
+    CommandResult handleHelp(Player* player);
 
 public:
     CommandProcessor(GameEngine* engine, Game* game,

@@ -27,18 +27,8 @@ void TurnManager::startTurn(Player* player) {
 }
 
 void TurnManager::endTurn(Player* player) {
-    if (player != nullptr && player->getConsecutiveDoubles() >= 3) {
-        Board* board = game->getBoard();
-        if (board != nullptr) {
-            JailTile* jail = board->getJailTile();
-            if (jail != nullptr) player->setPosition(jail->getIndex());
-        }
-        player->setStatus(PlayerStatus::JAILED);
+    if (player != nullptr) {
         player->resetConsecutiveDoubles();
-        if (gui != nullptr) {
-            gui->showMessage(player->getUsername() +
-                " dipenjara karena 3 dadu ganda berturut-turut.");
-        }
     }
 
     hasActed = false;
@@ -47,7 +37,13 @@ void TurnManager::endTurn(Player* player) {
 }
 
 bool TurnManager::canRoll(Player* player) const {
-    return !player->hasRolled();
+    if (player == nullptr || player->hasPendingFestival()) {
+        return false;
+    }
+    if (!player->hasRolled()) {
+        return true;
+    }
+    return phase == TurnPhase::POST_ROLL && player->getConsecutiveDoubles() > 0;
 }
 
 bool TurnManager::canUseSkill(Player* player) const {

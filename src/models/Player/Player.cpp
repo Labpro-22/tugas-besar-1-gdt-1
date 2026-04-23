@@ -107,7 +107,7 @@ int Player::countOwnedUtilities() const {
     return count;
 }
 
-bool Player::ownsFullColorGroup(const std::string& colorGroup) const {
+bool Player::ownsFullColorGroup(const std::string& /*colorGroup*/) const {
     // This requires knowledge of all properties in that group.
     // Simplifying: this logic usually resides in a Manager or requires a Board reference.
     // For now, return false or implement if we can find a way.
@@ -142,6 +142,7 @@ void Player::startTurn() {
     hasRolledThisTurn = false;
     hasUsedSkillThisTurn = false;
     pendingFestival = false;
+    consecutiveDoubles = 0;
 }
 
 bool Player::hasPendingFestival() const { return pendingFestival; }

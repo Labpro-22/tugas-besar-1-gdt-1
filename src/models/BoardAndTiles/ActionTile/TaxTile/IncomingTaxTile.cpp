@@ -8,11 +8,11 @@ IncomeTaxTile::IncomeTaxTile(int index, int flatAmount, int percentage)
       flatAmount(flatAmount),
       percentage(percentage) {}
 
-const int IncomeTaxTile::getFlatAmount() const {
+int IncomeTaxTile::getFlatAmount() const {
     return flatAmount;
 }
 
-const int IncomeTaxTile::getTaxPercentage() const {
+int IncomeTaxTile::getTaxPercentage() const {
     return percentage;
 }
 

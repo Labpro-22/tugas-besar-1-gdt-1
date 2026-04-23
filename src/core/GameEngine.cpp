@@ -23,8 +23,12 @@
 #include "models/BoardAndTiles/ActionTile/CommunityChestTile.hpp"
 #include "models/BoardAndTiles/ActionTile/FestivalTile.hpp"
 #include "models/BoardAndTiles/ActionTile/TaxTile.hpp"
+#include "models/BoardAndTiles/ActionTile/TaxTile/IncomingTaxTile.hpp"
+#include "models/BoardAndTiles/ActionTile/TaxTile/LuxuryTaxTile.hpp"
 #include "models/BoardAndTiles/SpecialTile/GoToJailTile.hpp"
 #include "models/BoardAndTiles/SpecialTile/JailTile.hpp"
+#include "models/BoardAndTiles/SpecialTile/GoTile.hpp"
+#include "models/BoardAndTiles/SpecialTile/FreeParkingTile.hpp"
 
 GameEngine::GameEngine(IGUI* gui)
     : game(nullptr),
@@ -57,6 +61,32 @@ static std::string waitForInput(IGUI* gui, const std::string& prompt) {
         if (!c.empty() && c != "NULL") return c;
     }
     return "";
+}
+
+static std::string normalizeInput(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) { return std::toupper(c); });
+    return s;
+}
+
+static bool askYesNo(IGUI* gui, const std::string& prompt) {
+    while (!gui->shouldExit()) {
+        std::string ans = normalizeInput(waitForInput(gui, prompt));
+        if (ans == "Y" || ans == "YA" || ans == "YES") return true;
+        if (ans == "N" || ans == "TIDAK" || ans == "NO") return false;
+        gui->showMessage("Masukan tidak valid. Gunakan y/n.");
+    }
+    return false;
+}
+
+static int askIncomeTaxChoice(IGUI* gui) {
+    while (!gui->shouldExit()) {
+        std::string ans = waitForInput(gui,
+            "Pilih opsi pembayaran pajak: 1) Flat  2) 10% kekayaan");
+        if (ans == "1" || ans == "2") return std::stoi(ans);
+        gui->showMessage("Pilihan tidak valid. Masukkan 1 atau 2.");
+    }
+    return 1;
 }
 
 void GameEngine::run() {
@@ -235,9 +265,171 @@ void GameEngine::processPlayerTurn(Player* player) {
 }
 
 void GameEngine::handleTileLanding(Player* player, Tile* tile) {   
-    if (player != nullptr && tile != nullptr && game != nullptr) {
-        tile->onLanded(*player, *game);
+    if (player == nullptr || tile == nullptr || game == nullptr) {
+        return;
     }
+
+    if (auto* pt = dynamic_cast<PropertyTile*>(tile)) {
+        Property* prop = pt->getProperty();
+        if (prop == nullptr) return;
+
+        if (prop->getStatus() == PropertyStatus::BANK) {
+            if (prop->getType() == PropertyType::STREET) {
+                gui->showMessage("Kamu mendarat di " + prop->getName() +
+                                 " (" + prop->getCode() + ")!");
+                gui->renderProperty(*prop);
+
+                int price = prop->getPurchasePrice();
+                if (player->canAfford(price) &&
+                    askYesNo(gui, "Beli properti ini seharga M" + std::to_string(price) + "? (y/n)")) {
+                    player->deductMoney(price);
+                    prop->setOwner(player);
+                    prop->setStatus(PropertyStatus::OWNED);
+                    player->addProperty(prop);
+                    gui->showMessage(prop->getName() + " kini menjadi milikmu. Uang tersisa: M"
+                                     + std::to_string(player->getBalance()));
+                    if (logger) {
+                        logger->log(game->getCurrentTurn(), player->getUsername(),
+                                    "BELI", prop->getCode() + " M" + std::to_string(price));
+                    }
+                } else {
+                    gui->showMessage("Properti ini akan masuk ke sistem lelang.");
+                    if (auctionManager != nullptr) {
+                        auctionManager->runAuction(prop, player);
+                    }
+                }
+                return;
+            }
+
+            prop->setOwner(player);
+            prop->setStatus(PropertyStatus::OWNED);
+            player->addProperty(prop);
+            gui->showMessage(prop->getName() + " kini menjadi milikmu!");
+            if (logger) {
+                logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "BELI_OTOMATIS", prop->getCode());
+            }
+            return;
+        }
+
+        Player* owner = prop->getOwner();
+        if (owner == player) {
+            gui->showMessage("Kamu mendarat di propertimu sendiri (" + prop->getName() + ").");
+            return;
+        }
+        if (prop->isMortgaged()) {
+            gui->showMessage("Kamu mendarat di " + prop->getName() +
+                             ", tetapi properti ini sedang digadaikan. Tidak ada sewa.");
+            return;
+        }
+
+        int rent = prop->calculateRent(prop->getType() == PropertyType::UTILITY
+                                       ? game->getLastDiceTotal()
+                                       : 0);
+        gui->showMessage("Kamu mendarat di " + prop->getName() + " (" + prop->getCode() +
+                         "), milik " + owner->getUsername() + ".");
+        gui->showMessage("Sewa: M" + std::to_string(rent));
+        int payerBefore = player->getBalance();
+        int ownerBefore = owner->getBalance();
+        bool paid = executePayment(player, owner, rent);
+        if (paid) {
+            gui->showMessage("Uang kamu: M" + std::to_string(payerBefore) + " -> M"
+                             + std::to_string(player->getBalance()));
+            gui->showMessage("Uang " + owner->getUsername() + ": M" + std::to_string(ownerBefore)
+                             + " -> M" + std::to_string(owner->getBalance()));
+            if (logger) {
+                logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "SEWA", prop->getCode() + " M" + std::to_string(rent));
+            }
+        }
+        return;
+    }
+
+    if (auto* incomeTax = dynamic_cast<IncomeTaxTile*>(tile)) {
+        gui->showMessage("Kamu mendarat di Pajak Penghasilan (PPH)!");
+        int choice = askIncomeTaxChoice(gui);
+        int amount = 0;
+        if (choice == 1) {
+            amount = incomeTax->getFlatAmount();
+            gui->showMessage("Memilih bayar flat M" + std::to_string(amount) + ".");
+        } else {
+            int wealth = player->calculateTotalWealth();
+            amount = (wealth * incomeTax->getTaxPercentage()) / 100;
+            gui->showMessage("Total kekayaan kamu: M" + std::to_string(wealth));
+            gui->showMessage("Pajak 10%: M" + std::to_string(amount));
+        }
+        int before = player->getBalance();
+        bool paid = executePayment(player, nullptr, amount);
+        if (paid) {
+            gui->showMessage("Uang kamu: M" + std::to_string(before) + " -> M"
+                             + std::to_string(player->getBalance()));
+            if (logger) {
+                logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "PAJAK", "PPH M" + std::to_string(amount));
+            }
+        }
+        return;
+    }
+
+    if (auto* luxuryTax = dynamic_cast<LuxuryTaxTile*>(tile)) {
+        int amount = luxuryTax->getFlatAmount();
+        gui->showMessage("Kamu mendarat di Pajak Barang Mewah (PBM)!");
+        gui->showMessage("Pajak sebesar M" + std::to_string(amount) + ".");
+        int before = player->getBalance();
+        bool paid = executePayment(player, nullptr, amount);
+        if (paid) {
+            gui->showMessage("Uang kamu: M" + std::to_string(before) + " -> M"
+                             + std::to_string(player->getBalance()));
+            if (logger) {
+                logger->log(game->getCurrentTurn(), player->getUsername(),
+                            "PAJAK", "PBM M" + std::to_string(amount));
+            }
+        }
+        return;
+    }
+
+    if (dynamic_cast<FestivalTile*>(tile) != nullptr) {
+        if (player->getOwnedProperties().empty()) {
+            gui->showMessage(player->getUsername() +
+                             " mendarat di Festival, tapi tidak memiliki properti. Festival hangus.");
+            return;
+        }
+        player->setPendingFestival(true);
+        gui->showMessage("Kamu mendarat di Festival!");
+        gui->showMessage("Gunakan FESTIVAL <kode_properti> untuk memilih properti yang sewanya digandakan.");
+        return;
+    }
+
+    if (auto* goTile = dynamic_cast<GoTile*>(tile)) {
+        gui->showMessage(player->getUsername() + " mendarat tepat di petak GO dan menerima M"
+                         + std::to_string(goTile->getSalary()) + ".");
+        return;
+    }
+
+    if (dynamic_cast<GoToJailTile*>(tile) != nullptr) {
+        player->setStatus(PlayerStatus::JAILED);
+        if (game->getBoard() && game->getBoard()->getJailTile()) {
+            player->setPosition(game->getBoard()->getJailTile()->getIndex());
+        }
+        gui->showMessage(player->getUsername() + " harus pergi ke Penjara.");
+        return;
+    }
+
+    if (dynamic_cast<JailTile*>(tile) != nullptr) {
+        if (player->isJailed()) {
+            gui->showMessage(player->getUsername() + " sedang berada di Penjara.");
+        } else {
+            gui->showMessage(player->getUsername() + " hanya mampir ke Penjara.");
+        }
+        return;
+    }
+
+    if (dynamic_cast<FreeParkingTile*>(tile) != nullptr) {
+        gui->showMessage(player->getUsername() + " mendarat di Bebas Parkir.");
+        return;
+    }
+
+    tile->onLanded(*player, *game);
 }
 
 bool GameEngine::executePayment(Player* from, Player* to, int amount) {
@@ -271,4 +463,3 @@ void GameEngine::endGame() {
     gui->loadFinishMenu();
     if (winner != nullptr) gui->renderWinner(*winner);
 }
-

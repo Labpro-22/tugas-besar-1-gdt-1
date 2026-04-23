@@ -33,25 +33,40 @@ std::string GameHUDView::catchCommand()
 void GameHUDView::render()
 {
     float margin = 20.0f;
-    float w = 180.0f;
-    float h = 50.0f;
+    float w = 200.0f;
+    float h = 56.0f;
 
     float x = GetScreenWidth() - w - margin;
-    float y = GetScreenHeight() - h - margin;
+    float y = (GetScreenHeight() - h) / 2.0f;
 
     switchCamBtn.movePosition({x + w / 2, y + h / 2});
 
-    DrawRectangleRounded({x + 3, y + 3, w, h}, 0.3f, 8, Fade(BLACK, 0.4f));
+    DrawRectangleRounded({x + 4, y + 6, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
+    DrawRectangleRounded({x + 2, y + 3, w, h}, 0.5f, 8, Fade(BLACK, 0.15f));
 
-    Color base = isTopView ? Color{40, 120, 220, 255} : Color{40, 180, 120, 255};
+    Color base = isTopView
+        ? Color{30, 110, 210, 255}
+        : Color{30, 170, 110, 255};
 
-    DrawRectangleRounded({x, y, w, h}, 0.3f, 8, base);
+    Vector2 mouse = GetMousePosition();
+    bool hover = CheckCollisionPointRec(mouse, {x, y, w, h});
 
-    DrawRectangleRoundedLines({x, y, w, h}, 0.3f, 8, WHITE);
+    if (hover)
+    {
+        base = Color{
+            (unsigned char)std::min(base.r + 20, 255),
+            (unsigned char)std::min(base.g + 20, 255),
+            (unsigned char)std::min(base.b + 20, 255),
+            255};
+    }
+
+    DrawRectangleRounded({x, y, w, h}, 0.5f, 8, base);
+
+    DrawRectangleRoundedLines({x, y, w, h}, 0.5f, 8, Fade(WHITE, 0.2f));
 
     const char *text = isTopView ? "BOARD VIEW" : "TOP VIEW";
 
-    int fontSize = 18;
+    int fontSize = 20;
     int textWidth = MeasureText(text, fontSize);
 
     DrawText(

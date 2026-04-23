@@ -14,7 +14,8 @@ Player::Player(const std::string &username, int initialBalance)
       consecutiveDoubles(0),
       jailAttempts(0),
       hasRolledThisTurn(false),
-      hasUsedSkillThisTurn(false)
+      hasUsedSkillThisTurn(false),
+      pendingFestival(false)
 {
 }
 
@@ -70,6 +71,25 @@ void Player::resetJailAttempts() {
     jailAttempts = 0;
 }
 
+// Property ownership
+void Player::addProperty(Property* property) {
+    if (property == nullptr) return;
+    ownedProperties.push_back(property);
+}
+
+void Player::removeProperty(Property* property) {
+    for (auto it = ownedProperties.begin(); it != ownedProperties.end(); ++it) {
+        if (*it == property) {
+            ownedProperties.erase(it);
+            return;
+        }
+    }
+}
+
+const std::vector<Property*>& Player::getOwnedProperties() const {
+    return ownedProperties;
+}
+
 // Property Utils
 int Player::countOwnedRailroads() const {
     int count = 0;
@@ -121,7 +141,11 @@ int Player::calculateTotalWealth() const {
 void Player::startTurn() {
     hasRolledThisTurn = false;
     hasUsedSkillThisTurn = false;
+    pendingFestival = false;
 }
+
+bool Player::hasPendingFestival() const { return pendingFestival; }
+void Player::setPendingFestival(bool v) { pendingFestival = v; }
 
 void Player::markRolled() {
     hasRolledThisTurn = true;

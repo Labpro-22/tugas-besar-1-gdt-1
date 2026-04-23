@@ -2,11 +2,11 @@
 #include <exception>
 
 #include "core/GameEngine.hpp"
-#include "views/GUI.hpp"
+#include "views/CLIGUI.hpp"
 
 int main() {
     try {
-        GUI gui;
+        CLIGUI gui;
         GameEngine engine(&gui);
         engine.run();
     } catch (const std::exception& e) {

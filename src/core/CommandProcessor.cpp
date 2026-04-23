@@ -68,7 +68,15 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
             if (tokens.size() < 2) { gui->showMessage("Format: SIMPAN <file>"); return CommandResult::INVALID; }
             return handleSave(tokens[1]);
         }
+        if (cmd == "FESTIVAL") {
+            if (tokens.size() < 2) { gui->showMessage("Format: FESTIVAL <kode>"); return CommandResult::INVALID; }
+            return handleFestival(player, tokens[1]);
+        }
         if (cmd == "AKHIRI_GILIRAN") return handleEndTurn(player);
+        if (cmd == "EXIT" || cmd == "CLOSE" || cmd == "CLOSE GAME") {
+            game->setGameOver(true);
+            return CommandResult::GAME_OVER;
+        }
 
         gui->showMessage("Perintah tidak dikenal: " + cmd);
         return CommandResult::INVALID;
@@ -84,8 +92,13 @@ CommandResult CommandProcessor::handleRoll(Player* player, bool manual, int d1, 
         return CommandResult::INVALID;
     }
 
-    if (manual) dice->setManual(d1, d2);
-    else        dice->rollRandom();
+    if (manual) {
+        gui->showMessage("Dadu diatur secara manual.");
+        dice->setManual(d1, d2);
+    } else {
+        gui->showMessage("Mengocok dadu...");
+        dice->rollRandom();
+    }
 
     int total = dice->getTotal();
     gui->renderDice(dice->getDie1(), dice->getDie2());
@@ -98,6 +111,9 @@ CommandResult CommandProcessor::handleRoll(Player* player, bool manual, int d1, 
     Tile* landed = turn->processMovement(player, total);
     turn->setPhase(TurnPhase::POST_ROLL);
     turn->markActed();
+
+    std::string landedName = landed ? landed->getName() : "?";
+    gui->renderMovement(player->getUsername(), total, landedName);
 
     if (landed) engine->handleTileLanding(player, landed);
 
@@ -251,9 +267,37 @@ CommandResult CommandProcessor::handleSave(const std::string& file) {
     return CommandResult::INVALID;
 }
 
+CommandResult CommandProcessor::handleFestival(Player* player, const std::string& code) {
+    if (!player->hasPendingFestival()) {
+        gui->showMessage("Tidak ada festival yang menunggu konfirmasi.");
+        return CommandResult::INVALID;
+    }
+    Property* target = nullptr;
+    for (Property* p : player->getOwnedProperties()) {
+        if (p->getCode() == code) { target = p; break; }
+    }
+    if (target == nullptr) {
+        gui->showMessage("Properti " + code + " tidak ditemukan atau bukan milik Anda.");
+        return CommandResult::INVALID;
+    }
+    if (target->isMortgaged()) {
+        gui->showMessage("Properti " + code + " sedang digadai, tidak dapat difestivalkan.");
+        return CommandResult::INVALID;
+    }
+    target->activateFestival();
+    player->setPendingFestival(false);
+    gui->showMessage("Festival aktif di " + target->getName() + "! Sewa berlipat selama "
+                     + std::to_string(target->getFestivalDuration()) + " giliran.");
+    return CommandResult::CONTINUE;
+}
+
 CommandResult CommandProcessor::handleEndTurn(Player* player) {
     if (!player->hasRolled()) {
         gui->showMessage("Lempar dadu dulu sebelum mengakhiri giliran.");
+        return CommandResult::INVALID;
+    }
+    if (player->hasPendingFestival()) {
+        gui->showMessage("Pilih properti festival dulu: FESTIVAL <kode>");
         return CommandResult::INVALID;
     }
     turn->endTurn(player);

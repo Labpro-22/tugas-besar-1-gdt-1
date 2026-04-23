@@ -51,6 +51,7 @@ private:
     CommandResult handleUseSkill(Player* player, int index);
     CommandResult handlePrintLog(int nLast);
     CommandResult handleSave(const std::string& file);
+    CommandResult handleFestival(Player* player, const std::string& code);
     CommandResult handleEndTurn(Player* player);
 
 public:

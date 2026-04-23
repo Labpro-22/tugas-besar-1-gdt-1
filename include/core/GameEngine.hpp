@@ -45,18 +45,6 @@ private:
     void processPlayerTurn(Player* player);
 
     void handleTileLanding(Player* player, Tile* tile);
-    void handlePropertyLanding(Player* player, PropertyTile* tile);
-    void handleActionLanding(Player* player, ActionTile* tile);
-    void handleSpecialLanding(Player* player, SpecialTile* tile);
-    void handleStreetLanding(Player* player, StreetTile* tile);
-    void handleRailroadLanding(Player* player, RailroadTile* tile);
-    void handleUtilityLanding(Player* player, UtilityTile* tile);
-    void handleChanceLanding(Player* player, ChanceTile* tile);
-    void handleCommunityChestLanding(Player* player, CommunityChestTile* tile);
-    void handleFestivalLanding(Player* player, FestivalTile* tile);
-    void handleTaxLanding(Player* player, TaxTile* tile);
-    void handleGoToJailLanding(Player* player);
-    void handleBuyOrRent(Player* player, Property* prop, int diceTotal);
 
     bool executePayment(Player* from, Player* to, int amount);
     bool checkWinCondition();

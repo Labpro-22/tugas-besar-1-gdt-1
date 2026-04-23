@@ -93,7 +93,7 @@ void GameEngine::run() {
 void GameEngine::initNewGame() {
     this->game = new Game();
 
-    ConfigLoader loader("data/");
+    ConfigLoader loader("data/default");
     GameConfig config = loader.loadGameConfig();
 
     game->setConfigValues(
@@ -144,13 +144,20 @@ void GameEngine::initNewGame() {
     game->setCurrentTurnIndex(0);
     game->setCurrentTurn(1);
 
+    // Set all players to start on GO (tile index 1)
+    Board* b = game->getBoard();
+    int goIndex = (b && b->getGoTile()) ? b->getGoTile()->getIndex() : 1;
+    for (Player* p : game->getPlayers()) {
+        p->setPosition(goIndex);
+    }
+
     gui->loadGameView();
 }
 
 void GameEngine::initLoadGame() {
     this->game = new Game();
 
-    ConfigLoader loader("data/");
+    ConfigLoader loader("data/default");
     GameConfig config = loader.loadGameConfig();
 
     game->setConfigValues(
@@ -227,123 +234,10 @@ void GameEngine::processPlayerTurn(Player* player) {
     }
 }
 
-void GameEngine::handleTileLanding(Player* player, Tile* tile) {
-    if (player == nullptr || tile == nullptr || game == nullptr) return;
-
-    switch (tile->getCategory()) {
-        case TileCategory::PROPERTY:
-            handlePropertyLanding(player, dynamic_cast<PropertyTile*>(tile));
-            break;
-        case TileCategory::ACTION:
-            handleActionLanding(player, dynamic_cast<ActionTile*>(tile));
-            break;
-        case TileCategory::SPECIAL:
-            handleSpecialLanding(player, dynamic_cast<SpecialTile*>(tile));
-            break;
+void GameEngine::handleTileLanding(Player* player, Tile* tile) {   
+    if (player != nullptr && tile != nullptr && game != nullptr) {
+        tile->onLanded(*player, *game);
     }
-}
-
-void GameEngine::handlePropertyLanding(Player* player, PropertyTile* tile) {
-    if (tile == nullptr) return;
-    if      (auto* s = dynamic_cast<StreetTile*>(tile))   handleStreetLanding(player, s);
-    else if (auto* r = dynamic_cast<RailroadTile*>(tile)) handleRailroadLanding(player, r);
-    else if (auto* u = dynamic_cast<UtilityTile*>(tile))  handleUtilityLanding(player, u);
-}
-
-void GameEngine::handleActionLanding(Player* player, ActionTile* tile) {
-    if (tile == nullptr) return;
-    if      (auto* c = dynamic_cast<ChanceTile*>(tile))          handleChanceLanding(player, c);
-    else if (auto* cc = dynamic_cast<CommunityChestTile*>(tile)) handleCommunityChestLanding(player, cc);
-    else if (auto* f = dynamic_cast<FestivalTile*>(tile))        handleFestivalLanding(player, f);
-    else if (auto* t = dynamic_cast<TaxTile*>(tile))             handleTaxLanding(player, t);
-}
-
-void GameEngine::handleSpecialLanding(Player* player, SpecialTile* tile) {
-    if (tile == nullptr) return;
-    if (dynamic_cast<GoToJailTile*>(tile)) {
-        handleGoToJailLanding(player);
-        return;
-    }
-    // GO / Jail / FreeParking delegasi ke tile.onLanded
-    tile->onLanded(*player, *game);
-}
-
-void GameEngine::handleBuyOrRent(Player* player, Property* prop, int diceTotal) {
-    if (prop == nullptr) return;
-
-    if (prop->getOwner() == nullptr) {
-        gui->showInputPrompt("Beli " + prop->getName() +
-            " seharga " + std::to_string(prop->getPurchasePrice()) + "? (YA/TIDAK)");
-        std::string ans;
-        while (!gui->shouldExit()) {
-            gui->update(); gui->display();
-            std::string c = gui->getCommand();
-            if (!c.empty() && c != "NULL") { ans = c; break; }
-        }
-        std::string up = ans;
-        std::transform(up.begin(), up.end(), up.begin(),
-                       [](unsigned char c){ return std::toupper(c); });
-        if (up == "YA" || up == "BELI" || up == "Y") {
-            if (player->canAfford(prop->getPurchasePrice())) {
-                player->deductMoney(prop->getPurchasePrice());
-                prop->setOwner(player);
-                prop->setStatus(PropertyStatus::OWNED);
-                player->addProperty(prop);
-                gui->showMessage(player->getUsername() + " membeli " + prop->getName());
-                return;
-            }
-            gui->showMessage("Saldo tidak cukup. Lanjut ke lelang.");
-        }
-        auctionManager->runAuction(prop, player);
-        return;
-    }
-
-    if (prop->getOwner() == player) return;
-    if (prop->isMortgaged())        return;
-
-    int rent = prop->calculateRent(diceTotal);
-    if (rent <= 0) return;
-    gui->showMessage(player->getUsername() + " bayar sewa " +
-        std::to_string(rent) + " ke " + prop->getOwner()->getUsername());
-    bankruptcyManager->handleInsufficientFunds(*player, rent, prop->getOwner());
-}
-
-void GameEngine::handleStreetLanding(Player* player, StreetTile* tile) {
-    handleBuyOrRent(player, tile->getProperty(), game->getLastDiceTotal());
-}
-
-void GameEngine::handleRailroadLanding(Player* player, RailroadTile* tile) {
-    handleBuyOrRent(player, tile->getProperty(), game->getLastDiceTotal());
-}
-
-void GameEngine::handleUtilityLanding(Player* player, UtilityTile* tile) {
-    handleBuyOrRent(player, tile->getProperty(), game->getLastDiceTotal());
-}
-
-void GameEngine::handleChanceLanding(Player* player, ChanceTile* tile) {
-    tile->onLanded(*player, *game);
-}
-
-void GameEngine::handleCommunityChestLanding(Player* player, CommunityChestTile* tile) {
-    tile->onLanded(*player, *game);
-}
-
-void GameEngine::handleFestivalLanding(Player* player, FestivalTile* tile) {
-    tile->onLanded(*player, *game);
-}
-
-void GameEngine::handleTaxLanding(Player* player, TaxTile* tile) {
-    tile->onLanded(*player, *game);
-}
-
-void GameEngine::handleGoToJailLanding(Player* player) {
-    Board* board = game->getBoard();
-    if (board == nullptr) return;
-    JailTile* jail = board->getJailTile();
-    if (jail != nullptr) {
-        player->setPosition(jail->getIndex());
-    }
-    player->setStatus(PlayerStatus::JAILED);
 }
 
 bool GameEngine::executePayment(Player* from, Player* to, int amount) {

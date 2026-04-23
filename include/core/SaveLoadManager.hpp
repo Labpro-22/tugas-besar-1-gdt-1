@@ -5,6 +5,8 @@
 #include "core/Game.hpp"
 #include "views/IGUI.hpp"
 #include "utils/data/TransactionLogger.hpp"
+#include "models/Player/Player.hpp"
+#include "models/Property/Property.hpp"
 
 class SaveLoadManager {
 private:

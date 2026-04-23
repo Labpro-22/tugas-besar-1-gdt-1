@@ -42,4 +42,5 @@ public:
     virtual void renderAuction(const Property& property, int currentBid, const Player* highBidder) = 0;
     virtual void renderBankruptcy(const Player& player) = 0;
     virtual void renderWinner(const Player& winner) = 0;
+    virtual void renderMovement(const std::string& playerName, int steps, const std::string& landedTileName) = 0;
 };

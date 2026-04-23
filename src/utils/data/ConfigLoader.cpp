@@ -1,4 +1,5 @@
 #include "utils/data/ConfigLoader.hpp"
+#include "models/BoardAndTiles/TileTypes.hpp"
 
 // Constructor
 ConfigLoader::ConfigLoader(std::string configDir) : configDir(configDir) {}
@@ -251,28 +252,49 @@ Board* ConfigLoader::createStandardBoard(std::vector<Property*> properties, cons
 //  38  Pajak Barang Mewah (Luxury Tax)
 //  39  StreetProperty (BIRU_TUA)
 
+static TileColor colorGroupToTileColor(const std::string& group) {
+    if (group == "COKLAT")     return TileColor::COKLAT;
+    if (group == "BIRU_MUDA")  return TileColor::BIRU_MUDA;
+    if (group == "MERAH_MUDA") return TileColor::MERAH_MUDA;
+    if (group == "ORANGE")     return TileColor::ORANYE;
+    if (group == "MERAH")      return TileColor::MERAH;
+    if (group == "KUNING")     return TileColor::KUNING;
+    if (group == "HIJAU")      return TileColor::HIJAU;
+    if (group == "BIRU_TUA")   return TileColor::BIRU_TUA;
+    return TileColor::DEFAULT;
+}
+
 Tile* ConfigLoader::createTileForIndex(int index,
         std::vector<Property*> properties, const GameConfig& config) {
+    // Action/special tiles take priority (from aksi.txt)
+    int id = index + 1;
+    const auto& actionTiles = config.getActionTiles();
+    if (actionTiles.find(id) != actionTiles.end()) {
+        std::string kode = actionTiles.at(id).getKode();
+        if (kode == "GO")  return new GoTile(id, config.getSpecial().getGoSalary());
+        if (kode == "PEN") return new JailTile(id);
+        if (kode == "BBP") return new FreeParkingTile(id);
+        if (kode == "PPJ") return new GoToJailTile(id);
+        if (kode == "DNU") return new CommunityChestTile(id);
+        if (kode == "KSP") return new ChanceTile(id);
+        if (kode == "FES") return new FestivalTile(id);
+        if (kode == "PPH") return new IncomeTaxTile(id, config.getTax().getPphFlat(), config.getTax().getPphPercent());
+        if (kode == "PBM") return new LuxuryTaxTile(id, config.getTax().getPbmFlat());
+    }
+
+    // Property tiles (street / railroad / utility)
     if (index >= 0 && index < (int)properties.size() && properties[index] != nullptr) {
         Property* prop = properties[index];
-    }
-    
-    int id = index + 1; 
-    const auto& actionTiles = config.getActionTiles();
-    
-    if (actionTiles.find(id) != actionTiles.end()) {
-        std::string kode = actionTiles.at(id).getKode(); 
-        
-        // Buat petak aksi
-        if (kode == "GO")  return new GoTile(index, config.getSpecial().getGoSalary());
-        if (kode == "PEN") return new JailTile(index);
-        if (kode == "BBP") return new FreeParkingTile(index);
-        if (kode == "PPJ") return new GoToJailTile(index);
-        if (kode == "DNU") return new CommunityChestTile(index);
-        if (kode == "KSP") return new ChanceTile(index);
-        if (kode == "FES") return new FestivalTile(index);
-        if (kode == "PPH") return new IncomeTaxTile(index, config.getTax().getPphFlat(), config.getTax().getPphPercent());
-        if (kode == "PBM") return new LuxuryTaxTile(index, config.getTax().getPbmFlat());
+        if (auto* sp = dynamic_cast<StreetProperty*>(prop)) {
+            TileColor color = colorGroupToTileColor(sp->getColorGroup());
+            return new StreetTile(id, sp->getCode(), sp->getName(), color, sp);
+        }
+        if (auto* rp = dynamic_cast<RailroadProperty*>(prop)) {
+            return new RailroadTile(id, rp->getCode(), rp->getName(), rp);
+        }
+        if (auto* up = dynamic_cast<UtilityProperty*>(prop)) {
+            return new UtilityTile(id, up->getCode(), up->getName(), up);
+        }
     }
 
     return nullptr;

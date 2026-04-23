@@ -27,6 +27,7 @@ private:
     int jailAttempts;
     bool hasRolledThisTurn;
     bool hasUsedSkillThisTurn;
+    bool pendingFestival;
 
 public:
     //constructor
@@ -74,6 +75,8 @@ public:
     void markSkillUsed();
     bool hasRolled() const;
     bool hasUsedSkill() const;
+    bool hasPendingFestival() const;
+    void setPendingFestival(bool v);
 
     //skill card---------------------------
     bool addCard(SkillCard* card);

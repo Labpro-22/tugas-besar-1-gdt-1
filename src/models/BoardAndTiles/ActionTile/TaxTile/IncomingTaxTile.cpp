@@ -1,7 +1,7 @@
 #include "models/BoardAndTiles/ActionTile/TaxTile/IncomingTaxTile.hpp"
-// #include "core/Game.hpp"
 #include "models/Player/Player.hpp"
-#include "exception/PlayerTurn/PropertyManagement/InsufficientMoneyException.hpp"
+#include <iostream>
+#include <algorithm>
 
 IncomeTaxTile::IncomeTaxTile(int index, int flatAmount, int percentage)
     : TaxTile(index, "PPH", "Pajak Penghasilan"),
@@ -15,20 +15,28 @@ const int IncomeTaxTile::getFlatAmount() const {
 const int IncomeTaxTile::getTaxPercentage() const {
     return percentage;
 }
-      
-int IncomeTaxTile::calculateTax(const Player &player) const
-{
-    return player.calculateTotalWealth() * percentage / 100;
+
+int IncomeTaxTile::calculateTax(const Player &player) const {
+    // 10% dari total aset pemain (menggunakan calculateTotalWealth)
+    int percentageTax = (player.calculateTotalWealth() * percentage) / 100;
+
+    // Spesifikasi Nimonspoli: bayar yang LEBIH KECIL antara flatAmount atau persentase
+    return std::min(flatAmount, percentageTax);
 }
 
-void IncomeTaxTile::onLanded(Player &player, Game &game)
-{
-    int amountPercent = calculateTax(player);
-    // Standard rule: Choose whichever is lower or prompt (simplifying to prompt-like logic if possible, 
-    // but here we'll just deduct the flat if it's smaller, or vice versa)
-    int amountToPay = (flatAmount < amountPercent) ? flatAmount : amountPercent;
-    
-    if (!player.deductMoney(amountToPay)) {
-        player.setStatus(PlayerStatus::BANKRUPT);
+void IncomeTaxTile::onLanded(Player &player, Game & /*game*/) {
+    int taxToPay = calculateTax(player);
+
+    std::cout << player.getUsername() << " mendarat di Pajak Penghasilan!\n";
+
+    if (!player.canAfford(taxToPay)) {
+        // TODO: lempar InsufficientTaxException saat exception kustom tersedia
+        // (InsufficientMoneyException butuh Property* yang tidak ada di TaxTile)
+        std::cout << "Saldo tidak cukup untuk bayar pajak " << taxToPay
+                  << ". Pemain berpotensi bangkrut.\n";
+        return;
     }
+
+    player.deductMoney(taxToPay);
+    std::cout << "Membayar pajak sebesar " << taxToPay << ".\n";
 }

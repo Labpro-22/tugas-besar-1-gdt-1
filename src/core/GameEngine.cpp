@@ -33,22 +33,29 @@ void GameEngine::update()
 
     cmd.debugPrint();
 
-    if (currentHandler)
+    if (cmd.getType() == "EXIT")
     {
-        currentHandler(cmd);
+        gui->requestExit();
+        currentHandler = nullptr;
         return;
     }
 
     if (cmd.getType() == "NEW_GAME")
     {
+        currentHandler = nullptr;
+
         std::string path = (cmd.getArgs().empty() || cmd.getArgs()[0].empty())
                                ? "data/config/default"
                                : cmd.getArgs()[0];
 
         initNewGame(path);
+        return;
     }
-    else if (cmd.getType() == "LOAD_GAME")
+
+    if (cmd.getType() == "LOAD_GAME")
     {
+        currentHandler = nullptr;
+
         if (cmd.getArgs().empty() || cmd.getArgs()[0].empty())
         {
             gui->showMessage("Path tidak boleh kosong");
@@ -60,10 +67,13 @@ void GameEngine::update()
         initLoadGame(path);
         gui->loadGameView();
         gui->renderBoard(*game);
+        return;
     }
-    else if (cmd.getType() == "EXIT")
+
+    if (currentHandler)
     {
-        gui->requestExit();
+        currentHandler(cmd);
+        return;
     }
 }
 
@@ -81,7 +91,6 @@ void GameEngine::startNameInputFlow(int count)
         if (cmd.getArgs().empty() || cmd.getArgs()[0].empty())
         {
             gui->showMessage("Nama tidak boleh kosong");
-            gui->showInputPrompt("Nama pemain " + std::to_string(*index + 1) + ":");
             currentHandler = *handler;
             return;
         }

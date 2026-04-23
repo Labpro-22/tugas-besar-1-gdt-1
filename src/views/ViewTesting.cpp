@@ -24,31 +24,25 @@ int main()
         app.loadMainMenu();
         app.loadDebuggingEntry();
 
-        // Test Popup untuk Property(sini)
-        // PropertyPopup* popup = new PropertyPopup(
+        // Test Popup untuk Property
+        // StreetPopup* s2 = new StreetPopup(
         //     "Medan",
-        //     PropertyPopup::Type::STREET,
-        //     PropertyPopup::Status::OWNED,
-        //     200,
-        //     100,
-        //     false,           // isOtherPlayer
-        //     "Player2"
+        //     220,
+        //     110,
+        //     "RED",
+        //     {30,60,90,150,220,300},
+        //     30,
+        //     75,
+        //     2,          // level → 2 rumah
+        //     true,       // monopoli
+        //     false,      // milik sendiri
+        //     "Player1"
         // );
 
-        // isi data street
-        // popup->setStreetData(
-        //     "YELLOW",
-        //     {20, 40, 60, 100, 150, 200},
-        //     20,     // base rent
-        //     50,     // build cost
-        //     2,      // level (2 rumah)
-        //     true    // monopoli
-        // );
-
-        // tombol (karena milik orang lain --> bayar)
-        // popup->addButton("PAY RENT", "PAY_RENT");
-        // popup->addButton("SELL 1 HOUSE", "SELL_BUILDING"); // (tambahin tombol lain juga boleh)
-        // app.loadPopup(popup);
+        // tombol
+        // s2->addButton("BUILD", "BUILD_HOUSE");
+        // s2->addButton("MORTGAGE", "MORTGAGE_PROPERTY");
+        // app.loadPopup(s2);
 
         // app.loadPopup(new MessagePopup(
         //     "Festival Tile",

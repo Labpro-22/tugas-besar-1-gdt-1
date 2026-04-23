@@ -52,111 +52,109 @@ public:
 };
 
 class PropertyPopup : public IndefinitePopup {
-public:
-    enum class Type {
-        STREET,
-        RAILROAD,
-        UTILITY
-    };
-
-    enum class Status {
-        BANK,
-        OWNED,
-        MORTGAGED
-    };
-
-private:
-    // BASIC 
+protected:
     std::string name;
-    Type type;
-    Status status;
+    std::string ownerName;
+    bool isOtherPlayer;
 
     int buyPrice;
     int mortgageValue;
 
-    bool isOtherPlayer = false;
-    std::string ownerName;
-
-    // STREET
-    struct StreetData {
-        std::string colorGroup;
-        std::vector<int> rentTable;
-
-        int baseRent = 0;        // penting untuk monopoli tanpa bangunan
-        int buildCost = 0;
-        int level = 0;           // 0–4 rumah, 5 = hotel
-        bool colorGroupComplete = false;
-
-        float festivalMultiplier = 1.0f; // optional future
-    };
-
-    // RAILROAD 
-    struct RailroadData {
-        std::vector<int> rentTable;
-        int ownedCount = 0;
-    };
-
-    // UTILITY
-    struct UtilityData {
-        std::vector<int> multiplier;
-        int ownedCount = 0;
-
-        int lastDiceRoll = 0; // penting untuk hitung sewa
-    };
-
-    std::optional<StreetData> streetData;
-    std::optional<RailroadData> railroadData;
-    std::optional<UtilityData> utilityData;
-
     std::string actionCommand;
     std::vector<Interactable> actionButtons;
 
-    // HELPER 
-    std::string buildDetails() const;
+    virtual std::string buildDetails() const = 0;
 
 public:
     PropertyPopup(
         const std::string& name,
-        Type type,
-        Status status,
         int buyPrice,
         int mortgageValue,
         bool isOtherPlayer = false,
         const std::string& ownerName = ""
     );
 
-    ~PropertyPopup() noexcept override = default;
+    virtual ~PropertyPopup() = default;
+    void addButton(const std::string& label, const std::string& command);
 
-    // SETTER
-    void setStreetData(
-        const std::string& colorGroup,
-        const std::vector<int>& rentTable,
-        int baseRent,
-        int buildCost,
-        int level,
-        bool colorGroupComplete
-    );
-
-    void setRailroadData(
-        const std::vector<int>& rentTable,
-        int ownedCount
-    );
-
-    void setUtilityData(
-        const std::vector<int>& multiplier,
-        int ownedCount,
-        int diceRoll
-    );
+    const std::string catchCommand() override;
 
     void enable() override;
     void disable() override;
     void interactionCheck() override;
 
-    void addButton(const std::string& label, const std::string& command);
-
-    const std::string catchCommand() override;
-
     void render() override;
+};
+
+class StreetPopup : public PropertyPopup {
+private:
+    std::string colorGroup;
+    std::vector<int> rentTable;
+
+    int baseRent;
+    int buildCost;
+    int level;
+    bool colorGroupComplete;
+
+public:
+    StreetPopup(
+        const std::string& name,
+        int buyPrice,
+        int mortgageValue,
+        const std::string& colorGroup,
+        const std::vector<int>& rentTable,
+        int baseRent,
+        int buildCost,
+        int level,
+        bool colorGroupComplete,
+        bool isOtherPlayer = false,
+        const std::string& ownerName = ""
+    );
+
+protected:
+    std::string buildDetails() const override;
+};
+
+class RailroadPopup : public PropertyPopup {
+private:
+    std::vector<int> rentTable;
+    int ownedCount;
+
+public:
+    RailroadPopup(
+        const std::string& name,
+        int buyPrice,
+        int mortgageValue,
+        const std::vector<int>& rentTable,
+        int ownedCount,
+        bool isOtherPlayer = false,
+        const std::string& ownerName = ""
+    );
+
+protected:
+    std::string buildDetails() const override;
+};
+
+class UtilityPopup : public PropertyPopup {
+private:
+    std::vector<int> multiplier;
+    int ownedCount;
+    int lastDiceRoll;
+
+public:
+    UtilityPopup(
+        const std::string& name,
+        int buyPrice,
+        int mortgageValue,
+        const std::vector<int>& multiplier,
+        int ownedCount,
+        int diceRoll,
+        bool isOtherPlayer = false,
+        const std::string& ownerName = ""
+    );
+
+protected:
+    std::string buildDetails() const override;
 };
 
 class MessagePopup : public IndefinitePopup {

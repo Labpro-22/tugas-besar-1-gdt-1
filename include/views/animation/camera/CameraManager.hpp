@@ -1,5 +1,6 @@
 #pragma once
 #include "View3DCamera.hpp"
+#include <functional>
 
 class CameraManager {
     private :
@@ -12,7 +13,7 @@ class CameraManager {
         void addCamera(const string camKey, const View3DCamera& camera);
         void setCurrentCamera(const string camKey);
         void updateCamMap();
-        void switchTo(const string camKey, const float duration);
+        void switchTo(string camKey, const float duration, function<void()> switchEndFunc);
         void switchToNextCam(const float duration);
         Camera3D& mount();
 };

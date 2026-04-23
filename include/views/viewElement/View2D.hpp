@@ -12,7 +12,7 @@
 #include <sstream>
 using namespace std;
 
-class ViewAnimation;
+class View2DAnimation;
 
 class View2D {
     protected:
@@ -25,7 +25,7 @@ class View2D {
         function<void()> renderFunc;
         static map<string, Font> fontMap;
         bool closeView;
-        map<string, ViewAnimation*> animations;
+        map<string, View2DAnimation*> animations;
     public:
         View2D();
         View2D(const Vector2& pos, const Vector2& boundingDim, function<void()> renderFunc);
@@ -59,8 +59,8 @@ class View2D {
         void setOpacity(float opacity);
         void setVisible(bool visible);
         void setRender(function<void()> renderFunc);
-        void addAnimation(string animKey, ViewAnimation* anim);
-        ViewAnimation* getAnimation(string animKey) const;
+        void addAnimation(string animKey, View2DAnimation* anim);
+        View2DAnimation* getAnimation(string animKey) const;
         void animationCheck();
         virtual void enable() {};
         virtual void disable() {};

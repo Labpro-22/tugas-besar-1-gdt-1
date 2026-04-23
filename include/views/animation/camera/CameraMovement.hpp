@@ -1,30 +1,18 @@
 #pragma once
+#include "../../viewElement/View3D.hpp"
 #include "View3DCamera.hpp"
+#include "../ViewAnimation.hpp"
 #include <functional>
 
-class CameraMovement {
+class CameraMovement : public ViewAnimation{
     private:
         View3DCamera& camera;
-        float fps;
-        bool moving;
-        bool ended;
-        bool interuptable;
-        int frameProgress;
-        function<void()> moveFunc;
-        function<void()> moveEndFunc;
     public:
-        CameraMovement(View3DCamera& camera, const float fps, bool interuptable, function<void()> moveFunc, function<void()> moveEndFunc);
-        const bool isMoving() const;
-        const bool hasEnded() const;
-        const bool isInteruptable() const;
-        void setMoveFunc(function<void()> animationFunc);
-        void setMoveEndFunc(function<void()> animationEndFunc);
+        CameraMovement(View3DCamera& camera, const float fps, bool interuptable, function<void()> animationFunc, function<void()> animationEndFunc);
         void setLinearMoveAnimation(const Vector3& moveDest, const float duration);
+        void setMoveSelfAnimation(const Vector3& moveDest, const float duration);
         void setMoveToCameraAnimation(View3DCamera& destCamera, const float duration);
         void setRotationOnSelfAnimation(const float deg, const Vector3& axis, const float duration);
         void setRotationOnTargetAnimation(const float deg, const Vector3& axis, const float duration);
-        void start();
-        void pause();
-        void end();
-        void move();
+        
 };

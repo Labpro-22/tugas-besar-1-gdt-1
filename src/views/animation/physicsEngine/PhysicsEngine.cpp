@@ -67,7 +67,7 @@ void PhysicsEngine::handleObjectFloorCollision(string objIdent) {
     if (abs(obj.getAngularVelocity()) < 1) {
         obj.setAngularVelocity(0);
     }
-    obj.setPos(obj.getPos() + obj.getLinearVelocity()*getLowestDeltaTime());
+    obj.movePosition(obj.getPos() + obj.getLinearVelocity()*getLowestDeltaTime());
     obj.setObjectTouchingSurface(true);
 }
 

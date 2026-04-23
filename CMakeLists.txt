@@ -9,7 +9,6 @@ find_package(raylib REQUIRED)
 add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/core/main.cpp
                                src/core/GameEngine.cpp
-                            #    src/views/ViewTesting.cpp
                                src/views/GUI.cpp
                                src/views/viewElement/View2D.cpp
                                src/views/viewElement/View3D.cpp
@@ -19,6 +18,7 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/views/viewElement/MenuView.cpp
                                src/views/viewElement/board/TileView.cpp
                                src/views/viewElement/board/BoardView.cpp
+                               src/views/viewElement/player/PlayerView.cpp
                                src/views/animation/ViewAnimation.cpp
                                src/views/animation/camera/CameraManager.cpp
                                src/views/animation/camera/CameraMovement.cpp

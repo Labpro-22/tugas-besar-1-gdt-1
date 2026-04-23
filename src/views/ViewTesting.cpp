@@ -22,6 +22,14 @@ int main()
         Board &b = *CL.buildBoard(GC.getProperties(), GC);
         GUI app(120, b);
         app.loadMainMenu();
+      Player player = Player("Big Man", 500);
+    Player player2 = Player("Little Man", 500);
+    Player player3 = Player("Medium Man", 500);
+    Player player4 = Player("Nonexistent Man", 500);
+    app.loadPlayer(player);
+    app.loadPlayer(player2);
+    app.loadPlayer(player3);
+    app.loadPlayer(player4);
         app.loadDebuggingEntry();
 
         // Test Popup untuk Property
@@ -92,28 +100,19 @@ int main()
                     }
                 };
             }
-            catch (const GameException &e)
-            {
+            catch (const GameException &e) {
                 app.loadPopup(new ExceptionPopup(e.getErrorCode(), e.what()));
             }
-            catch (const std::exception &e)
-            {
+            catch (const std::exception &e) {
                 app.loadPopup(new ExceptionPopup(500, e.what()));
+                 std::cerr << "FATAL INIT ERROR: " << e.what() << std::endl;
             }
-
-            BeginDrawing();
-            ClearBackground(RAYWHITE);
-
-            app.display();
-            DrawFPS(10, 10);
-
-            EndDrawing();
-        }
+        BeginDrawing();
+        app.display();
+        DrawFPS(10,10);
+        EndDrawing();
     }
-    catch (const std::exception &e)
-    {
-        std::cerr << "FATAL INIT ERROR: " << e.what() << std::endl;
-    }
+    
 
     View2D::unloadFonts();
     CloseWindow();

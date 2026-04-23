@@ -11,7 +11,7 @@ static void printSeparator(const std::string& title) {
 
 int main() {
     try {
-        ConfigLoader loader("data/default");
+        ConfigLoader loader("data/config/default");
         GameConfig config = loader.loadGameConfig();
 
         printSeparator("MiscConfig");

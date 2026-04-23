@@ -23,51 +23,44 @@ class CommunityChestTile;
 class FestivalTile;
 class TaxTile;
 
-class GameEngine {
+class GameEngine
+{
 private:
-    Game* game;
-    TransactionLogger* logger;
-    IGUI* gui;  // non-owning
+    Game *game;
+    TransactionLogger *logger;
+    IGUI *gui; // non-owning
 
-    TurnManager* turnManager;
-    CommandProcessor* commandProcessor;
-    AuctionManager* auctionManager;
-    BankruptcyManager* bankruptcyManager;
-    SaveLoadManager* saveLoadManager;
+    bool waitingPlayerCount = false;
 
-    void initNewGame();
-    void initLoadGame();
+    TurnManager *turnManager;
+    CommandProcessor *commandProcessor;
+    AuctionManager *auctionManager;
+    BankruptcyManager *bankruptcyManager;
+    SaveLoadManager *saveLoadManager;
+
+    void initNewGame(const std::string &configPath);
+    void setupPlayers(int count);
+    void initLoadGame(const std::string &configPath);
 
     void gameLoop();
-    void processPlayerTurn(Player* player);
+    void processPlayerTurn(Player *player);
 
-    void handleTileLanding(Player* player, Tile* tile);
-    void handlePropertyLanding(Player* player, PropertyTile* tile);
-    void handleActionLanding(Player* player, ActionTile* tile);
-    void handleSpecialLanding(Player* player, SpecialTile* tile);
-    void handleStreetLanding(Player* player, StreetTile* tile);
-    void handleRailroadLanding(Player* player, RailroadTile* tile);
-    void handleUtilityLanding(Player* player, UtilityTile* tile);
-    void handleChanceLanding(Player* player, ChanceTile* tile);
-    void handleCommunityChestLanding(Player* player, CommunityChestTile* tile);
-    void handleFestivalLanding(Player* player, FestivalTile* tile);
-    void handleTaxLanding(Player* player, TaxTile* tile);
-    void handleGoToJailLanding(Player* player);
+    void handleTileLanding(Player *player, Tile *tile);
 
-    bool executePayment(Player* from, Player* to, int amount);
+    bool executePayment(Player *from, Player *to, int amount);
     bool checkWinCondition();
     void endGame();
 
-    void executeGadai(Player* player);
-    void executeTebus(Player* player);
-    void executeBangun(Player* player);
-    void executeGunakanKemampuan(Player* player);
+    void executeGadai(Player *player);
+    void executeTebus(Player *player);
+    void executeBangun(Player *player);
+    void executeGunakanKemampuan(Player *player);
 
 public:
-    GameEngine(IGUI* gui);
+    GameEngine(IGUI *gui);
     ~GameEngine();
 
-    void run();
+    void update();
 };
 
 #endif

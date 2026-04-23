@@ -68,7 +68,7 @@ void Interactable::sendCommand() {
     releaseCommand = true;
 }
 
-const string Interactable::catchCommand() {
+string Interactable::catchCommand() {
     if (releaseCommand) {
         releaseCommand = false;
         return gameCommand;

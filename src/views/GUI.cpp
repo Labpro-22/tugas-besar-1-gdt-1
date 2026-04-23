@@ -1,4 +1,5 @@
 #include "views/GUI.hpp"
+#include "core/Game.hpp"
 
 GUI::GUI(float fps, Board& board) : menu(nullptr), board(new BoardView(board)),
          debuggingEntry(nullptr), dice(nullptr), chancePile(nullptr), communityChestPile(nullptr),
@@ -13,8 +14,14 @@ GUI::GUI(float fps, Board& board) : menu(nullptr), board(new BoardView(board)),
     camManager.addCamera("ACTION_CAM", View3DCamera({-this->board->getBoardSize()*0.8f, this->board->getBoardSize()*0.6f, 0}, {0,0,0}, 45.0f));
 }
 
-bool GUI::shouldExit() const {
+bool GUI::shouldExit() const
+{
     return exitRequested;
+}
+
+void GUI::requestExit()
+{
+    exitRequested = true;
 }
 
 void GUI::loadGameView()
@@ -27,9 +34,9 @@ void GUI::loadFinishMenu()
     // TODO: muat menu akhir permainan
 }
 
-void GUI::showMessage(const std::string & /*message*/)
+void GUI::showMessage(const std::string &message)
 {
-    // TODO: tampilkan popup pesan
+    loadPopup(new MessagePopup(message));
 }
 
 void GUI::showConfirm(const std::string & /*question*/)
@@ -37,14 +44,21 @@ void GUI::showConfirm(const std::string & /*question*/)
     // TODO: tampilkan popup konfirmasi ya/tidak
 }
 
-void GUI::showInputPrompt(const std::string & /*prompt*/)
+void GUI::showInputPrompt(const std::string &prompt)
 {
-    // TODO: tampilkan popup input teks
+    loadPopup(new InputPopup(prompt));
 }
 
-void GUI::renderBoard(const Game & /*game*/)
+void GUI::renderBoard(const Game &game)
 {
-    // TODO
+    Board *b = game.getBoard();
+    if (b == nullptr)
+        return;
+
+    if (board == nullptr)
+    {
+        board = new BoardView(*b);
+    }
 }
 
 void GUI::renderPlayer(const Player & /*player*/)
@@ -139,27 +153,100 @@ void GUI::loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile
     this->chancePile = new CardPileView(chancePile, cardPos, cardDim);
     this->communityChestPile = new CardPileView(comChestPile, cardPos*-1, cardDim*-1);
 }
+Command GUI::getCommand()
+{
+    if (!pendingCommand.isNull())
+    {
+        Command temp = pendingCommand;
+        pendingCommand = Command::Null();
+        return temp;
+    }
 
-string GUI::getCommand() {
-    for (View2D* view : views) {
-        string command = view->catchCommand();
+    if (!popupStack.empty())
+    {
+        std::string raw = popupStack.top()->catchCommand();
 
-        if (command != "NULL")
+        if (raw != "NULL")
         {
-            if ("DISPLAY " == command.substr(0, 8))
+            Popup *p = popupStack.top();
+            views.erase(p);
+            delete p;
+            popupStack.pop();
+            
+            std::stringstream ss(raw);
+            std::string item;
+            std::vector<std::string> tokens;
+
+            while (getline(ss, item, ' '))
             {
+                tokens.push_back(item);
+            }
 
-                stringstream ss(command);
-                string item;
-                vector<string> tokens;
+            if (tokens.empty())
+                return {"NULL", {}};
 
-                while (getline(ss, item, ' '))
-                {
-                    tokens.push_back(item);
-                }
-                if (tokens[1] == "LOAD_CONFIRM_POPUP") { 
-                    loadPopup(new LoadConfirmPopup(tokens[2])); 
-                } else if (tokens[1] == "TOP_VIEW") {
+            return {tokens[0],
+                    std::vector<std::string>(tokens.begin() + 1, tokens.end())};
+        }
+
+        return {"NULL", {}};
+    }
+
+    for (View2D *view : views)
+    {
+        std::string raw = view->catchCommand();
+
+        if (raw == "NULL")
+            continue;
+
+        std::stringstream ss(raw);
+        std::string item;
+        std::vector<std::string> tokens;
+
+        while (getline(ss, item, ' '))
+        {
+            tokens.push_back(item);
+        }
+
+        if (tokens.empty())
+            return {"NULL", {}};
+
+        // HANDLE NEW GAME
+        if (tokens[0] == "NEW_GAME")
+        {
+            auto popup = new LoadConfirmPopup("Masukkan path config:", "config/default");
+
+            popup->setOnSubmit([this](const std::string &path)
+                               { this->pendingCommand = Command("NEW_GAME", {path}); });
+
+            loadPopup(popup);
+            return Command::Null();
+        }
+
+        // HANDLE LOAD GAME
+        if (tokens[0] == "LOAD_GAME")
+        {
+            auto popup = new LoadConfirmPopup("Masukkan save file:", "saves/save1");
+
+            popup->setOnSubmit([this](const std::string &path)
+                               { this->pendingCommand = Command("LOAD_GAME", {path}); });
+
+            loadPopup(popup);
+            return Command::Null();
+        }
+
+        // HANDLE INTERNAL GUI
+        if (tokens[0] == "DISPLAY")
+        {
+            if (tokens.size() >= 2 && tokens[1] == "SWITCH_TOP_VIEW")
+            {
+                camManager.switchTo("TOP_VIEW", 1, [](){});
+            }
+
+            return {"NULL", {}};
+        }
+      
+      if (tokens[1] == "TOP_VIEW") {
                     camManager.switchTo("TOP_VIEW", 1, [](){});
                 } else if (tokens[1] == "ACTION_CAM") {
                     camManager.switchTo("ACTION_CAM", 1, [](){});
@@ -185,28 +272,12 @@ string GUI::getCommand() {
                         chancePile->drawCard();
                     }
                 }
-                else if (tokens.size() >= 4 && tokens[1] == "EXCEPTION_POPUP")
-                {
-                    int errorCode = stoi(tokens[2]);
 
-                    string errorMessage = "";
-                    for (size_t i = 3; i < tokens.size(); ++i)
-                    {
-                        errorMessage += tokens[i];
-                        if (i < tokens.size() - 1)
-                        {
-                            errorMessage += " ";
-                        }
-                    }
-
-                    loadPopup(new ExceptionPopup(errorCode, errorMessage));
-                }
-                return "NULL";
-            }
-            return command;
-        }
+        // RETURN KE ENGINE
+        return {tokens[0], std::vector<std::string>(tokens.begin() + 1, tokens.end())};
     }
-    return "NULL";
+
+    return {"NULL", {}};
 }
 
 void GUI::enableAll()
@@ -221,12 +292,13 @@ void GUI::disableAll()
 {
     for (View2D *view : views)
     {
-        view->disable();
+        if (view != nullptr)
+            view->disable();
     }
 }
 
-
-void GUI::update() {
+void GUI::update()
+{
     camManager.updateCamMap();
     if (dice != nullptr) {
         dice->update();

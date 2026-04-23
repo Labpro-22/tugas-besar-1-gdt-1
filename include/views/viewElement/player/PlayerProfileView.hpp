@@ -18,4 +18,6 @@ public:
     
     void setColor(Color c);
     void setPlayer(Player* p);
+
+    void setPlayer(Player* p);
 };

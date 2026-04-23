@@ -5,6 +5,11 @@ PlayerProfileView::PlayerProfileView(Player* player)
     : player(player), playerColor(LIGHTGRAY)
 {
     setActive(true);
+    if (player != nullptr) {
+        setGameCommand("OPEN_INVENTORY " + player->getUsername());
+    } else {
+        setGameCommand("NULL");
+    }
 }
 
 void PlayerProfileView::render() {
@@ -54,5 +59,16 @@ void PlayerProfileView::onHover()
 
 void PlayerProfileView::onClicked()
 {
-    // contoh: buka detail player
+    if (player == nullptr) return;
+    Interactable::onClicked();
+}
+
+void PlayerProfileView::setPlayer(Player* p) {
+    this->player = p;
+
+    if (player != nullptr) {
+        setGameCommand("OPEN_INVENTORY " + player->getUsername());
+    } else {
+        setGameCommand("NULL");
+    }
 }

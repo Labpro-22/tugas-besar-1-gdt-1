@@ -393,7 +393,7 @@ bool SaveLoadManager::saveConfigSnapshot(const std::string& savePath) const {
     namespace fs = std::filesystem;
 
     const fs::path saveDir(resolveSaveDirectory(savePath));
-    const fs::path baseDir(configSourceDir.empty() ? "data/default" : configSourceDir);
+    const fs::path baseDir(configSourceDir.empty() ? "data/config/default" : configSourceDir);
 
     for (const std::string& file : kConfigFiles) {
         const fs::path source = baseDir / file;

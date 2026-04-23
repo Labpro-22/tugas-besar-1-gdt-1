@@ -33,6 +33,8 @@
 #include "models/BoardAndTiles/SpecialTile/FreeParkingTile.hpp"
 
 namespace {
+constexpr const char* kDefaultConfigDir = "data/config/default";
+
 std::string formatMoney(int amount) {
     bool negative = amount < 0;
     long long absAmount = negative ? -static_cast<long long>(amount) : amount;
@@ -149,7 +151,7 @@ bool GameEngine::performPendingLoad() {
 }
 
 bool GameEngine::loadFromPath(const std::string& filepath) {
-    std::string configDir = "data/default";
+    std::string configDir = kDefaultConfigDir;
     {
         namespace fs = std::filesystem;
         fs::path direct(filepath);
@@ -733,7 +735,7 @@ void GameEngine::initNewGame() {
     resetRuntimeState();
     this->game = new Game();
 
-    ConfigLoader loader("data/default");
+    ConfigLoader loader(kDefaultConfigDir);
     GameConfig config = loader.loadGameConfig();
 
     game->setConfigValues(
@@ -757,7 +759,7 @@ void GameEngine::initNewGame() {
     commandProcessor = new CommandProcessor(this, game, turnManager, dice, gui);
     auctionManager = new AuctionManager(game, logger, gui);
     bankruptcyManager = new BankruptcyManager(game, logger, gui, auctionManager);
-    saveLoadManager = new SaveLoadManager(game, logger, turnManager, gui, "data/default");
+    saveLoadManager = new SaveLoadManager(game, logger, turnManager, gui, kDefaultConfigDir);
 
     int numPlayers = 0;
     while (numPlayers < 2 || numPlayers > 4) {

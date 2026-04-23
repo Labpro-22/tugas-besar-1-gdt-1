@@ -12,8 +12,13 @@ View3DCamera::View3DCamera(const Vector3& pos, const Vector3& target, const floa
     projection = CAMERA_PERSPECTIVE;
 }
 
-View3DCamera::~View3DCamera() {
-    //for(auto move : movements) { delete move.second; }
+View3DCamera::~View3DCamera()
+{
+    for (auto& pair : movements)
+    {
+        delete pair.second;
+    }
+    movements.clear();
 }
 
 const Vector3 View3DCamera::getPos() const { return position; }

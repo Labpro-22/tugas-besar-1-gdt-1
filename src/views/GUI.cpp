@@ -25,7 +25,22 @@ void GUI::requestExit()
 
 void GUI::loadGameView()
 {
-    // TODO: muat view permainan utama
+    while (!popupStack.empty()) {
+        delete popupStack.top();
+        popupStack.pop();
+    }
+
+    for (auto v : views)
+        delete v;
+    views.clear();
+
+    for (auto p : playerProfiles) delete p;
+    playerProfiles.clear();
+
+    for (auto p : players) delete p;
+    players.clear();
+
+    menu = nullptr;
 }
 
 void GUI::loadFinishMenu()

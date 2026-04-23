@@ -5,6 +5,7 @@
 #include "utils/data/TransactionLogger.hpp"
 #include "utils/data/ConfigLoader.hpp"
 #include "views/IGUI.hpp"
+#include <functional>
 
 class TurnManager;
 class CommandProcessor;
@@ -30,7 +31,7 @@ private:
     TransactionLogger *logger;
     IGUI *gui; // non-owning
 
-    bool waitingPlayerCount = false;
+    std::function<void(const Command &)> currentHandler;
 
     TurnManager *turnManager;
     CommandProcessor *commandProcessor;
@@ -39,11 +40,12 @@ private:
     SaveLoadManager *saveLoadManager;
 
     void initNewGame(const std::string &configPath);
-    void setupPlayers(int count);
     void initLoadGame(const std::string &configPath);
 
     void gameLoop();
     void processPlayerTurn(Player *player);
+    void startNameInputFlow(int count);
+    void finalizePlayers(const std::vector<std::string> &names);
 
     void handleTileLanding(Player *player, Tile *tile);
 

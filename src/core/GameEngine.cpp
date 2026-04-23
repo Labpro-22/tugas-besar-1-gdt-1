@@ -79,7 +79,7 @@ void GameEngine::update()
             return;
         }
 
-        // setupPlayers(count);
+        setupPlayers(count);
         waitingPlayerCount = false;
 
         gui->loadGameView();
@@ -89,6 +89,39 @@ void GameEngine::update()
     {
         gui->requestExit();
     }
+}
+
+void GameEngine::setupPlayers(int count)
+{
+    if (game == nullptr) return;
+
+    std::vector<int> order;
+    order.reserve(count);
+
+    for (int i = 0; i < count; ++i)
+    {
+        std::string name = "Player " + std::to_string(i + 1);
+
+        Player* p = new Player(name, game->getInitialBalance());
+
+        p->setPosition(0);
+
+        p->setStatus(PlayerStatus::ACTIVE);
+
+        p->resetJailAttempts();
+        p->resetConsecutiveDoubles();
+
+        game->addPlayer(p);
+        order.push_back(i);
+    }
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(order.begin(), order.end(), g);
+
+    game->setTurnOrder(order);
+    game->setCurrentTurnIndex(0);
+    game->setCurrentTurn(1);
 }
 
 void GameEngine::initNewGame(const std::string &configPath)
@@ -136,61 +169,6 @@ void GameEngine::processPlayerTurn(Player * /*player*/)
 void GameEngine::handleTileLanding(Player * /*player*/, Tile * /*tile*/)
 {
     // TODO: dispatch berdasarkan getCategory()
-}
-
-void GameEngine::handlePropertyLanding(Player * /*player*/, PropertyTile * /*tile*/)
-{
-    // TODO
-}
-
-void GameEngine::handleActionLanding(Player * /*player*/, ActionTile * /*tile*/)
-{
-    // TODO
-}
-
-void GameEngine::handleSpecialLanding(Player * /*player*/, SpecialTile * /*tile*/)
-{
-    // TODO
-}
-
-void GameEngine::handleStreetLanding(Player * /*player*/, StreetTile * /*tile*/)
-{
-    // TODO: beli / sewa / lelang
-}
-
-void GameEngine::handleRailroadLanding(Player * /*player*/, RailroadTile * /*tile*/)
-{
-    // TODO
-}
-
-void GameEngine::handleUtilityLanding(Player * /*player*/, UtilityTile * /*tile*/)
-{
-    // TODO
-}
-
-void GameEngine::handleChanceLanding(Player * /*player*/, ChanceTile * /*tile*/)
-{
-    // TODO: draw + execute kartu chance
-}
-
-void GameEngine::handleCommunityChestLanding(Player * /*player*/, CommunityChestTile * /*tile*/)
-{
-    // TODO
-}
-
-void GameEngine::handleFestivalLanding(Player * /*player*/, FestivalTile * /*tile*/)
-{
-    // TODO
-}
-
-void GameEngine::handleTaxLanding(Player * /*player*/, TaxTile * /*tile*/)
-{
-    // TODO
-}
-
-void GameEngine::handleGoToJailLanding(Player * /*player*/)
-{
-    // TODO
 }
 
 bool GameEngine::executePayment(Player * /*from*/, Player * /*to*/, int /*amount*/)

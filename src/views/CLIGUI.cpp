@@ -180,14 +180,13 @@ static std::string centreLine(const std::string& s, int width) {
     return padCenter(s, width);
 }
 
-static std::string leftPanelLine(const std::string& s, int width, int indent = 6) {
-    if (s.empty()) return std::string(width, ' ');
-    if (indent >= width) indent = 0;
-    std::string out(indent, ' ');
-    out += s;
-    if ((int)out.size() > width) out = out.substr(0, width);
-    if ((int)out.size() < width) out += std::string(width - (int)out.size(), ' ');
-    return out;
+static std::string padRight(const std::string& s, int width) {
+    if ((int)s.size() >= width) return s.substr(0, width);
+    return s + std::string(width - (int)s.size(), ' ');
+}
+
+static std::string centredBlockLine(const std::string& s, int blockWidth, int totalWidth) {
+    return centreLine(padRight(s, blockWidth), totalWidth);
 }
 
 // Returns pair<row0, row1> as raw strings (no color escape inside content)
@@ -249,29 +248,49 @@ static void printCellRow(const std::vector<CellInfo>& cells, bool closeBottom = 
 // center panel lines (fixed 9 * CELL_W + 8 = 98 chars wide)
 static const int CENTER_W = 9 * (CELL_W + 1) - 1; // 9 inner cells
 
-// Returns exactly 18 lines (2 per middle row × 9 rows)
+// Returns exactly 27 lines (separator + 2 content lines for each of 9 middle rows)
 static std::vector<std::string> buildCenterPanel(const Game& game) {
-    const std::string titleBar = "===============================";
+    const int BLOCK_W = 40;
+    const std::string titleBar = "====================================";
+    const std::string divider = "------------------------------------";
 
     std::vector<std::string> lines = {
-        centreLine(titleBar, CENTER_W),
-        centreLine("||        NIMONSPOLI        ||", CENTER_W),
-        centreLine(titleBar, CENTER_W),
+        std::string(CENTER_W, ' '),
+        centredBlockLine(titleBar, BLOCK_W, CENTER_W),
+        centredBlockLine("||           NIMONSPOLI           ||", BLOCK_W, CENTER_W),
+
+        centredBlockLine(titleBar, BLOCK_W, CENTER_W),
         centreLine("TURN " + std::to_string(game.getCurrentTurn()) + " / "
                    + std::to_string(game.getMaxTurn()), CENTER_W),
-        leftPanelLine("LEGENDA KEPEMILIKAN & STATUS", CENTER_W),
-        leftPanelLine("P1-P4 : Properti milik Pemain 1-4", CENTER_W),
-        leftPanelLine("^     : Rumah Level 1", CENTER_W),
-        leftPanelLine("^^    : Rumah Level 2", CENTER_W),
-        leftPanelLine("^^^   : Rumah Level 3", CENTER_W),
-        leftPanelLine("*     : Hotel (Maksimal)", CENTER_W),
-        leftPanelLine("(1)-(4): Bidak (IN=Tahanan, V=Mampir)", CENTER_W),
         std::string(CENTER_W, ' '),
-        leftPanelLine("KODE WARNA:", CENTER_W),
-        leftPanelLine("[CK]=Coklat  [MR]=Merah", CENTER_W),
-        leftPanelLine("[BM]=Biru Muda  [KN]=Kuning  [PK]=Pink", CENTER_W),
-        leftPanelLine("[OR]=Orange  [HJ]=Hijau", CENTER_W),
-        leftPanelLine("[BT]=Biru Tua  [DF]=Aksi  [AB]=Utilitas", CENTER_W)
+
+        centredBlockLine(divider, BLOCK_W, CENTER_W),
+        centredBlockLine("LEGENDA KEPEMILIKAN & STATUS", BLOCK_W, CENTER_W),
+        centredBlockLine("P1-P4 : Properti milik Pemain 1-4", BLOCK_W, CENTER_W),
+
+        centredBlockLine("^     : Rumah Level 1", BLOCK_W, CENTER_W),
+        centredBlockLine("^^    : Rumah Level 2", BLOCK_W, CENTER_W),
+        centredBlockLine("^^^   : Rumah Level 3", BLOCK_W, CENTER_W),
+
+        centredBlockLine("*     : Hotel (Maksimal)", BLOCK_W, CENTER_W),
+        centredBlockLine("(1)-(4): Bidak (IN=Tahanan, V=Mampir)", BLOCK_W, CENTER_W),
+        centredBlockLine(divider, BLOCK_W, CENTER_W),
+
+        centredBlockLine("KODE WARNA:", BLOCK_W, CENTER_W),
+        centredBlockLine("[K]=Coklat     [MR]=Merah", BLOCK_W, CENTER_W),
+        centredBlockLine("[BM]=Biru Muda [KN]=Kuning", BLOCK_W, CENTER_W),
+
+        centredBlockLine("[PK]=Pink      [HJ]=Hijau", BLOCK_W, CENTER_W),
+        centredBlockLine("[OR]=Orange    [BT]=Biru Tua", BLOCK_W, CENTER_W),
+        centredBlockLine("[DF]=Aksi      [AB]=Utilitas", BLOCK_W, CENTER_W),
+
+        std::string(CENTER_W, ' '),
+        std::string(CENTER_W, ' '),
+        std::string(CENTER_W, ' '),
+
+        std::string(CENTER_W, ' '),
+        std::string(CENTER_W, ' '),
+        std::string(CENTER_W, ' ')
     };
     return lines;
 }
@@ -302,10 +321,11 @@ void CLIGUI::renderBoard(const Game& game) {
     printCellRow(topRow, true);
 
     // ── MIDDLE ROWS (left cell + center + right cell) ─────────────────────
-    // buildCenterPanel returns 18 lines: line[row*2] = display-line-0,
-    //                                    line[row*2+1] = display-line-1
+    // buildCenterPanel returns 27 lines: line[row*3]   = separator content,
+    //                                    line[row*3+1] = display-line-0,
+    //                                    line[row*3+2] = display-line-1
     auto centerLines = buildCenterPanel(game);
-    while ((int)centerLines.size() < 18) centerLines.push_back(std::string(CENTER_W, ' '));
+    while ((int)centerLines.size() < 27) centerLines.push_back(std::string(CENTER_W, ' '));
 
     for (int row = 0; row < 9; ++row) {
         int leftIdx  = 20 - row; // 20,19,...,12
@@ -317,13 +337,16 @@ void CLIGUI::renderBoard(const Game& game) {
         auto [lR0, lR1] = cellContent(leftCI);
         auto [rR0, rR1] = cellContent(rightCI);
 
-        const std::string& cLine0 = centerLines[row * 2];
-        const std::string& cLine1 = centerLines[row * 2 + 1];
+        const std::string& cSep   = centerLines[row * 3];
+        const std::string& cLine0 = centerLines[row * 3 + 1];
+        const std::string& cLine1 = centerLines[row * 3 + 2];
 
         // separator
-        std::cout << "+" << paint(leftCI.getColor(), std::string(CELL_W, '-')) << "+"
-                  << std::string(CENTER_W, ' ')
-                  << "+" << paint(rightCI.getColor(), std::string(CELL_W, '-')) << "+\n";
+        if (row != 0) {
+            std::cout << "+" << paint(leftCI.getColor(), std::string(CELL_W, '-')) << "+"
+                      << cSep
+                      << "+" << paint(rightCI.getColor(), std::string(CELL_W, '-')) << "+\n";
+        }
 
         // display line 0 (tag+code row)
         std::cout << paint(leftCI.getColor(), "|" + lR0 + "|")

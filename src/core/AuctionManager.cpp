@@ -2,6 +2,24 @@
 #include <algorithm>
 #include <sstream>
 
+namespace {
+std::string formatMoney(int amount) {
+    bool negative = amount < 0;
+    long long absAmount = negative ? -static_cast<long long>(amount) : amount;
+    std::string digits = std::to_string(absAmount);
+    std::string grouped;
+    int count = 0;
+    for (int i = static_cast<int>(digits.size()) - 1; i >= 0; --i) {
+        grouped.insert(grouped.begin(), digits[i]);
+        if (++count == 3 && i > 0) {
+            grouped.insert(grouped.begin(), '.');
+            count = 0;
+        }
+    }
+    return std::string(negative ? "-M" : "M") + grouped;
+}
+}
+
 AuctionManager::AuctionManager(Game* game, TransactionLogger* logger, IGUI* gui)
     : game(game), logger(logger), gui(gui) {}
 
@@ -64,8 +82,8 @@ std::pair<AuctionAction, int> AuctionManager::collectBidOrPass(Player& player, i
                                                                bool hasHighBidder, bool forceBid) {
     gui->showMessage("Giliran lelang: " + player.getUsername());
 
-    std::string minimumLabel = hasHighBidder ? ("> M" + std::to_string(currentHighBid))
-                                             : (">= M" + std::to_string(currentHighBid));
+    std::string minimumLabel = hasHighBidder ? ("> " + formatMoney(currentHighBid))
+                                             : (">= " + formatMoney(currentHighBid));
     if (forceBid) {
         gui->showInputPrompt("Masukkan BID <jumlah> (minimal " + minimumLabel + "). Kamu wajib menawar.");
     } else {
@@ -126,10 +144,10 @@ void AuctionManager::finalizeAuction(Player* winner, Property* property, int bid
     if (logger) logger->log(game->getCurrentTurn(), winner->getUsername(),
                             "LELANG",
                             "Menang " + property->getName() + " (" + property->getCode() +
-                            ") seharga M" + std::to_string(bidAmount));
+                            ") seharga " + formatMoney(bidAmount));
     gui->showMessage("Lelang selesai.");
     gui->showMessage("Pemenang lelang: " + winner->getUsername());
-    gui->showMessage("Harga akhir: M" + std::to_string(bidAmount));
+    gui->showMessage("Harga akhir: " + formatMoney(bidAmount));
     gui->showMessage("Properti " + property->getName() + " (" + property->getCode() +
                      ") kini dimiliki " + winner->getUsername() + ".");
 }
@@ -181,19 +199,20 @@ Player* AuctionManager::runAuction(Property* property, Player* triggeringPlayer)
             if (logger) {
                 logger->log(game->getCurrentTurn(), p->getUsername(),
                             "LELANG",
-                            property->getCode() + " BID M" + std::to_string(currentBid));
+                            property->getCode() + " BID " + formatMoney(currentBid));
             }
-            gui->showMessage("Penawaran tertinggi: M" + std::to_string(currentBid) +
+            gui->showMessage("Penawaran tertinggi: " + formatMoney(currentBid) +
                              " (" + highBidder->getUsername() + ")");
             gui->renderAuction(*property, currentBid, highBidder);
         } else {
             if (hasHighBidder) {
-                gui->showMessage("Bid tidak valid.");
-                gui->showMessage("Jumlah bid harus lebih tinggi dari penawaran saat ini dan tidak boleh melebihi saldo kamu.");
+                gui->showMessage("Bid ditolak.");
+                gui->showMessage("Bid harus lebih tinggi dari " + formatMoney(currentBid) +
+                                 " dan tidak boleh melebihi saldomu.");
             } else {
-                gui->showMessage("Bid tidak valid.");
-                gui->showMessage("Penawaran awal minimal M" + std::to_string(currentBid) +
-                                 " dan tidak boleh melebihi saldo kamu.");
+                gui->showMessage("Bid ditolak.");
+                gui->showMessage("Penawaran awal minimal " + formatMoney(currentBid) +
+                                 " dan tidak boleh melebihi saldomu.");
             }
             continue;
         }

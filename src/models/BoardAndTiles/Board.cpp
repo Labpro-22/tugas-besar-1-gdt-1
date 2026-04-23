@@ -1,7 +1,9 @@
 #include "models/BoardAndTiles/Board.hpp"
 #include "models/BoardAndTiles/SpecialTile/GoTile.hpp"
 #include "models/BoardAndTiles/SpecialTile/JailTile.hpp"
+#include "models/BoardAndTiles/PropertyTile.hpp"
 #include "models/BoardAndTiles/PropertyTile/RailroadTile.hpp"
+#include "models/Property/StreetProperty.hpp"
 #include "exception/InvalidEntryInput/InvalidTileException.hpp"
 #include "exception/InvalidFile/InvalidConfigException.hpp"
 
@@ -99,6 +101,29 @@ RailroadTile *Board::getNearestRailroad(int currentIndex) const
     }
 
     return nearest;
+}
+
+std::vector<StreetProperty *> Board::getStreetGroup(const std::string &colorGroup) const
+{
+    std::vector<StreetProperty *> streets;
+
+    for (Tile *tile : tiles)
+    {
+        auto *propertyTile = dynamic_cast<PropertyTile *>(tile);
+        if (propertyTile == nullptr)
+            continue;
+
+        auto *street = dynamic_cast<StreetProperty *>(propertyTile->getProperty());
+        if (street == nullptr)
+            continue;
+
+        if (street->getColorGroup() == colorGroup)
+        {
+            streets.push_back(street);
+        }
+    }
+
+    return streets;
 }
 
 int Board::getSize() const

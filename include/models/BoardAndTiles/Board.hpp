@@ -7,6 +7,7 @@
 class RailroadTile;
 class JailTile;
 class GoTile;
+class StreetProperty;
 
 class Board
 {
@@ -36,6 +37,7 @@ public:
     GoTile *getGoTile() const;
     JailTile *getJailTile() const;
     RailroadTile *getNearestRailroad(int currentIndex) const;
+    std::vector<StreetProperty *> getStreetGroup(const std::string &colorGroup) const;
 
     int getSize() const;
     const std::vector<Tile *> &getAllTiles() const;

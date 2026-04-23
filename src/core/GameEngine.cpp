@@ -10,6 +10,7 @@
 #include <chrono>
 #include <numeric>
 #include <filesystem>
+#include <sstream>
 
 #include "models/Player/Player.hpp"
 #include "models/BoardAndTiles/Board.hpp"
@@ -171,7 +172,7 @@ bool GameEngine::loadFromPath(const std::string& filepath) {
         new SaveLoadManager(loadedGame, &loadedLogger, loadedTurnManager, gui, configDir);
 
     if (!loaderManager->load(filepath)) {
-        gui->showMessage("Load gagal.");
+        gui->showMessage("Gagal memuat permainan.");
         delete loaderManager;
         delete loadedTurnManager;
         delete loadedGame;
@@ -192,7 +193,7 @@ bool GameEngine::loadFromPath(const std::string& filepath) {
         logger->log(game->getCurrentTurn(), "SISTEM",
                     "MUAT", "Game dimuat dari " + filepath);
     }
-    gui->showMessage("Game dimuat dari " + filepath);
+    gui->showMessage("Permainan berhasil dimuat dari " + filepath + ".");
     gui->loadGameView();
     resumeLoadedTurn = true;
     return true;
@@ -240,7 +241,7 @@ CommandResult GameEngine::resolveRoll(Player* player, bool manual, int d1, int d
     }
 
     if (!turnManager->canRoll(player)) {
-        gui->showMessage("Tidak dapat melempar dadu sekarang.");
+        gui->showMessage("Kamu belum bisa melempar dadu sekarang.");
         return CommandResult::INVALID;
     }
 
@@ -276,8 +277,9 @@ CommandResult GameEngine::resolveRoll(Player* player, bool manual, int d1, int d
                             " -> gagal keluar dari Penjara (" +
                             std::to_string(player->getJailAttempts()) + "/3)");
             }
-            gui->showMessage("Belum mendapatkan double. Kamu tetap berada di Penjara dan tidak bergerak.");
-            gui->showMessage("Percobaan keluar penjara: " +
+            gui->showMessage("Kamu belum mendapatkan double.");
+            gui->showMessage("Kamu tetap berada di Penjara dan tidak bergerak.");
+            gui->showMessage("Percobaan keluar dari Penjara: " +
                              std::to_string(player->getJailAttempts()) + "/3.");
             return CommandResult::END_TURN;
         }
@@ -309,8 +311,8 @@ CommandResult GameEngine::resolveRoll(Player* player, bool manual, int d1, int d
                             std::to_string(dice->getDie2()) + "=" + std::to_string(total) +
                             " (double ketiga) -> masuk Penjara");
             }
-            gui->showMessage("Dadu double ketiga berturut-turut.");
-            gui->showMessage("Bidak tidak digerakkan sesuai hasil dadu dan kamu langsung masuk Penjara.");
+            gui->showMessage("Kamu mendapatkan double tiga kali berturut-turut.");
+            gui->showMessage("Bidak tidak digerakkan dan kamu langsung masuk Penjara.");
             turnManager->endTurn(player);
             return CommandResult::END_TURN;
         }
@@ -337,7 +339,7 @@ CommandResult GameEngine::resolveRoll(Player* player, bool manual, int d1, int d
     if (landed) handleTileLanding(player, landed);
 
     if (player->getStatus() == PlayerStatus::JAILED) {
-        gui->showMessage("Giliran berakhir karena kamu berada di Penjara.");
+        gui->showMessage("Giliranmu berakhir karena kamu berada di Penjara.");
         turnManager->endTurn(player);
         return CommandResult::END_TURN;
     }
@@ -349,10 +351,11 @@ CommandResult GameEngine::resolveRoll(Player* player, bool manual, int d1, int d
 
     if (player->hasPendingFestival()) {
         if (rolledDouble) {
-            gui->showMessage("Lanjutkan dengan FESTIVAL <kode_properti> untuk menyelesaikan aksi petak ini.");
+            gui->showMessage("Selesaikan dulu efek Festival dengan FESTIVAL <kode_properti>.");
             gui->showMessage("Setelah itu, gunakan LEMPAR_DADU atau ATUR_DADU <x> <y> untuk lemparan bonus.");
         } else {
-            gui->showMessage("Lanjutkan dengan FESTIVAL <kode_properti>, lalu gunakan command lain atau AKHIRI_GILIRAN.");
+            gui->showMessage("Selesaikan dulu efek Festival dengan FESTIVAL <kode_properti>.");
+            gui->showMessage("Setelah itu, gunakan perintah lain atau AKHIRI_GILIRAN.");
         }
     } else if (rolledDouble) {
         if (logger != nullptr) {
@@ -368,12 +371,13 @@ CommandResult GameEngine::resolveRoll(Player* player, bool manual, int d1, int d
         if (fromJailAttempt) {
             gui->showMessage("Karena berhasil keluar dengan double, kamu juga mendapat lemparan bonus.");
         } else {
-            gui->showMessage("Dadu double. Kamu mendapat lemparan bonus.");
+            gui->showMessage("Dadu menunjukkan double. Kamu mendapat lemparan bonus.");
         }
         gui->showMessage("Gunakan LEMPAR_DADU atau ATUR_DADU <x> <y> untuk lemparan berikutnya.");
     } else {
-        gui->showMessage("Giliran lempar dadu selesai. Gunakan command lain atau AKHIRI_GILIRAN.");
-        gui->showMessage("Ketik HELP untuk melihat command yang tersedia.");
+        gui->showMessage("Aksi lempar dadu selesai.");
+        gui->showMessage("Gunakan perintah lain atau AKHIRI_GILIRAN.");
+        gui->showMessage("Ketik HELP untuk melihat daftar perintah yang tersedia.");
     }
 
     return CommandResult::CONTINUE;
@@ -390,7 +394,7 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
         gui->showMessage(player->getUsername() + " sedang berada di Penjara.");
 
         if (player->getJailAttempts() >= 3) {
-            gui->showMessage("Ini adalah giliran ke-4 di Penjara.");
+            gui->showMessage("Ini adalah giliran ke-4 kamu di Penjara.");
             gui->showMessage("Kamu wajib membayar denda M" + std::to_string(fine) + " sebelum melempar dadu.");
             bool paid = executePayment(player, nullptr, fine,
                                        "denda penjara " + formatMoney(fine));
@@ -402,8 +406,8 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
                                 "PENJARA",
                                 "Bayar denda " + formatMoney(fine) + " dan bebas dari Penjara");
                 }
-                gui->showMessage("Denda penjara dibayar. Kamu bebas dari Penjara.");
-                gui->showMessage("Sekarang kamu bisa melempar dadu seperti biasa.");
+                gui->showMessage("Denda penjara sudah dibayar. Kamu bebas dari Penjara.");
+                gui->showMessage("Sekarang kamu dapat melempar dadu seperti biasa.");
                 return CommandResult::CONTINUE;
             }
             if (player->getStatus() == PlayerStatus::BANKRUPT && checkWinCondition()) {
@@ -413,7 +417,7 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
         }
 
         SkillCard* jailCard = player->findJailFreeCard();
-        gui->showMessage("Pilih cara keluar penjara:");
+        gui->showMessage("Pilih cara untuk keluar dari Penjara:");
         gui->showMessage("1) Bayar denda M" + std::to_string(fine));
         gui->showMessage("2) Gunakan kartu Bebas dari Penjara" +
                          std::string(jailCard ? "" : " (tidak tersedia)"));
@@ -427,8 +431,8 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
             if (paid) {
                 player->setStatus(PlayerStatus::ACTIVE);
                 player->resetJailAttempts();
-                gui->showMessage("Denda penjara dibayar. Kamu bebas dari Penjara.");
-                gui->showMessage("Sekarang kamu bisa melempar dadu seperti biasa.");
+                gui->showMessage("Denda penjara sudah dibayar. Kamu bebas dari Penjara.");
+                gui->showMessage("Sekarang kamu dapat melempar dadu seperti biasa.");
                 return CommandResult::CONTINUE;
             }
             if (player->getStatus() == PlayerStatus::BANKRUPT && checkWinCondition()) {
@@ -454,13 +458,13 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
                             "Pakai " + jailCard->getCardName() + " -> bebas dari Penjara");
             }
             gui->showMessage("Kartu Bebas dari Penjara digunakan. Kamu bebas dari Penjara.");
-            gui->showMessage("Sekarang kamu bisa melempar dadu seperti biasa.");
+            gui->showMessage("Sekarang kamu dapat melempar dadu seperti biasa.");
             return CommandResult::CONTINUE;
         }
 
         if (choice == "3") {
             gui->showMessage("Gunakan LEMPAR_DADU atau ATUR_DADU <x> <y> untuk mencoba keluar dari Penjara.");
-            gui->showMessage("Command informasi yang tetap tersedia: HELP, CETAK_PAPAN, CETAK_AKTA <kode>, CETAK_PROPERTI, CETAK_LOG [n], SIMPAN <file>, MUAT <file>, EXIT.");
+            gui->showMessage("Perintah informasi yang tetap tersedia: HELP, CETAK_PAPAN, CETAK_AKTA <kode>, CETAK_PROPERTI, CETAK_LOG [n], SIMPAN <file>, EXIT.");
 
             while (!gui->shouldExit()) {
                 std::string raw = waitForInput(gui, "Perintah penjara:");
@@ -475,7 +479,7 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
                 std::string cmd = normalizeInput(tokens[0]);
 
                 if (cmd == "HELP") {
-                    gui->showMessage("Saat di Penjara, pilih salah satu:");
+                    gui->showMessage("Saat berada di Penjara, pilih salah satu cara keluar:");
                     gui->showMessage("1) Bayar denda, 2) Gunakan kartu Bebas dari Penjara, 3) Coba lempar dadu.");
                     gui->showMessage("Untuk opsi lempar dadu, gunakan LEMPAR_DADU atau ATUR_DADU <x> <y>.");
                     continue;
@@ -549,7 +553,7 @@ void GameEngine::handleChanceLanding(Player* player, ChanceTile* /*tile*/) {
                                     "Kesempatan: " + card->getDescription() +
                                     " -> " + tileLogLabel(nearest));
                     }
-                    gui->showMessage(player->getUsername() + " pindah ke stasiun terdekat.");
+                    gui->showMessage(player->getUsername() + " berpindah ke stasiun terdekat.");
                     gui->showMessage("Bidak mendarat di: " + nearest->getName() + ".");
                     handleTileLanding(player, nearest);
                 }
@@ -587,7 +591,7 @@ void GameEngine::handleChanceLanding(Player* player, ChanceTile* /*tile*/) {
                             "KARTU",
                             "Kesempatan: " + card->getDescription() + " -> masuk Penjara");
             }
-            gui->showMessage(player->getUsername() + " masuk Penjara!");
+            gui->showMessage(player->getUsername() + " masuk ke Penjara!");
             break;
         }
     }
@@ -685,15 +689,30 @@ void GameEngine::run() {
             continue;
         }
 
-        if (command == "NEW_GAME") {
+        std::istringstream iss(command);
+        std::string action;
+        iss >> action;
+        std::string argument;
+        if (iss >> argument) {
+            std::string rest;
+            std::getline(iss, rest);
+            if (!rest.empty()) {
+                argument += rest;
+            }
+        }
+
+        if (action == "NEW_GAME") {
             initNewGame();
             gameLoop();
             break;
-        } else if (command.rfind("LOAD_GAME", 0) == 0) {
-            initLoadGame();
-            gameLoop();
-            break;
-        } else if (command == "EXIT") {
+        } else if (action == "LOAD_GAME" || action == "MUAT") {
+            if (initLoadGame(argument)) {
+                gameLoop();
+                break;
+            }
+            gui->loadMainMenu();
+            continue;
+        } else if (action == "EXIT") {
             break;
         }
     }
@@ -764,13 +783,16 @@ void GameEngine::initNewGame() {
     gui->loadGameView();
 }
 
-void GameEngine::initLoadGame() {
-    std::string filepath = waitForInput(gui, "Nama file save:");
-    if (!loadFromPath(filepath)) {
-        gui->showMessage("Load gagal, memulai game baru.");
-        initNewGame();
-        return;
+bool GameEngine::initLoadGame(const std::string& requestedPath) {
+    std::string filepath = requestedPath;
+    if (filepath.empty()) {
+        filepath = waitForInput(gui, "Nama file save:");
     }
+    if (!loadFromPath(filepath)) {
+        gui->showMessage("Gagal memuat permainan.");
+        return false;
+    }
+    return true;
 }
 
 void GameEngine::gameLoop() {
@@ -872,7 +894,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
 
         if (prop->getStatus() == PropertyStatus::BANK) {
             gui->showMessage("Kamu mendarat di " + prop->getName() +
-                             " (" + prop->getCode() + ")!");
+                             " (" + prop->getCode() + ").");
 
             if (prop->getType() == PropertyType::STREET) {
                 gui->renderProperty(*prop);
@@ -882,7 +904,8 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
                 if (player->getPendingDiscount() > 0) {
                     price = price * (100 - player->getPendingDiscount()) / 100;
                     gui->showMessage("Diskon " + std::to_string(player->getPendingDiscount()) +
-                                     "% diterapkan! Harga setelah diskon: M" + std::to_string(price));
+                                     "% diterapkan.");
+                    gui->showMessage("Harga setelah diskon: M" + std::to_string(price));
                     player->clearPendingDiscount();
                 }
                 if (player->canAfford(price) &&
@@ -892,8 +915,8 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
                     prop->setOwner(player);
                     prop->setStatus(PropertyStatus::OWNED);
                     player->addProperty(prop);
-                    gui->showMessage(prop->getName() + " kini menjadi milikmu! Uang tersisa: M"
-                                     + std::to_string(player->getBalance()));
+                    gui->showMessage(prop->getName() + " kini menjadi milikmu.");
+                    gui->showMessage("Uang tersisa: M" + std::to_string(player->getBalance()));
                     if (logger) {
                         logger->log(game->getCurrentTurn(), player->getUsername(),
                                     "BELI",
@@ -904,7 +927,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
                     if (!player->canAfford(price)) {
                         gui->showMessage("Uang kamu tidak cukup untuk membeli properti ini.");
                     }
-                    gui->showMessage("Properti ini akan masuk ke sistem lelang...");
+                    gui->showMessage("Properti ini akan masuk ke sistem lelang.");
                     if (auctionManager != nullptr) {
                         auctionManager->runAuction(prop, player);
                     }
@@ -916,7 +939,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
             if (price > 0 && !player->canAfford(price)) {
                 gui->showMessage("Uang kamu tidak cukup untuk mengambil alih " +
                                  prop->getName() + " secara otomatis.");
-                gui->showMessage("Properti ini akan masuk ke sistem lelang...");
+                gui->showMessage("Properti ini akan masuk ke sistem lelang.");
                 if (auctionManager != nullptr) {
                     auctionManager->runAuction(prop, player);
                 }
@@ -930,10 +953,11 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
             prop->setStatus(PropertyStatus::OWNED);
             player->addProperty(prop);
             if (prop->getType() == PropertyType::RAILROAD) {
-                gui->showMessage("Belum ada yang menginjaknya duluan, stasiun ini kini menjadi milikmu!");
+                gui->showMessage("Belum ada yang menginjaknya terlebih dahulu.");
+                gui->showMessage("Stasiun ini kini menjadi milikmu.");
             } else {
-                gui->showMessage("Belum ada yang menginjaknya duluan, " + prop->getName() +
-                                 " kini menjadi milikmu!");
+                gui->showMessage("Belum ada yang menginjaknya terlebih dahulu.");
+                gui->showMessage(prop->getName() + " kini menjadi milikmu.");
             }
             if (price > 0) {
                 gui->showMessage("Uang tersisa: M" + std::to_string(player->getBalance()));
@@ -951,13 +975,13 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
 
         Player* owner = prop->getOwner();
         if (owner == player) {
-            gui->showMessage("Kamu mendarat di propertimu sendiri (" + prop->getName() + ").");
+            gui->showMessage("Kamu mendarat di propertimu sendiri: " + prop->getName() + ".");
             return;
         }
         if (prop->isMortgaged()) {
             gui->showMessage("Kamu mendarat di " + prop->getName() + " (" + prop->getCode() +
-                             "), milik " + owner->getUsername() + "!");
-            gui->showMessage("Properti ini sedang digadaikan [M]. Tidak ada sewa yang dikenakan.");
+                             "), milik " + owner->getUsername() + ".");
+            gui->showMessage("Properti ini sedang digadaikan. Tidak ada sewa yang dikenakan.");
             return;
         }
 
@@ -965,7 +989,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
                                        ? game->getLastDiceTotal()
                                        : 0);
         gui->showMessage("Kamu mendarat di " + prop->getName() + " (" + prop->getCode() +
-                         "), milik " + owner->getUsername() + "!");
+                         "), milik " + owner->getUsername() + ".");
         std::string condition = rentConditionLabel(prop);
         if (!condition.empty()) {
             gui->showMessage("Kondisi      : " + condition);
@@ -998,7 +1022,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
     }
 
     if (auto* incomeTax = dynamic_cast<IncomeTaxTile*>(tile)) {
-        gui->showMessage("Kamu mendarat di Pajak Penghasilan (PPH)!");
+        gui->showMessage("Kamu mendarat di Pajak Penghasilan (PPH).");
         gui->showMessage("1. Bayar flat M" + std::to_string(incomeTax->getFlatAmount()));
         gui->showMessage("2. Bayar " + std::to_string(incomeTax->getTaxPercentage()) +
                          "% dari total kekayaan (Pilih sebelum menghitung kekayaan!)");
@@ -1007,7 +1031,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         int before = player->getBalance();
         if (choice == 1) {
             amount = incomeTax->getFlatAmount();
-            gui->showMessage("Memilih bayar flat M" + std::to_string(amount) + ".");
+            gui->showMessage("Kamu memilih membayar flat sebesar M" + std::to_string(amount) + ".");
         } else {
             int cash = player->getBalance();
             int propertyValue = player->calculatePropertyAssetValue();
@@ -1043,7 +1067,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
 
     if (auto* luxuryTax = dynamic_cast<LuxuryTaxTile*>(tile)) {
         int amount = luxuryTax->getFlatAmount();
-        gui->showMessage("Kamu mendarat di Pajak Barang Mewah (PBM)!");
+        gui->showMessage("Kamu mendarat di Pajak Barang Mewah (PBM).");
         gui->showMessage("Pajak sebesar M" + std::to_string(amount) + " langsung dipotong.");
         int before = player->getBalance();
         bool paid = executePayment(player, nullptr, amount,
@@ -1068,7 +1092,8 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
                             "FESTIVAL", "Mendarat di Festival, tetapi tidak punya properti");
             }
             gui->showMessage(player->getUsername() +
-                             " mendarat di Festival, tapi tidak memiliki properti. Festival hangus.");
+                             " mendarat di Festival, tetapi tidak memiliki properti.");
+            gui->showMessage("Efek Festival hangus.");
             return;
         }
         player->setPendingFestival(true);
@@ -1076,14 +1101,14 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
             logger->log(game->getCurrentTurn(), player->getUsername(),
                         "FESTIVAL", "Mendarat di Festival dan harus memilih properti");
         }
-        gui->showMessage("Kamu mendarat di Festival!");
-        gui->showMessage("Gunakan FESTIVAL <kode_properti> untuk memilih properti yang sewanya digandakan.");
+        gui->showMessage("Kamu mendarat di Festival.");
+        gui->showMessage("Gunakan FESTIVAL <kode_properti> untuk memilih properti yang sewanya akan digandakan.");
         return;
     }
 
     if (auto* goTile = dynamic_cast<GoTile*>(tile)) {
-        gui->showMessage(player->getUsername() + " mendarat tepat di petak GO dan menerima M"
-                         + std::to_string(goTile->getSalary()) + ".");
+        gui->showMessage(player->getUsername() + " mendarat tepat di petak GO.");
+        gui->showMessage("Kamu menerima M" + std::to_string(goTile->getSalary()) + ".");
         return;
     }
 
@@ -1119,8 +1144,8 @@ bool GameEngine::executePayment(Player* from, Player* to, int amount,
                                 const std::string& obligationLabel) {
     if (from == nullptr || amount <= 0) return false;
     if (turnManager != nullptr && turnManager->isShieldActive()) {
-        gui->showMessage(from->getUsername() + " terlindungi oleh Perisai — " + obligationLabel + " dibatalkan.");
-        turnManager->setShieldActive(false);
+        gui->showMessage(from->getUsername() + " terlindungi oleh Perisai.");
+        gui->showMessage("Kewajiban " + obligationLabel + " dibatalkan.");
         return true;
     }
     if (bankruptcyManager != nullptr) {
@@ -1172,7 +1197,6 @@ void GameEngine::endGame() {
     }
 
     gui->loadFinishMenu();
-    // If still multiple, all are tied winners
     if (candidates.size() == 1) {
         gui->renderWinner(*candidates[0]);
     } else {

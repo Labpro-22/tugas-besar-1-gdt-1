@@ -15,6 +15,23 @@
 #include <map>
 
 namespace {
+const std::string UI_RESET   = "\033[0m";
+const std::string UI_BOLD    = "\033[1m";
+const std::string UI_DIM     = "\033[2m";
+const std::string UI_WHITE   = "\033[97m";
+const std::string UI_CYAN    = "\033[38;5;81m";
+const std::string UI_GREEN   = "\033[38;5;42m";
+const std::string UI_YELLOW  = "\033[38;5;220m";
+const std::string UI_RED     = "\033[38;5;203m";
+const std::string UI_MAGENTA = "\033[38;5;177m";
+
+enum class MessageTone {
+    INFO,
+    SUCCESS,
+    WARNING,
+    ERROR
+};
+
 std::string formatMoney(int amount) {
     std::string digits = std::to_string(amount);
     std::string grouped;
@@ -103,6 +120,15 @@ std::string shortStatusLabel(const Property& property) {
     return "UNKNOWN";
 }
 
+std::string playerStatusLabel(PlayerStatus status) {
+    switch (status) {
+        case PlayerStatus::ACTIVE:   return "ACTIVE";
+        case PlayerStatus::JAILED:   return "JAILED";
+        case PlayerStatus::BANKRUPT: return "BANKRUPT";
+    }
+    return "ACTIVE";
+}
+
 std::string boxLine(const std::string& text, int innerWidth) {
     std::string body = text;
     if ((int)body.size() > innerWidth) body = body.substr(0, innerWidth);
@@ -117,6 +143,83 @@ std::string kvText(const std::string& key, const std::string& value) {
         left += std::string(keyWidth - (int)left.size(), ' ');
     }
     return " " + left + " : " + value;
+}
+
+std::string toLower(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return s;
+}
+
+bool containsAny(const std::string& text, const std::vector<std::string>& needles) {
+    const std::string lowered = toLower(text);
+    for (const std::string& needle : needles) {
+        if (lowered.find(needle) != std::string::npos) return true;
+    }
+    return false;
+}
+
+std::string colorize(const std::string& text, const std::string& color, bool bold = false, bool dim = false) {
+    std::string styled;
+    if (bold) styled += UI_BOLD;
+    if (dim) styled += UI_DIM;
+    styled += color + text + UI_RESET;
+    return styled;
+}
+
+std::string toneColor(MessageTone tone) {
+    switch (tone) {
+        case MessageTone::SUCCESS: return UI_GREEN;
+        case MessageTone::WARNING: return UI_YELLOW;
+        case MessageTone::ERROR:   return UI_RED;
+        case MessageTone::INFO:    return UI_CYAN;
+    }
+    return UI_CYAN;
+}
+
+std::string tonePrefix(MessageTone tone) {
+    switch (tone) {
+        case MessageTone::SUCCESS: return "OK";
+        case MessageTone::WARNING: return "!";
+        case MessageTone::ERROR:   return "X";
+        case MessageTone::INFO:    return "-";
+    }
+    return "-";
+}
+
+MessageTone classifyMessageTone(const std::string& message) {
+    if (containsAny(message, {"gagal", "tidak ditemukan", "format save tidak dikenali",
+                              "tidak valid", "tidak dapat", "ditolak", "belum tersedia"})) {
+        return MessageTone::ERROR;
+    }
+    if (containsAny(message, {"peringatan", "dibatalkan", "sudah ada", "harus", "hanya dapat"})) {
+        return MessageTone::WARNING;
+    }
+    if (containsAny(message, {"berhasil", "disimpan", "dimuat", "menjadi milikmu",
+                              "kini menjadi milikmu", "masuk ke tanganmu", "mendapat"})) {
+        return MessageTone::SUCCESS;
+    }
+    return MessageTone::INFO;
+}
+
+std::string statusColor(PlayerStatus status) {
+    switch (status) {
+        case PlayerStatus::ACTIVE:   return UI_GREEN;
+        case PlayerStatus::JAILED:   return UI_YELLOW;
+        case PlayerStatus::BANKRUPT: return UI_RED;
+    }
+    return UI_WHITE;
+}
+
+std::string bannerLine(char fill = '=') {
+    return std::string(60, fill);
+}
+
+void printBanner(const std::string& title, const std::string& color, char fill = '=') {
+    std::cout << "\n"
+              << colorize(bannerLine(fill), color, true) << "\n"
+              << colorize(title, color, true) << "\n"
+              << colorize(bannerLine(fill), color, true) << "\n";
 }
 
 }
@@ -378,7 +481,7 @@ std::vector<std::string> CLIGUI::buildCenterPanel(const Game& game) {
         centredBlockLine(divider, BLOCK_W, CENTER_W),
 
         centredBlockLine("KODE WARNA:", BLOCK_W, CENTER_W),
-        centredBlockLine("[K]=Coklat     [MR]=Merah", BLOCK_W, CENTER_W),
+        centredBlockLine("[CK]=Coklat    [MR]=Merah", BLOCK_W, CENTER_W),
         centredBlockLine("[BM]=Biru Muda [KN]=Kuning", BLOCK_W, CENTER_W),
 
         centredBlockLine("[PK]=Pink      [HJ]=Hijau", BLOCK_W, CENTER_W),
@@ -400,7 +503,10 @@ std::vector<std::string> CLIGUI::buildCenterPanel(const Game& game) {
 
 void CLIGUI::renderBoard(const Game& game) {
     Board* board = game.getBoard();
-    if (board == nullptr) { std::cout << "[INFO] Papan belum tersedia.\n"; return; }
+    if (board == nullptr) {
+        std::cout << colorize("X  Papan belum tersedia.", UI_RED, true) << "\n";
+        return;
+    }
 
     const auto& tiles = board->getAllTiles();
     int N = (int)tiles.size(); // expected 40
@@ -483,7 +589,7 @@ std::string CLIGUI::getCommand() {
         pendingCommands.pop_front();
         return c;
     }
-    std::cout << "> " << std::flush;
+    std::cout << colorize("> ", UI_MAGENTA, true) << std::flush;
     std::string line;
     if (!std::getline(std::cin, line)) {
         exitRequested = true;
@@ -494,39 +600,59 @@ std::string CLIGUI::getCommand() {
 }
 
 void CLIGUI::loadMainMenu() {
-    std::cout << "\n===== NIMONSPOLI =====\n"
-              << "Ketik salah satu:\n"
-              << "  NEW_GAME           - mulai game baru\n"
-              << "  LOAD_GAME <path>   - muat save file\n"
-              << "  EXIT               - keluar\n";
+    printBanner("NIMONSPOLI", UI_CYAN);
+    std::cout << colorize("Menu Utama", UI_WHITE, true) << "\n"
+              << "  NEW_GAME           mulai game baru\n"
+              << "  LOAD_GAME <path>   muat save file\n"
+              << "  MUAT <path>        alias load save file\n"
+              << "  EXIT               keluar\n\n"
+              << colorize("Warna pesan:", UI_WHITE, true) << " "
+              << colorize("info", UI_CYAN) << " | "
+              << colorize("berhasil", UI_GREEN) << " | "
+              << colorize("peringatan", UI_YELLOW) << " | "
+              << colorize("gagal", UI_RED) << " | "
+              << colorize("input", UI_MAGENTA) << "\n";
 }
 
 void CLIGUI::loadGameView() {
-    std::cout << "\n----- Memulai Permainan -----\n";
+    printBanner("PERMAINAN DIMULAI", UI_GREEN, '-');
 }
 
 void CLIGUI::loadFinishMenu() {
-    std::cout << "\n----- Permainan Berakhir -----\n";
+    printBanner("PERMAINAN BERAKHIR", UI_RED, '-');
 }
 
 void CLIGUI::showMessage(const std::string& message) {
-    std::cout << "[INFO] " << message << "\n";
+    const MessageTone tone = classifyMessageTone(message);
+    const std::string prefix = tonePrefix(tone);
+    const std::string color = toneColor(tone);
+
+    std::stringstream ss(message);
+    std::string line;
+    while (std::getline(ss, line)) {
+        std::cout << colorize(prefix, color, true) << "  "
+                  << colorize(line, color) << "\n";
+    }
 }
 
 void CLIGUI::showConfirm(const std::string& question) {
-    std::cout << "[?] " << question << " (YA/TIDAK): " << std::flush;
+    std::cout << colorize("?", UI_YELLOW, true) << "  "
+              << colorize(question, UI_YELLOW, true) << " " << std::flush;
 }
 
 void CLIGUI::showInputPrompt(const std::string& prompt) {
-    std::cout << "[INPUT] " << prompt << "\n";
+    std::cout << colorize(prompt, UI_MAGENTA, true) << "\n";
 }
 
 void CLIGUI::renderPlayer(const Player& player) {
-    std::cout << "\n--- " << player.getUsername() << " ---\n"
-              << "  Saldo   : " << player.getBalance() << "\n"
-              << "  Posisi  : " << player.getPosition() << "\n"
-              << "  Properti: " << player.getOwnedProperties().size() << "\n"
-              << "  Kartu   : " << player.getCardCount() << "\n";
+    std::cout << "\n"
+              << colorize("Giliran " + player.getUsername(), UI_WHITE, true) << "\n"
+              << colorize(std::string(24, '-'), UI_WHITE, false, true) << "\n"
+              << "  Saldo    : " << colorize(formatMoney(player.getBalance()), UI_GREEN, true) << "\n"
+              << "  Posisi   : petak " << player.getPosition() << "\n"
+              << "  Status   : " << colorize(playerStatusLabel(player.getStatus()), statusColor(player.getStatus()), true) << "\n"
+              << "  Properti : " << player.getOwnedProperties().size() << "\n"
+              << "  Kartu    : " << player.getCardCount() << "\n";
 }
 
 void CLIGUI::renderProperty(const Property& property) {
@@ -581,33 +707,36 @@ void CLIGUI::renderProperty(const Property& property) {
 
     const std::string top    = "+" + std::string(innerWidth, '=') + "+";
     const std::string middle = "+" + std::string(innerWidth, '-') + "+";
+    const std::string titleColor = property.getType() == PropertyType::RAILROAD ? UI_YELLOW :
+                                   property.getType() == PropertyType::UTILITY ? UI_WHITE :
+                                   UI_CYAN;
 
-    std::cout << top << "\n";
+    std::cout << colorize(top, titleColor, true) << "\n";
     std::cout << boxLine(padCenter("AKTA KEPEMILIKAN", innerWidth), innerWidth) << "\n";
-    std::cout << boxLine(padCenter(title, innerWidth), innerWidth) << "\n";
-    std::cout << top << "\n";
+    std::cout << colorize(boxLine(padCenter(title, innerWidth), innerWidth), titleColor, true) << "\n";
+    std::cout << colorize(top, titleColor, true) << "\n";
 
     for (const std::string& line : mainLines) {
         std::cout << boxLine(line, innerWidth) << "\n";
     }
 
     if (!detailLines.empty()) {
-        std::cout << middle << "\n";
+        std::cout << colorize(middle, UI_WHITE, false, true) << "\n";
         for (const std::string& line : detailLines) {
             std::cout << boxLine(line, innerWidth) << "\n";
         }
     }
 
     if (!buildLines.empty()) {
-        std::cout << middle << "\n";
+        std::cout << colorize(middle, UI_WHITE, false, true) << "\n";
         for (const std::string& line : buildLines) {
             std::cout << boxLine(line, innerWidth) << "\n";
         }
     }
 
-    std::cout << top << "\n";
+    std::cout << colorize(top, titleColor, true) << "\n";
     std::cout << boxLine(statusLine, innerWidth) << "\n";
-    std::cout << top << "\n";
+    std::cout << colorize(top, titleColor, true) << "\n";
 }
 
 void CLIGUI::renderOwnedProperties(const Player& player) {
@@ -624,11 +753,12 @@ void CLIGUI::renderOwnedProperties(const Player& player) {
         grouped[group].push_back(property);
     }
 
-    std::cout << "=== Properti Milik: " << player.getUsername() << " ===\n\n";
+    std::cout << "\n" << colorize("PROPERTI MILIK " + player.getUsername(), UI_WHITE, true) << "\n"
+              << colorize(std::string(32, '='), UI_WHITE, false, true) << "\n\n";
 
     for (size_t g = 0; g < groupOrder.size(); ++g) {
         const std::string& group = groupOrder[g];
-        std::cout << "[" << group << "]\n";
+        std::cout << colorize("[" + group + "]", UI_CYAN, true) << "\n";
 
         for (Property* property : grouped[group]) {
             std::ostringstream line;
@@ -650,49 +780,61 @@ void CLIGUI::renderOwnedProperties(const Player& player) {
     }
 
     std::cout << "\nTotal kekayaan properti: "
-              << formatMoney(player.calculatePropertyAssetValue() + player.calculateBuildingAssetValue())
+              << colorize(formatMoney(player.calculatePropertyAssetValue() + player.calculateBuildingAssetValue()),
+                          UI_GREEN, true)
               << "\n";
 }
 
 void CLIGUI::renderDice(int die1, int die2) {
-    std::cout << "Hasil: " << die1 << " + " << die2 << " = " << (die1 + die2) << "\n";
+    std::cout << colorize("Hasil dadu", UI_WHITE, true) << ": "
+              << colorize(std::to_string(die1), UI_CYAN, true)
+              << " + "
+              << colorize(std::to_string(die2), UI_CYAN, true)
+              << " = "
+              << colorize(std::to_string(die1 + die2), UI_GREEN, true) << "\n";
 }
 
 void CLIGUI::renderLog(const std::vector<LogEntry>& entries, const std::string& title) {
-    std::cout << "\n" << title << "\n\n";
+    std::cout << "\n" << colorize(title, UI_WHITE, true) << "\n"
+              << colorize(std::string(title.size(), '-'), UI_WHITE, false, true) << "\n";
     for (const LogEntry& e : entries) {
         std::cout << e.toString() << "\n";
     }
 }
 
 void CLIGUI::renderSkillHand(const std::vector<SkillCard*>& hand) {
-    std::cout << "\n--- KARTU KEMAMPUAN ---\n";
+    std::cout << "\n" << colorize("KARTU KEMAMPUAN", UI_MAGENTA, true) << "\n";
     for (size_t i = 0; i < hand.size(); ++i)
-        std::cout << i << ". " << hand[i]->getCardName() << "\n";
+        std::cout << "  " << colorize(std::to_string(i + 1) + ".", UI_MAGENTA, true)
+                  << " " << hand[i]->getCardName() << "\n";
 }
 
 void CLIGUI::renderAuction(const Property& property, int currentBid, const Player* highBidder) {
-    std::cout << "\n[LELANG] " << property.getName()
-              << " | bid saat ini: " << currentBid;
+    std::cout << "\n" << colorize("LELANG", UI_YELLOW, true) << "  "
+              << property.getName()
+              << " | bid saat ini: " << colorize(formatMoney(currentBid), UI_GREEN, true);
     if (highBidder != nullptr)
-        std::cout << " (oleh " << highBidder->getUsername() << ")";
+        std::cout << " (oleh " << colorize(highBidder->getUsername(), UI_WHITE, true) << ")";
     std::cout << "\n";
 }
 
 void CLIGUI::renderBankruptcy(const Player& player) {
-    std::cout << "\n[BANGKRUT] " << player.getUsername()
+    std::cout << "\n" << colorize("BANGKRUT", UI_RED, true) << "  "
+              << colorize(player.getUsername(), UI_RED, true)
               << " tidak dapat membayar. Likuidasi aset...\n";
 }
 
 void CLIGUI::renderWinner(const Player& winner) {
-    std::cout << "\n===== PEMENANG =====\n"
-              << winner.getUsername()
+    printBanner("PEMENANG", UI_GREEN);
+    std::cout << colorize(winner.getUsername(), UI_GREEN, true)
               << " dengan total kekayaan "
-              << winner.calculateTotalWealth() << "\n";
+              << colorize(formatMoney(winner.calculateTotalWealth()), UI_GREEN, true) << "\n";
 }
 
 void CLIGUI::renderMovement(const std::string& playerName, int steps, const std::string& landedTileName) {
-    std::cout << "Memajukan Bidak " << playerName
-              << " sebanyak " << steps << " petak...\n"
-              << "Bidak mendarat di: " << landedTileName << ".\n";
+    std::cout << colorize("Pergerakan", UI_CYAN, true) << "\n"
+              << "  Bidak " << colorize(playerName, UI_WHITE, true)
+              << " maju " << colorize(std::to_string(steps), UI_CYAN, true)
+              << " petak.\n"
+              << "  Mendarat di: " << colorize(landedTileName, UI_CYAN, true) << ".\n";
 }

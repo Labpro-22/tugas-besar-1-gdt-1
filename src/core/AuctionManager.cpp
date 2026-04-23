@@ -1,7 +1,6 @@
 #include "core/AuctionManager.hpp"
 #include <algorithm>
 #include <sstream>
-#include <set>
 
 AuctionManager::AuctionManager(Game* game, TransactionLogger* logger, IGUI* gui)
     : game(game), logger(logger), gui(gui) {}
@@ -50,16 +49,29 @@ std::vector<Player*> AuctionManager::buildAuctionOrder(Player* triggeringPlayer)
     return orderedPlayers;
 }
 
-bool AuctionManager::validateBid(const Player& player, int amount, int currentHighBid) const {
-    if (amount <= currentHighBid) return false;
+bool AuctionManager::validateBid(const Player& player, int amount, int currentHighBid,
+                                 bool hasHighBidder) const {
+    if (hasHighBidder) {
+        if (amount <= currentHighBid) return false;
+    } else {
+        if (amount < currentHighBid) return false;
+    }
     if (!player.canAfford(amount)) return false;
     return true;
 }
 
-std::pair<AuctionAction, int> AuctionManager::collectBidOrPass(Player& player, int currentHighBid) {
-    gui->showMessage("Giliran: " + player.getUsername());
-    gui->showInputPrompt("Aksi (PASS / BID <jumlah>) [min > M" +
-                         std::to_string(currentHighBid) + "]");
+std::pair<AuctionAction, int> AuctionManager::collectBidOrPass(Player& player, int currentHighBid,
+                                                               bool hasHighBidder, bool forceBid) {
+    gui->showMessage("Giliran lelang: " + player.getUsername());
+
+    std::string minimumLabel = hasHighBidder ? ("> M" + std::to_string(currentHighBid))
+                                             : (">= M" + std::to_string(currentHighBid));
+    if (forceBid) {
+        gui->showInputPrompt("Masukkan BID <jumlah> (minimal " + minimumLabel + "). Kamu wajib menawar.");
+    } else {
+        gui->showInputPrompt("Masukkan PASS atau BID <jumlah> (minimal " + minimumLabel + ").");
+    }
+
     std::string in;
     while (!gui->shouldExit()) {
         gui->update(); gui->display();
@@ -73,6 +85,9 @@ std::pair<AuctionAction, int> AuctionManager::collectBidOrPass(Player& player, i
                    [](unsigned char ch){ return std::toupper(ch); });
 
     if (action == "LEWAT" || action == "PASS") {
+        if (forceBid) {
+            return {AuctionAction::INVALID, 0};
+        }
         return {AuctionAction::PASS, 0};
     }
 
@@ -93,13 +108,14 @@ std::pair<AuctionAction, int> AuctionManager::collectBidOrPass(Player& player, i
 }
 
 void AuctionManager::finalizeAuction(Player* winner, Property* property, int bidAmount) {
-    if (winner == nullptr || bidAmount <= 0) {
+    if (winner == nullptr) {
         if (logger) {
             logger->log(game->getCurrentTurn(), "BANK",
                         "LELANG",
                         property->getName() + " (" + property->getCode() + ") tanpa pemenang");
         }
-        gui->showMessage("Lelang selesai tanpa pemenang. Properti tetap milik Bank.");
+        gui->showMessage("Lelang selesai tanpa pemenang.");
+        gui->showMessage("Properti tetap menjadi milik Bank.");
         return;
     }
     winner->deductMoney(bidAmount);
@@ -111,8 +127,8 @@ void AuctionManager::finalizeAuction(Player* winner, Property* property, int bid
                             "LELANG",
                             "Menang " + property->getName() + " (" + property->getCode() +
                             ") seharga M" + std::to_string(bidAmount));
-    gui->showMessage("Lelang selesai!");
-    gui->showMessage("Pemenang: " + winner->getUsername());
+    gui->showMessage("Lelang selesai.");
+    gui->showMessage("Pemenang lelang: " + winner->getUsername());
     gui->showMessage("Harga akhir: M" + std::to_string(bidAmount));
     gui->showMessage("Properti " + property->getName() + " (" + property->getCode() +
                      ") kini dimiliki " + winner->getUsername() + ".");
@@ -125,10 +141,10 @@ Player* AuctionManager::runAuction(Property* property, Player* triggeringPlayer)
 
     int currentBid = 0;
     Player* highBidder = nullptr;
-    std::set<Player*> passed;
     int n = static_cast<int>(order.size());
+    int consecutivePasses = 0;
 
-    gui->showMessage("Properti " + property->getName() + " (" + property->getCode() + ") akan dilelang!");
+    gui->showMessage("Properti " + property->getName() + " (" + property->getCode() + ") akan dilelang.");
     if (triggeringPlayer != nullptr) {
         gui->showMessage("Urutan lelang dimulai dari pemain setelah " +
                          triggeringPlayer->getUsername() + ".");
@@ -136,38 +152,53 @@ Player* AuctionManager::runAuction(Property* property, Player* triggeringPlayer)
     gui->renderAuction(*property, currentBid, highBidder);
 
     int i = 0;
-    while (static_cast<int>(passed.size()) < n) {
+    while (!gui->shouldExit()) {
         Player* p = order[i % n];
-        if (passed.count(p) == 0) {
-            auto [act, amt] = collectBidOrPass(*p, currentBid);
-            if (act == AuctionAction::PASS) {
-                gui->showMessage(p->getUsername() + " PASS");
-                passed.insert(p);
-            } else if (validateBid(*p, amt, currentBid)) {
-                currentBid = amt;
-                highBidder = p;
-                if (logger) {
-                    logger->log(game->getCurrentTurn(), p->getUsername(),
-                                "LELANG",
-                                property->getCode() + " BID M" + std::to_string(currentBid));
-                }
-                gui->showMessage("Penawaran tertinggi: M" + std::to_string(currentBid) +
-                                 " (" + highBidder->getUsername() + ")");
-                gui->renderAuction(*property, currentBid, highBidder);
-            } else if (act == AuctionAction::INVALID) {
-                gui->showMessage("Input tidak valid. Gunakan PASS atau BID <jumlah>.");
-                continue;
+        const bool hasHighBidder = (highBidder != nullptr);
+        const bool forceBid = (!hasHighBidder && consecutivePasses >= n - 1);
+
+        auto [act, amt] = collectBidOrPass(*p, currentBid, hasHighBidder, forceBid);
+        if (act == AuctionAction::INVALID) {
+            if (forceBid) {
+                gui->showMessage("Belum ada penawaran sama sekali. Kamu wajib memasukkan BID <jumlah>.");
             } else {
-                gui->showMessage("Bid tidak valid. Jumlah harus melebihi penawaran tertinggi dan saldo kamu.");
-                continue;
+                gui->showMessage("Perintah lelang tidak valid. Gunakan PASS atau BID <jumlah>.");
             }
+            continue;
         }
+
+        if (act == AuctionAction::PASS) {
+            gui->showMessage(p->getUsername() + " memilih PASS.");
+            ++consecutivePasses;
+
+            if (highBidder != nullptr && consecutivePasses >= n - 1) {
+                break;
+            }
+        } else if (validateBid(*p, amt, currentBid, hasHighBidder)) {
+            currentBid = amt;
+            highBidder = p;
+            consecutivePasses = 0;
+            if (logger) {
+                logger->log(game->getCurrentTurn(), p->getUsername(),
+                            "LELANG",
+                            property->getCode() + " BID M" + std::to_string(currentBid));
+            }
+            gui->showMessage("Penawaran tertinggi: M" + std::to_string(currentBid) +
+                             " (" + highBidder->getUsername() + ")");
+            gui->renderAuction(*property, currentBid, highBidder);
+        } else {
+            if (hasHighBidder) {
+                gui->showMessage("Bid tidak valid.");
+                gui->showMessage("Jumlah bid harus lebih tinggi dari penawaran saat ini dan tidak boleh melebihi saldo kamu.");
+            } else {
+                gui->showMessage("Bid tidak valid.");
+                gui->showMessage("Penawaran awal minimal M" + std::to_string(currentBid) +
+                                 " dan tidak boleh melebihi saldo kamu.");
+            }
+            continue;
+        }
+
         ++i;
-        if (highBidder != nullptr &&
-            static_cast<int>(passed.size()) == n - 1 &&
-            passed.count(highBidder) == 0) {
-            break;
-        }
     }
 
     finalizeAuction(highBidder, property, currentBid);

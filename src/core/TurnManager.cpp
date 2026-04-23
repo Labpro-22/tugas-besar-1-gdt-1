@@ -15,6 +15,19 @@ TurnManager::TurnManager(Game* game, DiceManager* dice, IGUI* gui, TransactionLo
     : game(game), dice(dice), gui(gui), logger(logger),
       phase(TurnPhase::START), hasActed(false), shieldActive(false) {}
 
+std::string TurnManager::waitForInput(const std::string& prompt) {
+    gui->showInputPrompt(prompt);
+    while (!gui->shouldExit()) {
+        gui->update();
+        gui->display();
+        std::string command = gui->getCommand();
+        if (!command.empty() && command != "NULL") {
+            return command;
+        }
+    }
+    return "";
+}
+
 void TurnManager::startTurn(Player* player) {
     phase = TurnPhase::START;
     hasActed = false;
@@ -22,7 +35,6 @@ void TurnManager::startTurn(Player* player) {
 
     player->startTurn();
     distributeSkillCard(player);
-    handleDropCard(player);
     decrementFestivalDurations();
 
     phase = TurnPhase::AWAITING_ROLL;
@@ -71,25 +83,80 @@ void TurnManager::distributeSkillCard(Player* player) {
     CardDeck<SkillCard>* deck = game->getSkillDeck();
     if (deck == nullptr || deck->isEmpty()) return;
     SkillCard* card = deck->draw();
-    if (!player->addCard(card)) {
-        deck->discard(card);
+    if (card == nullptr) return;
+
+    gui->showMessage("Kamu mendapatkan 1 kartu acak baru!");
+    gui->showMessage("Kartu yang didapat: " + card->getCardName() + ".");
+
+    if (player->getCardCount() >= 3) {
+        handleDropCard(player, card);
         return;
     }
+
+    player->addCard(card);
+    gui->showMessage("Kartu " + card->getCardName() + " masuk ke tanganmu.");
     if (logger != nullptr) {
         logger->log(game->getCurrentTurn(), player->getUsername(),
                     "KARTU", "Mendapat kartu skill: " + card->getCardName());
     }
 }
 
-void TurnManager::handleDropCard(Player* player) {
-    const int HAND_LIMIT = 5;
-    while (player->getCardCount() > HAND_LIMIT) {
-        const auto& hand = player->getHandCards();
-        if (hand.empty()) break;
-        SkillCard* drop = hand.front();
-        player->removeCard(drop);
-        game->getSkillDeck()->discard(drop);
-        // TODO: ganti ke pemilihan via IGUI ketika API pilih-kartu tersedia
+void TurnManager::handleDropCard(Player* player, SkillCard* drawnCard) {
+    if (player == nullptr || drawnCard == nullptr || game == nullptr || game->getSkillDeck() == nullptr) {
+        return;
+    }
+
+    CardDeck<SkillCard>* deck = game->getSkillDeck();
+    const auto& hand = player->getHandCards();
+
+    gui->showMessage("Kamu sudah memiliki 3 kartu di tangan.");
+    gui->showMessage("Kamu diwajibkan membuang 1 kartu.");
+    gui->showMessage("Daftar kartu kemampuanmu:");
+
+    for (size_t i = 0; i < hand.size(); ++i) {
+        gui->showMessage(std::to_string(i + 1) + ". " + hand[i]->getCardName() +
+                         " - " + hand[i]->getDescription());
+    }
+    gui->showMessage(std::to_string(hand.size() + 1) + ". " + drawnCard->getCardName() +
+                     " - " + drawnCard->getDescription());
+
+    int choice = -1;
+    const int maxChoice = static_cast<int>(hand.size()) + 1;
+    while (choice < 1 || choice > maxChoice) {
+        std::string input = waitForInput("Pilih nomor kartu yang ingin dibuang (1-" +
+                                         std::to_string(maxChoice) + "):");
+        try {
+            choice = std::stoi(input);
+        } catch (...) {
+            choice = -1;
+        }
+        if (choice < 1 || choice > maxChoice) {
+            gui->showMessage("Nomor kartu tidak valid.");
+        }
+    }
+
+    if (choice == maxChoice) {
+        deck->discard(drawnCard);
+        gui->showMessage(drawnCard->getCardName() + " dibuang.");
+        if (logger != nullptr) {
+            logger->log(game->getCurrentTurn(), player->getUsername(),
+                        "KARTU", "Mendapat " + drawnCard->getCardName() +
+                        ", lalu langsung membuangnya");
+        }
+        return;
+    }
+
+    SkillCard* discarded = hand[choice - 1];
+    player->removeCard(discarded);
+    deck->discard(discarded);
+    player->addCard(drawnCard);
+
+    gui->showMessage(discarded->getCardName() + " dibuang.");
+    gui->showMessage("Sekarang kamu memiliki 3 kartu di tangan.");
+    if (logger != nullptr) {
+        logger->log(game->getCurrentTurn(), player->getUsername(),
+                    "KARTU", "Mendapat " + drawnCard->getCardName() +
+                    ", buang " + discarded->getCardName());
     }
 }
 

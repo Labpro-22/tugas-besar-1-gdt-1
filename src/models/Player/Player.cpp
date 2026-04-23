@@ -5,6 +5,22 @@
 #include "models/Property/UtilityProperty.hpp"
 #include "models/CardAndDeck/SkillCard.hpp"
 
+namespace {
+int requiredStreetCount(const std::string& colorGroup) {
+    if (colorGroup == "COKLAT" || colorGroup == "BIRU_TUA") {
+        return 2;
+    }
+
+    if (colorGroup == "BIRU_MUDA" || colorGroup == "MERAH_MUDA" ||
+        colorGroup == "ORANGE" || colorGroup == "MERAH" ||
+        colorGroup == "KUNING" || colorGroup == "HIJAU") {
+        return 3;
+    }
+
+    return 0;
+}
+}
+
 Player::Player(const std::string &username, int initialBalance)
     : username(username),
       balance(initialBalance),
@@ -108,11 +124,22 @@ int Player::countOwnedUtilities() const {
     return count;
 }
 
-bool Player::ownsFullColorGroup(const std::string& /*colorGroup*/) const {
-    // This requires knowledge of all properties in that group.
-    // Simplifying: this logic usually resides in a Manager or requires a Board reference.
-    // For now, return false or implement if we can find a way.
-    return false; 
+bool Player::ownsFullColorGroup(const std::string& colorGroup) const {
+    const int required = requiredStreetCount(colorGroup);
+    if (required <= 0) {
+        return false;
+    }
+
+    int ownedCount = 0;
+    for (Property *property : ownedProperties) {
+        auto *street = dynamic_cast<StreetProperty *>(property);
+        if (street == nullptr) continue;
+        if (street->getColorGroup() == colorGroup) {
+            ++ownedCount;
+        }
+    }
+
+    return ownedCount == required;
 }
 
 int Player::calculatePropertyAssetValue() const {
@@ -144,6 +171,7 @@ void Player::startTurn() {
     hasUsedSkillThisTurn = false;
     pendingFestival = false;
     consecutiveDoubles = 0;
+    pendingDiscount = 0;
 }
 
 bool Player::hasPendingFestival() const { return pendingFestival; }

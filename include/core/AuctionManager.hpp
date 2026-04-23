@@ -19,8 +19,10 @@ private:
     IGUI* gui;
 
     std::vector<Player*> buildAuctionOrder(Player* triggeringPlayer) const;
-    std::pair<AuctionAction, int> collectBidOrPass(Player& player, int currentHighBid);
-    bool validateBid(const Player& player, int amount, int currentHighBid) const;
+    std::pair<AuctionAction, int> collectBidOrPass(Player& player, int currentHighBid,
+                                                   bool hasHighBidder, bool forceBid);
+    bool validateBid(const Player& player, int amount, int currentHighBid,
+                     bool hasHighBidder) const;
     void finalizeAuction(Player* winner, Property* property, int bidAmount);
 
 public:

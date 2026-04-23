@@ -40,6 +40,7 @@ public:
     SaveLoadManager(Game* game, TransactionLogger* logger, TurnManager* turnManager, IGUI* gui,
                     std::string configSourceDir);
 
+    bool saveTargetExists(const std::string& filepath) const;
     bool save(const std::string& filepath);
     bool load(const std::string& filepath);
     bool saveLogSnapshot(const std::string& filepath) const;

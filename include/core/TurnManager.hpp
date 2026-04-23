@@ -1,12 +1,15 @@
 #ifndef TURNMANAGER_HPP
 #define TURNMANAGER_HPP
 
+#include <string>
+
 class Game;
 class Player;
 class Tile;
 class DiceManager;
 class IGUI;
 class TransactionLogger;
+class SkillCard;
 
 enum class TurnPhase {
     START,
@@ -27,8 +30,9 @@ private:
     bool shieldActive;
 
     void distributeSkillCard(Player* player);
-    void handleDropCard(Player* player);
+    void handleDropCard(Player* player, SkillCard* drawnCard);
     void decrementFestivalDurations();
+    std::string waitForInput(const std::string& prompt);
 
 public:
     TurnManager(Game* game, DiceManager* dice, IGUI* gui, TransactionLogger* logger = nullptr);

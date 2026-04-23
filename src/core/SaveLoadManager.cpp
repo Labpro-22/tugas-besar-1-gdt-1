@@ -1,34 +1,279 @@
 #include "core/SaveLoadManager.hpp"
+#include "models/BoardAndTiles/Board.hpp"
+#include "models/BoardAndTiles/PropertyTile.hpp"
+#include "models/BoardAndTiles/Tile.hpp"
+#include "models/CardAndDeck/CardDeck.hpp"
+#include "models/CardAndDeck/ChanceCard.hpp"
+#include "models/CardAndDeck/CommunityChestCard.hpp"
+#include "models/CardAndDeck/DemolitionCard.hpp"
+#include "models/CardAndDeck/DiscountCard.hpp"
+#include "models/CardAndDeck/LassoCard.hpp"
+#include "models/CardAndDeck/MoveCard.hpp"
+#include "models/CardAndDeck/ShieldCard.hpp"
+#include "models/CardAndDeck/SkillCard.hpp"
+#include "models/CardAndDeck/TeleportCard.hpp"
 #include "models/Player/Player.hpp"
 #include "models/Property/Property.hpp"
 #include "models/Property/StreetProperty.hpp"
-#include "models/BoardAndTiles/Board.hpp"
-#include "models/BoardAndTiles/Tile.hpp"
-#include "models/BoardAndTiles/PropertyTile.hpp"
-#include "models/CardAndDeck/SkillCard.hpp"
-#include "models/CardAndDeck/CardDeck.hpp"
 
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <map>
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
+#include <fstream>
+#include <map>
+#include <sstream>
 #include <type_traits>
+#include <vector>
 
 namespace {
+constexpr int kSaveVersion = 2;
+constexpr int kLogVersion = 2;
+
+const std::vector<std::string> kConfigFiles = {
+    "aksi.txt",
+    "misc.txt",
+    "property.txt",
+    "railroad.txt",
+    "special.txt",
+    "tax.txt",
+    "utility.txt"
+};
+
+std::vector<std::string> splitRaw(const std::string& s, char sep) {
+    std::vector<std::string> out;
+    std::stringstream ss(s);
+    std::string tok;
+    while (std::getline(ss, tok, sep)) out.push_back(tok);
+    return out;
+}
+
+std::vector<std::string> splitEscaped(const std::string& s, char sep) {
+    std::vector<std::string> out;
+    std::string current;
+    bool escaped = false;
+
+    for (char ch : s) {
+        if (escaped) {
+            current.push_back(ch);
+            escaped = false;
+            continue;
+        }
+
+        if (ch == '\\') {
+            escaped = true;
+            continue;
+        }
+
+        if (ch == sep) {
+            out.push_back(current);
+            current.clear();
+            continue;
+        }
+
+        current.push_back(ch);
+    }
+
+    if (escaped) current.push_back('\\');
+    out.push_back(current);
+    return out;
+}
+
+std::string escapeField(const std::string& s) {
+    std::string out;
+    out.reserve(s.size());
+    for (char ch : s) {
+        if (ch == '\\' || ch == '|' || ch == ',') out.push_back('\\');
+        out.push_back(ch);
+    }
+    return out;
+}
+
+bool isIntegerToken(const std::string& s) {
+    if (s.empty()) return false;
+    std::size_t start = (s[0] == '-') ? 1 : 0;
+    if (start == s.size()) return false;
+    for (std::size_t i = start; i < s.size(); ++i) {
+        if (!std::isdigit(static_cast<unsigned char>(s[i]))) return false;
+    }
+    return true;
+}
+
+std::string chanceTypeToToken(ChanceType type) {
+    switch (type) {
+        case ChanceType::GO_TO_NEAREST_STATION: return "GO_TO_NEAREST_STATION";
+        case ChanceType::MOVE_BACK_3:           return "MOVE_BACK_3";
+        case ChanceType::GO_TO_JAIL:            return "GO_TO_JAIL";
+    }
+    return "GO_TO_JAIL";
+}
+
+ChanceType chanceTypeFromToken(const std::string& token) {
+    if (token == "GO_TO_NEAREST_STATION") return ChanceType::GO_TO_NEAREST_STATION;
+    if (token == "MOVE_BACK_3")           return ChanceType::MOVE_BACK_3;
+    return ChanceType::GO_TO_JAIL;
+}
+
+std::string communityTypeToToken(CommunityType type) {
+    switch (type) {
+        case CommunityType::BIRTHDAY:     return "BIRTHDAY";
+        case CommunityType::DOCTOR_FEE:   return "DOCTOR_FEE";
+        case CommunityType::CAMPAIGN_FEE: return "CAMPAIGN_FEE";
+    }
+    return "CAMPAIGN_FEE";
+}
+
+CommunityType communityTypeFromToken(const std::string& token) {
+    if (token == "BIRTHDAY")     return CommunityType::BIRTHDAY;
+    if (token == "DOCTOR_FEE")   return CommunityType::DOCTOR_FEE;
+    return CommunityType::CAMPAIGN_FEE;
+}
+
+int skillCardValue(const SkillCard* card) {
+    if (auto* move = dynamic_cast<const MoveCard*>(card)) {
+        return move->getSteps();
+    }
+    if (auto* discount = dynamic_cast<const DiscountCard*>(card)) {
+        return discount->getDiscount();
+    }
+    return 0;
+}
+
+int skillCardDuration(const SkillCard* card) {
+    if (auto* discount = dynamic_cast<const DiscountCard*>(card)) {
+        return discount->getDuration();
+    }
+    if (auto* shield = dynamic_cast<const ShieldCard*>(card)) {
+        return shield->getDuration();
+    }
+    return 0;
+}
+
+std::string encodeCardToken(const Card* card) {
+    if (auto* chance = dynamic_cast<const ChanceCard*>(card)) {
+        return "ChanceCard:" + chanceTypeToToken(chance->getType());
+    }
+    if (auto* community = dynamic_cast<const CommunityChestCard*>(card)) {
+        return "CommunityChestCard:" + communityTypeToToken(community->getType());
+    }
+    if (auto* skill = dynamic_cast<const SkillCard*>(card)) {
+        return skill->getCardName() + ":" +
+               std::to_string(skillCardValue(skill)) + ":" +
+               std::to_string(skillCardDuration(skill));
+    }
+    return card != nullptr ? card->getCardName() : "";
+}
+
 template <typename T>
-std::string joinCardNames(const std::vector<T*>& cards) {
+std::string joinCardTokens(const std::vector<T*>& cards) {
     std::ostringstream oss;
-    for (size_t i = 0; i < cards.size(); ++i) {
+    for (std::size_t i = 0; i < cards.size(); ++i) {
         if (cards[i] != nullptr) {
-            oss << cards[i]->getCardName();
+            oss << escapeField(encodeCardToken(cards[i]));
         }
         if (i + 1 < cards.size()) {
             oss << ",";
         }
     }
     return oss.str();
+}
+
+SkillCard* decodeSkillCardToken(const std::string& token) {
+    const auto parts = splitRaw(token, ':');
+    if (parts.empty()) return nullptr;
+
+    const std::string& name = parts[0];
+    const int value = (parts.size() >= 2 && isIntegerToken(parts[1])) ? std::stoi(parts[1]) : 0;
+
+    if (name == "MoveCard")       return new MoveCard(value == 0 ? 3 : value);
+    if (name == "DiscountCard")   return new DiscountCard(value == 0 ? 50 : value);
+    if (name == "ShieldCard")     return new ShieldCard();
+    if (name == "TeleportCard")   return new TeleportCard();
+    if (name == "LassoCard")      return new LassoCard();
+    if (name == "DemolitionCard") return new DemolitionCard();
+    return nullptr;
+}
+
+ChanceCard* decodeChanceCardToken(const std::string& token) {
+    const auto parts = splitRaw(token, ':');
+    if (parts.empty()) return nullptr;
+
+    if (parts[0] == "ChanceCard" && parts.size() >= 2) {
+        return new ChanceCard(chanceTypeFromToken(parts[1]));
+    }
+    if (parts[0] == "ChanceCard") {
+        return new ChanceCard(ChanceType::GO_TO_JAIL);
+    }
+    return nullptr;
+}
+
+CommunityChestCard* decodeCommunityCardToken(const std::string& token) {
+    const auto parts = splitRaw(token, ':');
+    if (parts.empty()) return nullptr;
+
+    if (parts[0] == "CommunityChestCard" && parts.size() >= 2) {
+        return new CommunityChestCard(communityTypeFromToken(parts[1]));
+    }
+    if (parts[0] == "CommunityChestCard") {
+        return new CommunityChestCard(CommunityType::CAMPAIGN_FEE);
+    }
+    return nullptr;
+}
+
+std::string propertyTypeToString(PropertyType type) {
+    switch (type) {
+        case PropertyType::STREET:   return "street";
+        case PropertyType::RAILROAD: return "railroad";
+        case PropertyType::UTILITY:  return "utility";
+    }
+    return "street";
+}
+
+std::string positionToToken(const Player* player, const Board* board) {
+    if (player == nullptr) return "1";
+    if (board != nullptr) {
+        try {
+            Tile* tile = board->getTile(player->getPosition());
+            if (tile != nullptr && !tile->getCode().empty()) {
+                return tile->getCode();
+            }
+        } catch (...) {
+        }
+    }
+    return std::to_string(player->getPosition());
+}
+
+int positionFromToken(const std::string& token, const Board* board) {
+    if (isIntegerToken(token)) return std::stoi(token);
+    if (board == nullptr) return 1;
+
+    try {
+        Tile* tile = board->getTile(token);
+        return (tile != nullptr) ? tile->getIndex() : 1;
+    } catch (...) {
+        return 1;
+    }
+}
+
+std::string buildingToken(int stateIdx) {
+    if (stateIdx <= 0) return "0";
+    if (stateIdx >= 5) return "H";
+    return std::to_string(stateIdx);
+}
+
+int parseBuildingToken(const std::string& token) {
+    if (token == "H" || token == "HOTEL") return 5;
+    if (!isIntegerToken(token)) return 0;
+    const int value = std::stoi(token);
+    return std::clamp(value, 0, 4);
+}
+
+int findPlayerIndex(const std::vector<Player*>& players, const std::string& username) {
+    for (std::size_t i = 0; i < players.size(); ++i) {
+        if (players[i] != nullptr && players[i]->getUsername() == username) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
 }
 }
 
@@ -39,6 +284,12 @@ SaveLoadManager::SaveLoadManager(Game* game, TransactionLogger* logger, TurnMana
       turnManager(turnManager),
       gui(gui),
       configSourceDir(std::move(configSourceDir)) {}
+
+bool SaveLoadManager::saveTargetExists(const std::string& filepath) const {
+    namespace fs = std::filesystem;
+    const fs::path saveDir(resolveSaveDirectory(filepath));
+    return fs::exists(saveDir);
+}
 
 std::string SaveLoadManager::resolveSaveDirectory(const std::string& savePath) {
     namespace fs = std::filesystem;
@@ -126,9 +377,14 @@ bool SaveLoadManager::saveLogFile(const std::string& saveFilepath) const {
     if (!logOfs.is_open()) return false;
 
     const auto& entries = logger->getFullLog();
-    logOfs << entries.size() << "\n";
+    logOfs << "NIMONSPOLI_LOG " << kLogVersion << "\n";
+    logOfs << "COUNT " << entries.size() << "\n";
     for (const LogEntry& entry : entries) {
-        logOfs << entry.toSaveString() << "\n";
+        logOfs << "ENTRY "
+               << entry.getTurn() << "|"
+               << escapeField(entry.getUsername()) << "|"
+               << escapeField(entry.getActionType()) << "|"
+               << escapeField(entry.getDetail()) << "\n";
     }
     return true;
 }
@@ -138,17 +394,8 @@ bool SaveLoadManager::saveConfigSnapshot(const std::string& savePath) const {
 
     const fs::path saveDir(resolveSaveDirectory(savePath));
     const fs::path baseDir(configSourceDir.empty() ? "data/default" : configSourceDir);
-    const std::vector<std::string> configFiles = {
-        "aksi.txt",
-        "misc.txt",
-        "property.txt",
-        "railroad.txt",
-        "special.txt",
-        "tax.txt",
-        "utility.txt"
-    };
 
-    for (const std::string& file : configFiles) {
+    for (const std::string& file : kConfigFiles) {
         const fs::path source = baseDir / file;
         const fs::path target = saveDir / file;
         std::error_code ec;
@@ -166,23 +413,57 @@ bool SaveLoadManager::saveDeckState(const std::string& savePath) const {
     if (!ofs.is_open()) return false;
 
     if (auto* deck = game->getChanceDeck(); deck != nullptr) {
-        ofs << "DECK CHANCE|DRAW|" << joinCardNames(deck->getDrawPile()) << "\n";
-        ofs << "DECK CHANCE|DISCARD|" << joinCardNames(deck->getDiscardPile()) << "\n";
+        ofs << "DECK CHANCE|DRAW|" << joinCardTokens(deck->getDrawPile()) << "\n";
+        ofs << "DECK CHANCE|DISCARD|" << joinCardTokens(deck->getDiscardPile()) << "\n";
     }
     if (auto* deck = game->getCommunityDeck(); deck != nullptr) {
-        ofs << "DECK COMMUNITY|DRAW|" << joinCardNames(deck->getDrawPile()) << "\n";
-        ofs << "DECK COMMUNITY|DISCARD|" << joinCardNames(deck->getDiscardPile()) << "\n";
+        ofs << "DECK COMMUNITY|DRAW|" << joinCardTokens(deck->getDrawPile()) << "\n";
+        ofs << "DECK COMMUNITY|DISCARD|" << joinCardTokens(deck->getDiscardPile()) << "\n";
     }
     if (auto* deck = game->getSkillDeck(); deck != nullptr) {
-        ofs << "DECK SKILL|DRAW|" << joinCardNames(deck->getDrawPile()) << "\n";
-        ofs << "DECK SKILL|DISCARD|" << joinCardNames(deck->getDiscardPile()) << "\n";
+        ofs << "DECK SKILL|DRAW|" << joinCardTokens(deck->getDrawPile()) << "\n";
+        ofs << "DECK SKILL|DISCARD|" << joinCardTokens(deck->getDiscardPile()) << "\n";
     }
 
     return true;
 }
 
 bool SaveLoadManager::loadLogFile(const std::string& saveFilepath, std::vector<LogEntry>& outEntries) const {
-    auto parseLogStream = [](std::istream& logIfs, std::vector<LogEntry>& parsedEntries) -> bool {
+    auto parseModernLog = [](std::istream& logIfs, std::vector<LogEntry>& parsedEntries) -> bool {
+        std::string line;
+        if (!std::getline(logIfs, line)) {
+            parsedEntries.clear();
+            return true;
+        }
+
+        if (line.rfind("NIMONSPOLI_LOG", 0) != 0) {
+            return false;
+        }
+
+        int expectedCount = 0;
+        if (!std::getline(logIfs, line)) return false;
+        if (line.rfind("COUNT ", 0) == 0 && isIntegerToken(line.substr(6))) {
+            expectedCount = std::stoi(line.substr(6));
+        }
+
+        std::vector<LogEntry> parsed;
+        parsed.reserve(std::max(expectedCount, 0));
+
+        while (std::getline(logIfs, line)) {
+            if (line.empty()) continue;
+            if (line.rfind("ENTRY ", 0) != 0) continue;
+
+            const auto fields = splitEscaped(line.substr(6), '|');
+            if (fields.size() < 4 || !isIntegerToken(fields[0])) return false;
+
+            parsed.emplace_back(std::stoi(fields[0]), fields[1], fields[2], fields[3]);
+        }
+
+        parsedEntries = std::move(parsed);
+        return true;
+    };
+
+    auto parseLegacyLog = [](std::istream& logIfs, std::vector<LogEntry>& parsedEntries) -> bool {
         std::string line;
         if (!std::getline(logIfs, line)) {
             parsedEntries.clear();
@@ -222,16 +503,28 @@ bool SaveLoadManager::loadLogFile(const std::string& saveFilepath, std::vector<L
         return true;
     };
 
-    std::ifstream txtIfs(buildLogFilepath(saveFilepath));
-    if (txtIfs.is_open()) {
-        return parseLogStream(txtIfs, outEntries);
-    }
+    auto tryParse = [&](const std::string& path) -> bool {
+        std::ifstream ifs(path);
+        if (!ifs.is_open()) return false;
 
-    std::ifstream legacyIfs(saveFilepath + ".log");
-    if (legacyIfs.is_open()) {
-        return parseLogStream(legacyIfs, outEntries);
-    }
+        std::vector<LogEntry> entries;
+        if (parseModernLog(ifs, entries)) {
+            outEntries = std::move(entries);
+            return true;
+        }
 
+        ifs.clear();
+        ifs.seekg(0);
+        if (parseLegacyLog(ifs, entries)) {
+            outEntries = std::move(entries);
+            return true;
+        }
+
+        return false;
+    };
+
+    if (tryParse(buildLogFilepath(saveFilepath))) return true;
+    if (tryParse(saveFilepath + ".log")) return true;
     return false;
 }
 
@@ -242,38 +535,45 @@ bool SaveLoadManager::save(const std::string& filepath) {
     std::error_code ec;
     fs::create_directories(resolveSaveDirectory(filepath), ec);
     if (ec) {
-        if (gui) gui->showMessage("Gagal membuat folder save: " + resolveSaveDirectory(filepath));
+        if (gui) gui->showMessage("Gagal menyiapkan folder data simpan: " + resolveSaveDirectory(filepath));
         return false;
     }
 
     std::ofstream ofs(buildStateFilepath(filepath));
     if (!ofs.is_open()) {
-        if (gui) gui->showMessage("Gagal membuka file simpan: " + buildStateFilepath(filepath));
+        if (gui) gui->showMessage("Gagal membuka data simpan: " + buildStateFilepath(filepath));
         return false;
     }
 
-    ofs << "NIMONSPOLI_SAVE 1\n";
-    ofs << "META turn=" << game->getCurrentTurn()
-        << " currentTurnIndex=" << game->getCurrentTurnIndex()
-        << " lastDiceTotal=" << game->getLastDiceTotal()
-        << " gameOver=" << (game->isGameOver() ? 1 : 0)
-        << " phase=" << static_cast<int>(turnManager ? turnManager->getPhase() : TurnPhase::START)
-        << " acted=" << (turnManager && turnManager->hasActedThisTurn() ? 1 : 0)
-        << " shield=" << (turnManager && turnManager->isShieldActive() ? 1 : 0)
+    ofs << "NIMONSPOLI_SAVE " << kSaveVersion << "\n";
+    ofs << "GAME " << game->getCurrentTurn()
+        << "|" << game->getMaxTurn()
+        << "|" << game->getPlayers().size()
+        << "|" << escapeField(game->getCurrentPlayer() ? game->getCurrentPlayer()->getUsername() : "")
+        << "|" << game->getLastDiceTotal()
+        << "|" << (game->isGameOver() ? 1 : 0)
+        << "\n";
+    ofs << "TURN " << static_cast<int>(turnManager ? turnManager->getPhase() : TurnPhase::START)
+        << "|" << (turnManager && turnManager->hasActedThisTurn() ? 1 : 0)
+        << "|" << (turnManager && turnManager->isShieldActive() ? 1 : 0)
         << "\n";
 
     ofs << "TURN_ORDER ";
     const auto& order = game->getTurnOrder();
-    for (size_t i = 0; i < order.size(); ++i) {
-        ofs << order[i];
+    for (std::size_t i = 0; i < order.size(); ++i) {
+        Player* player = game->getPlayer(order[i]);
+        if (player != nullptr) {
+            ofs << escapeField(player->getUsername());
+        }
         if (i + 1 < order.size()) ofs << ",";
     }
     ofs << "\n";
 
+    Board* board = game->getBoard();
     for (Player* p : game->getPlayers()) {
-        ofs << "PLAYER " << p->getUsername()
+        ofs << "PLAYER " << escapeField(p->getUsername())
             << "|" << p->getBalance()
-            << "|" << p->getPosition()
+            << "|" << escapeField(positionToToken(p, board))
             << "|" << statusToString(p->getStatus())
             << "|" << p->getConsecutiveDoubles()
             << "|" << p->getJailAttempts()
@@ -282,18 +582,16 @@ bool SaveLoadManager::save(const std::string& filepath) {
             << "|" << (p->hasPendingFestival() ? 1 : 0)
             << "\n";
 
-        const auto& hand = p->getHandCards();
-        if (!hand.empty()) {
-            ofs << "HAND " << p->getUsername() << "|";
-            for (size_t i = 0; i < hand.size(); ++i) {
-                ofs << hand[i]->getCardName();
-                if (i + 1 < hand.size()) ofs << ",";
-            }
-            ofs << "\n";
+        for (SkillCard* card : p->getHandCards()) {
+            if (card == nullptr) continue;
+            ofs << "CARD " << escapeField(p->getUsername())
+                << "|" << escapeField(card->getCardName())
+                << "|" << skillCardValue(card)
+                << "|" << skillCardDuration(card)
+                << "\n";
         }
     }
 
-    Board* board = game->getBoard();
     if (board != nullptr) {
         for (Tile* t : board->getAllTiles()) {
             auto* pt = dynamic_cast<PropertyTile*>(t);
@@ -301,40 +599,44 @@ bool SaveLoadManager::save(const std::string& filepath) {
             Property* prop = pt->getProperty();
             if (prop == nullptr) continue;
 
-            std::string ownerName = prop->getOwner() ? prop->getOwner()->getUsername() : "-";
+            std::string ownerName = prop->getOwner() ? prop->getOwner()->getUsername() : "BANK";
             int buildingIdx = 0;
             if (auto* sp = dynamic_cast<StreetProperty*>(prop)) {
                 buildingIdx = static_cast<int>(sp->getBuildingState());
             }
 
-            ofs << "PROPERTY " << prop->getCode()
+            ofs << "PROPERTY " << escapeField(prop->getCode())
+                << "|" << propertyTypeToString(prop->getType())
+                << "|" << escapeField(ownerName)
                 << "|" << propStatusToString(prop->getStatus())
-                << "|" << ownerName
-                << "|" << buildingToString(buildingIdx)
                 << "|" << prop->getFestivalMultiplier()
                 << "|" << prop->getFestivalDuration()
+                << "|" << buildingToken(buildingIdx)
                 << "\n";
         }
     }
 
     ofs.close();
+
     if (!saveDeckState(filepath)) {
-        if (gui) gui->showMessage("Gagal menyimpan state deck.");
+        if (gui) gui->showMessage("Gagal menyimpan data deck kartu.");
         return false;
     }
+
     std::ofstream endOfs(buildStateFilepath(filepath), std::ios::app);
     if (!endOfs.is_open()) {
-        if (gui) gui->showMessage("Gagal menyelesaikan file simpan.");
+        if (gui) gui->showMessage("Gagal menyelesaikan proses penyimpanan.");
         return false;
     }
     endOfs << "END\n";
     endOfs.close();
+
     if (!saveConfigSnapshot(filepath)) {
-        if (gui) gui->showMessage("Gagal menyalin file konfigurasi ke folder save.");
+        if (gui) gui->showMessage("Gagal menyalin file konfigurasi ke folder data simpan.");
         return false;
     }
     if (!saveLogFile(filepath)) {
-        if (gui) gui->showMessage("Gagal menyimpan file log: " + buildLogFilepath(filepath));
+        if (gui) gui->showMessage("Gagal menyimpan log permainan: " + buildLogFilepath(filepath));
         return false;
     }
     return true;
@@ -345,11 +647,7 @@ bool SaveLoadManager::saveLogSnapshot(const std::string& filepath) const {
 }
 
 std::vector<std::string> SaveLoadManager::splitBy(const std::string& s, char sep) {
-    std::vector<std::string> out;
-    std::stringstream ss(s);
-    std::string tok;
-    while (std::getline(ss, tok, sep)) out.push_back(tok);
-    return out;
+    return splitRaw(s, sep);
 }
 
 std::string SaveLoadManager::afterEq(const std::string& kv) {
@@ -366,143 +664,257 @@ bool SaveLoadManager::load(const std::string& filepath) {
         ifs.open(filepath);
     }
     if (!ifs.is_open()) {
-        if (gui) gui->showMessage("File simpan tidak ditemukan: " + buildStateFilepath(filepath));
+        if (gui) gui->showMessage("Data simpan tidak ditemukan: " + buildStateFilepath(filepath));
         return false;
     }
 
     std::string line;
-    std::getline(ifs, line);
-    if (line.rfind("NIMONSPOLI_SAVE", 0) != 0) {
-        if (gui) gui->showMessage("Format save tidak dikenali.");
+    if (!std::getline(ifs, line) || line.rfind("NIMONSPOLI_SAVE", 0) != 0) {
+        if (gui) gui->showMessage("Gagal memuat data simpan. Format file tidak dikenali.");
         return false;
+    }
+
+    int saveVersion = 1;
+    {
+        std::istringstream header(line);
+        std::string magic;
+        header >> magic >> saveVersion;
     }
 
     class PendingProp {
     public:
         std::string code;
-        PropertyStatus status;
-        std::string ownerName;
-        int buildingIdx;
-        int festivalMultiplier;
-        int festivalDuration;
-        PendingProp() : status(PropertyStatus::BANK), buildingIdx(0), festivalMultiplier(1), festivalDuration(0) {}
-        PendingProp(std::string c, PropertyStatus s, std::string o, int b, int m, int d)
-            : code(std::move(c)), status(s), ownerName(std::move(o)), buildingIdx(b),
-              festivalMultiplier(m), festivalDuration(d) {}
+        PropertyStatus status = PropertyStatus::BANK;
+        std::string ownerName = "BANK";
+        int buildingIdx = 0;
+        int festivalMultiplier = 1;
+        int festivalDuration = 0;
     };
-    std::vector<PendingProp> pendingProps;
-    std::vector<LogEntry> logEntries;
 
-    class PendingHand {
+    class PendingHandCard {
     public:
         std::string uname;
-        std::vector<std::string> cardNames;
-        PendingHand() = default;
-        PendingHand(std::string u, std::vector<std::string> c)
-            : uname(std::move(u)), cardNames(std::move(c)) {}
+        std::string cardToken;
     };
-    std::vector<PendingHand> pendingHands;
 
     class PendingDeckState {
     public:
         std::string deckType;
         std::string pileType;
-        std::vector<std::string> cardNames;
+        std::vector<std::string> cardTokens;
     };
-    std::vector<PendingDeckState> pendingDeckStates;
 
-    int savedTurn = 1, savedCti = 0, savedDice = 0, savedOver = 0;
+    std::vector<PendingProp> pendingProps;
+    std::vector<PendingHandCard> pendingHands;
+    std::vector<PendingDeckState> pendingDeckStates;
+    std::vector<LogEntry> inlineLogEntries;
+
+    int savedTurn = 1;
+    int savedCti = 0;
+    int savedDice = 0;
+    int savedOver = 0;
     int savedPhase = static_cast<int>(TurnPhase::START);
     int savedActed = 0;
     int savedShield = 0;
+    std::string activeUsername;
+    std::vector<std::string> pendingTurnOrderNames;
 
-    while (std::getline(ifs, line)) {
-        if (line.empty() || line == "END") continue;
+    if (saveVersion >= 2) {
+        while (std::getline(ifs, line)) {
+            if (line.empty() || line == "END") continue;
 
-        std::istringstream iss(line);
-        std::string head;
-        iss >> head;
-        std::string rest;
-        std::getline(iss, rest);
-        if (!rest.empty() && rest.front() == ' ') rest.erase(0, 1);
+            std::istringstream iss(line);
+            std::string head;
+            iss >> head;
+            std::string rest;
+            std::getline(iss, rest);
+            if (!rest.empty() && rest.front() == ' ') rest.erase(0, 1);
 
-        if (head == "META") {
-            std::istringstream kvs(rest);
-            std::string kv;
-            while (kvs >> kv) {
-                if      (kv.rfind("turn=", 0) == 0)             savedTurn = std::stoi(afterEq(kv));
-                else if (kv.rfind("currentTurnIndex=", 0) == 0) savedCti  = std::stoi(afterEq(kv));
-                else if (kv.rfind("lastDiceTotal=", 0) == 0)    savedDice = std::stoi(afterEq(kv));
-                else if (kv.rfind("gameOver=", 0) == 0)         savedOver = std::stoi(afterEq(kv));
-                else if (kv.rfind("phase=", 0) == 0)            savedPhase = std::stoi(afterEq(kv));
-                else if (kv.rfind("acted=", 0) == 0)            savedActed = std::stoi(afterEq(kv));
-                else if (kv.rfind("shield=", 0) == 0)           savedShield = std::stoi(afterEq(kv));
+            if (head == "GAME") {
+                const auto f = splitEscaped(rest, '|');
+                if (f.size() >= 6) {
+                    if (isIntegerToken(f[0])) savedTurn = std::stoi(f[0]);
+                    activeUsername = (f.size() >= 4) ? f[3] : "";
+                    if (isIntegerToken(f[4])) savedDice = std::stoi(f[4]);
+                    if (isIntegerToken(f[5])) savedOver = std::stoi(f[5]);
+                }
+            } else if (head == "TURN") {
+                const auto f = splitEscaped(rest, '|');
+                if (f.size() >= 3) {
+                    if (isIntegerToken(f[0])) savedPhase = std::stoi(f[0]);
+                    if (isIntegerToken(f[1])) savedActed = std::stoi(f[1]);
+                    if (isIntegerToken(f[2])) savedShield = std::stoi(f[2]);
+                }
+            } else if (head == "TURN_ORDER") {
+                pendingTurnOrderNames = splitEscaped(rest, ',');
+            } else if (head == "PLAYER") {
+                const auto f = splitEscaped(rest, '|');
+                if (f.size() < 8) continue;
+
+                Player* p = new Player(f[0], isIntegerToken(f[1]) ? std::stoi(f[1]) : 0);
+                p->setPosition(positionFromToken(f[2], game->getBoard()));
+                p->setStatus(parsePlayerStatus(f[3]));
+
+                const int consDoubles = isIntegerToken(f[4]) ? std::stoi(f[4]) : 0;
+                const int jailAttempts = isIntegerToken(f[5]) ? std::stoi(f[5]) : 0;
+                const int rolled = isIntegerToken(f[6]) ? std::stoi(f[6]) : 0;
+                const int skillUsed = isIntegerToken(f[7]) ? std::stoi(f[7]) : 0;
+                const int pendingFestival = (f.size() >= 9 && isIntegerToken(f[8])) ? std::stoi(f[8]) : 0;
+
+                for (int i = 0; i < consDoubles; ++i) p->incrementConsecutiveDoubles();
+                for (int i = 0; i < jailAttempts; ++i) p->incrementJailAttempts();
+                if (rolled) p->markRolled();
+                if (skillUsed) p->markSkillUsed();
+                p->setPendingFestival(pendingFestival != 0);
+                game->addPlayer(p);
+            } else if (head == "CARD") {
+                const auto f = splitEscaped(rest, '|');
+                if (f.size() < 3) continue;
+                PendingHandCard card;
+                card.uname = f[0];
+                card.cardToken = f[1] + ":" + f[2] + ":" + ((f.size() >= 4) ? f[3] : "0");
+                pendingHands.push_back(std::move(card));
+            } else if (head == "PROPERTY") {
+                const auto f = splitEscaped(rest, '|');
+                if (f.size() < 6) continue;
+
+                PendingProp prop;
+                prop.code = f[0];
+                prop.ownerName = f[2];
+                prop.status = parsePropStatus(f[3]);
+                prop.festivalMultiplier = isIntegerToken(f[4]) ? std::stoi(f[4]) : 1;
+                prop.festivalDuration = isIntegerToken(f[5]) ? std::stoi(f[5]) : 0;
+                prop.buildingIdx = (f.size() >= 7) ? parseBuildingToken(f[6]) : 0;
+                pendingProps.push_back(std::move(prop));
+            } else if (head == "DECK") {
+                const auto f = splitEscaped(rest, '|');
+                if (f.size() < 3) continue;
+
+                PendingDeckState pending;
+                pending.deckType = f[0];
+                pending.pileType = f[1];
+                if (!f[2].empty()) pending.cardTokens = splitEscaped(f[2], ',');
+                pendingDeckStates.push_back(std::move(pending));
+            } else if (head == "LOG") {
+                const auto f = splitEscaped(rest, '|');
+                if (f.size() < 4 || !isIntegerToken(f[0])) continue;
+                inlineLogEntries.emplace_back(std::stoi(f[0]), f[1], f[2], f[3]);
             }
-        } else if (head == "TURN_ORDER") {
-            auto toks = splitBy(rest, ',');
-            std::vector<int> order;
-            for (auto& t : toks) {
-                try { order.push_back(std::stoi(t)); } catch (...) {}
-            }
-            game->setTurnOrder(order);
-        } else if (head == "PLAYER") {
-            auto f = splitBy(rest, '|');
-            if (f.size() < 8) continue;
-            std::string uname   = f[0];
-            int balance         = std::stoi(f[1]);
-            int position        = std::stoi(f[2]);
-            PlayerStatus ps     = parsePlayerStatus(f[3]);
-            int consDoubles     = std::stoi(f[4]);
-            int jailAttempts    = std::stoi(f[5]);
-            int rolled          = std::stoi(f[6]);
-            int skillUsed       = std::stoi(f[7]);
-            int pendingFestival = (f.size() >= 9) ? std::stoi(f[8]) : 0;
+        }
+    } else {
+        while (std::getline(ifs, line)) {
+            if (line.empty() || line == "END") continue;
 
-            Player* p = new Player(uname, balance);
-            p->setPosition(position);
-            p->setStatus(ps);
-            for (int i = 0; i < consDoubles;  ++i) p->incrementConsecutiveDoubles();
-            for (int i = 0; i < jailAttempts; ++i) p->incrementJailAttempts();
-            if (rolled)    p->markRolled();
-            if (skillUsed) p->markSkillUsed();
-            p->setPendingFestival(pendingFestival != 0);
-            game->addPlayer(p);
-        } else if (head == "HAND") {
-            auto f = splitBy(rest, '|');
-            if (f.size() < 2) continue;
-            PendingHand ph{ f[0], splitBy(f[1], ',') };
-            pendingHands.push_back(ph);
-        } else if (head == "PROPERTY") {
-            auto f = splitBy(rest, '|');
-            if (f.size() < 4) continue;
-            pendingProps.push_back({
-                f[0],
-                parsePropStatus(f[1]),
-                f[2],
-                parseBuildingState(f[3]),
-                (f.size() >= 5) ? std::stoi(f[4]) : 1,
-                (f.size() >= 6) ? std::stoi(f[5]) : 0
-            });
-        } else if (head == "LOG") {
-            auto f = splitBy(rest, '|');
-            if (f.size() < 4) continue;
-            try {
-                logEntries.emplace_back(std::stoi(f[0]), f[1], f[2], f[3]);
-            } catch (...) {}
-        } else if (head == "DECK") {
-            auto f = splitBy(rest, '|');
-            if (f.size() < 3) continue;
-            PendingDeckState pending;
-            pending.deckType = f[0];
-            pending.pileType = f[1];
-            if (!f[2].empty()) {
-                pending.cardNames = splitBy(f[2], ',');
+            std::istringstream iss(line);
+            std::string head;
+            iss >> head;
+            std::string rest;
+            std::getline(iss, rest);
+            if (!rest.empty() && rest.front() == ' ') rest.erase(0, 1);
+
+            if (head == "META") {
+                std::istringstream kvs(rest);
+                std::string kv;
+                while (kvs >> kv) {
+                    if      (kv.rfind("turn=", 0) == 0)             savedTurn = std::stoi(afterEq(kv));
+                    else if (kv.rfind("currentTurnIndex=", 0) == 0) savedCti  = std::stoi(afterEq(kv));
+                    else if (kv.rfind("lastDiceTotal=", 0) == 0)    savedDice = std::stoi(afterEq(kv));
+                    else if (kv.rfind("gameOver=", 0) == 0)         savedOver = std::stoi(afterEq(kv));
+                    else if (kv.rfind("phase=", 0) == 0)            savedPhase = std::stoi(afterEq(kv));
+                    else if (kv.rfind("acted=", 0) == 0)            savedActed = std::stoi(afterEq(kv));
+                    else if (kv.rfind("shield=", 0) == 0)           savedShield = std::stoi(afterEq(kv));
+                }
+            } else if (head == "TURN_ORDER") {
+                auto toks = splitBy(rest, ',');
+                std::vector<int> order;
+                for (auto& t : toks) {
+                    try { order.push_back(std::stoi(t)); } catch (...) {}
+                }
+                game->setTurnOrder(order);
+            } else if (head == "PLAYER") {
+                auto f = splitBy(rest, '|');
+                if (f.size() < 8) continue;
+
+                Player* p = new Player(f[0], std::stoi(f[1]));
+                p->setPosition(std::stoi(f[2]));
+                p->setStatus(parsePlayerStatus(f[3]));
+                for (int i = 0; i < std::stoi(f[4]); ++i) p->incrementConsecutiveDoubles();
+                for (int i = 0; i < std::stoi(f[5]); ++i) p->incrementJailAttempts();
+                if (std::stoi(f[6])) p->markRolled();
+                if (std::stoi(f[7])) p->markSkillUsed();
+                p->setPendingFestival((f.size() >= 9) ? (std::stoi(f[8]) != 0) : false);
+                game->addPlayer(p);
+            } else if (head == "HAND") {
+                auto f = splitBy(rest, '|');
+                if (f.size() < 2) continue;
+
+                const auto cardNames = splitBy(f[1], ',');
+                for (const std::string& cardName : cardNames) {
+                    PendingHandCard card;
+                    card.uname = f[0];
+                    card.cardToken = cardName + ":0:0";
+                    pendingHands.push_back(std::move(card));
+                }
+            } else if (head == "PROPERTY") {
+                auto f = splitBy(rest, '|');
+                if (f.size() < 4) continue;
+
+                PendingProp prop;
+                prop.code = f[0];
+                prop.status = parsePropStatus(f[1]);
+                prop.ownerName = (f[2] == "-") ? "BANK" : f[2];
+                prop.buildingIdx = parseBuildingState(f[3]);
+                prop.festivalMultiplier = (f.size() >= 5) ? std::stoi(f[4]) : 1;
+                prop.festivalDuration = (f.size() >= 6) ? std::stoi(f[5]) : 0;
+                pendingProps.push_back(std::move(prop));
+            } else if (head == "LOG") {
+                auto f = splitBy(rest, '|');
+                if (f.size() < 4) continue;
+                try {
+                    inlineLogEntries.emplace_back(std::stoi(f[0]), f[1], f[2], f[3]);
+                } catch (...) {
+                }
+            } else if (head == "DECK") {
+                auto f = splitBy(rest, '|');
+                if (f.size() < 3) continue;
+
+                PendingDeckState pending;
+                pending.deckType = f[0];
+                pending.pileType = f[1];
+                if (!f[2].empty()) pending.cardTokens = splitBy(f[2], ',');
+                pendingDeckStates.push_back(std::move(pending));
             }
-            pendingDeckStates.push_back(std::move(pending));
         }
     }
 
-    // Apply property overlay setelah semua player dibuat
+    if (saveVersion >= 2) {
+        if (!pendingTurnOrderNames.empty()) {
+            std::vector<int> order;
+            order.reserve(pendingTurnOrderNames.size());
+            for (const std::string& username : pendingTurnOrderNames) {
+                int idx = findPlayerIndex(game->getPlayers(), username);
+                if (idx >= 0) order.push_back(idx);
+            }
+            if (!order.empty()) game->setTurnOrder(order);
+        }
+
+        if (!activeUsername.empty()) {
+            const auto& order = game->getTurnOrder();
+            if (!order.empty()) {
+                for (std::size_t i = 0; i < order.size(); ++i) {
+                    Player* player = game->getPlayer(order[i]);
+                    if (player != nullptr && player->getUsername() == activeUsername) {
+                        savedCti = static_cast<int>(i);
+                        break;
+                    }
+                }
+            } else {
+                const int idx = findPlayerIndex(game->getPlayers(), activeUsername);
+                if (idx >= 0) savedCti = idx;
+            }
+        }
+    }
+
     Board* board = game->getBoard();
     if (board != nullptr) {
         for (const auto& pp : pendingProps) {
@@ -513,7 +925,7 @@ bool SaveLoadManager::load(const std::string& filepath) {
             Property* prop = pt->getProperty();
             if (prop == nullptr) continue;
 
-            Player* owner = (pp.ownerName == "-") ? nullptr : findPlayerByUsername(pp.ownerName);
+            Player* owner = (pp.ownerName == "BANK" || pp.ownerName == "-") ? nullptr : findPlayerByUsername(pp.ownerName);
             if (owner != nullptr) {
                 prop->setOwner(owner);
                 owner->addProperty(prop);
@@ -521,81 +933,128 @@ bool SaveLoadManager::load(const std::string& filepath) {
             prop->setStatus(pp.status);
 
             if (auto* sp = dynamic_cast<StreetProperty*>(prop)) {
-                // pastikan status OWNED untuk bisa buildHouse
-                PropertyStatus orig = pp.status;
-                if (pp.buildingIdx > 0 && orig == PropertyStatus::MORTGAGED) {
+                const PropertyStatus originalStatus = pp.status;
+                if (pp.buildingIdx > 0 && originalStatus == PropertyStatus::MORTGAGED) {
                     prop->setStatus(PropertyStatus::OWNED);
                 }
-                int target = pp.buildingIdx;
-                if (target >= 1 && target <= 4) {
-                    for (int i = 0; i < target; ++i) sp->buildHouse();
-                } else if (target == 5) {
+                if (pp.buildingIdx >= 1 && pp.buildingIdx <= 4) {
+                    for (int i = 0; i < pp.buildingIdx; ++i) sp->buildHouse();
+                } else if (pp.buildingIdx == 5) {
                     for (int i = 0; i < 4; ++i) sp->buildHouse();
                     sp->buildHotel();
                 }
-                prop->setStatus(orig);
+                prop->setStatus(originalStatus);
             }
 
             prop->setFestivalState(pp.festivalMultiplier, pp.festivalDuration);
         }
     }
 
-    // Kembalikan kartu skill dari deck ke tangan pemain
-    auto* skillDeck = game->getSkillDeck();
-    if (skillDeck != nullptr) {
-        for (const auto& ph : pendingHands) {
-            Player* p = findPlayerByUsername(ph.uname);
-            if (p == nullptr) continue;
-            for (const std::string& cname : ph.cardNames) {
-                SkillCard* card = skillDeck->takeByName(cname);
-                if (card != nullptr) p->addCard(card);
-            }
+    for (const auto& ph : pendingHands) {
+        Player* player = findPlayerByUsername(ph.uname);
+        if (player == nullptr) continue;
+
+        SkillCard* card = decodeSkillCardToken(ph.cardToken);
+        if (card != nullptr) {
+            player->addCard(card);
         }
     }
 
     if (logger != nullptr) {
         std::vector<LogEntry> loadedEntries;
         if (!loadLogFile(filepath, loadedEntries)) {
-            loadedEntries = std::move(logEntries);
+            loadedEntries = std::move(inlineLogEntries);
         }
         logger->loadEntries(std::move(loadedEntries));
     }
 
-    auto applyDeckState = [&pendingDeckStates](auto* deck, const std::string& deckType) {
+    auto loadChanceDeck = [&pendingDeckStates, this]() {
+        auto* deck = game->getChanceDeck();
         if (deck == nullptr) return;
 
-        std::vector<std::string> drawNames;
-        std::vector<std::string> discardNames;
+        std::vector<std::string> drawTokens;
+        std::vector<std::string> discardTokens;
         for (const auto& pending : pendingDeckStates) {
-            if (pending.deckType != deckType) continue;
-            if (pending.pileType == "DRAW") {
-                drawNames = pending.cardNames;
-            } else if (pending.pileType == "DISCARD") {
-                discardNames = pending.cardNames;
-            }
+            if (pending.deckType != "CHANCE") continue;
+            if (pending.pileType == "DRAW") drawTokens = pending.cardTokens;
+            if (pending.pileType == "DISCARD") discardTokens = pending.cardTokens;
+        }
+        if (drawTokens.empty() && discardTokens.empty()) return;
+        if (std::all_of(drawTokens.begin(), drawTokens.end(),
+                        [](const std::string& token) { return token.find(':') == std::string::npos; }) &&
+            std::all_of(discardTokens.begin(), discardTokens.end(),
+                        [](const std::string& token) { return token.find(':') == std::string::npos; })) {
+            return;
         }
 
-        if (drawNames.empty() && discardNames.empty()) return;
-
-        using CardPtr = typename std::decay_t<decltype(deck->getDrawPile())>::value_type;
-        std::vector<CardPtr> drawPile;
-        std::vector<CardPtr> discardPile;
-        for (const std::string& name : drawNames) {
-            if (CardPtr card = deck->takeByName(name); card != nullptr) {
-                drawPile.push_back(card);
-            }
+        std::vector<ChanceCard*> drawPile;
+        std::vector<ChanceCard*> discardPile;
+        for (const std::string& token : drawTokens) {
+            if (auto* card = decodeChanceCardToken(token); card != nullptr) drawPile.push_back(card);
         }
-        for (const std::string& name : discardNames) {
-            if (CardPtr card = deck->takeByName(name); card != nullptr) {
-                discardPile.push_back(card);
-            }
+        for (const std::string& token : discardTokens) {
+            if (auto* card = decodeChanceCardToken(token); card != nullptr) discardPile.push_back(card);
         }
         deck->loadState(std::move(drawPile), std::move(discardPile));
     };
 
-    applyDeckState(game->getChanceDeck(), "CHANCE");
-    applyDeckState(game->getCommunityDeck(), "COMMUNITY");
-    applyDeckState(game->getSkillDeck(), "SKILL");
+    auto loadCommunityDeck = [&pendingDeckStates, this]() {
+        auto* deck = game->getCommunityDeck();
+        if (deck == nullptr) return;
+
+        std::vector<std::string> drawTokens;
+        std::vector<std::string> discardTokens;
+        for (const auto& pending : pendingDeckStates) {
+            if (pending.deckType != "COMMUNITY") continue;
+            if (pending.pileType == "DRAW") drawTokens = pending.cardTokens;
+            if (pending.pileType == "DISCARD") discardTokens = pending.cardTokens;
+        }
+        if (drawTokens.empty() && discardTokens.empty()) return;
+        if (std::all_of(drawTokens.begin(), drawTokens.end(),
+                        [](const std::string& token) { return token.find(':') == std::string::npos; }) &&
+            std::all_of(discardTokens.begin(), discardTokens.end(),
+                        [](const std::string& token) { return token.find(':') == std::string::npos; })) {
+            return;
+        }
+
+        std::vector<CommunityChestCard*> drawPile;
+        std::vector<CommunityChestCard*> discardPile;
+        for (const std::string& token : drawTokens) {
+            if (auto* card = decodeCommunityCardToken(token); card != nullptr) drawPile.push_back(card);
+        }
+        for (const std::string& token : discardTokens) {
+            if (auto* card = decodeCommunityCardToken(token); card != nullptr) discardPile.push_back(card);
+        }
+        deck->loadState(std::move(drawPile), std::move(discardPile));
+    };
+
+    auto loadSkillDeck = [&pendingDeckStates, this]() {
+        auto* deck = game->getSkillDeck();
+        if (deck == nullptr) return;
+
+        std::vector<std::string> drawTokens;
+        std::vector<std::string> discardTokens;
+        for (const auto& pending : pendingDeckStates) {
+            if (pending.deckType != "SKILL") continue;
+            if (pending.pileType == "DRAW") drawTokens = pending.cardTokens;
+            if (pending.pileType == "DISCARD") discardTokens = pending.cardTokens;
+        }
+        if (drawTokens.empty() && discardTokens.empty()) return;
+
+        std::vector<SkillCard*> drawPile;
+        std::vector<SkillCard*> discardPile;
+        for (const std::string& token : drawTokens) {
+            if (auto* card = decodeSkillCardToken(token); card != nullptr) drawPile.push_back(card);
+        }
+        for (const std::string& token : discardTokens) {
+            if (auto* card = decodeSkillCardToken(token); card != nullptr) discardPile.push_back(card);
+        }
+        deck->loadState(std::move(drawPile), std::move(discardPile));
+    };
+
+    loadChanceDeck();
+    loadCommunityDeck();
+    loadSkillDeck();
 
     game->setCurrentTurn(savedTurn);
     game->setCurrentTurnIndex(savedCti);

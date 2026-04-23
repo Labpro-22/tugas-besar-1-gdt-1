@@ -44,7 +44,7 @@ private:
     std::string pendingLoadPath;
 
     void initNewGame();
-    void initLoadGame();
+    bool initLoadGame(const std::string& filepath = "");
     bool loadFromPath(const std::string& filepath);
     void resetRuntimeState();
 

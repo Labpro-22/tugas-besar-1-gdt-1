@@ -24,57 +24,32 @@ int main()
         app.loadMainMenu();
         app.loadDebuggingEntry();
 
-        // Test Popup untuk Property
-        // app.loadPopup(new PropertyPopup(
-        //     "Medan",                         // nama properti
-        //     "STREET",                        // tipe properti ("STREET", "RAILROAD", atau "UTILITY")
-        //     "BANK",                         // status kepemilikan ("BANK", "OWNED", atau "MORTGAGED")
-        //     200,                             // harga beli
-        //     100,                             // nilai gadai (mortgage value)
+        // Test Popup untuk Property(sini)
+        // PropertyPopup* popup = new PropertyPopup(
+        //     "Medan",
+        //     PropertyPopup::Type::STREET,
+        //     PropertyPopup::Status::OWNED,
+        //     200,
+        //     100,
+        //     false,           // isOtherPlayer
+        //     "Player2"
+        // );
 
-        //     2,                               // 2 rumah dibangun  
-        //     false,                           // milik orang lain
+        // // isi data street
+        // popup->setStreetData(
+        //     "YELLOW",
+        //     {20, 40, 60, 100, 150, 200},
+        //     20,     // base rent
+        //     50,     // build cost
+        //     2,      // level (2 rumah)
+        //     true    // monopoli
+        // );
 
-        //     "Player2",                       // owner properti
-        //     "YELLOW",                        // warna group (hanya untuk Street)
-        //     {20, 40, 60, 100, 150, 200},     // rentTable untuk Street (index 0-5: 0 rumah - hotel)
-        //     50                               // harga bangun (hanya untuk Street)
-        // ));                                  // railroadRent dan utilityMultiplier DIKOSONGKAN karena bukan Railroad/Utility
+        // // tombol (karena milik orang lain --> bayar)
+        // popup->addButton("PAY RENT", "PAY_RENT");
+        // popup->addButton("SELL 1 HOUSE", "SELL_BUILDING"); // (tambahin tombol lain juga boleh)
 
-        // app.loadPopup(new PropertyPopup(
-        //     "Stasiun Gambir",                // nama properti
-        //     "RAILROAD",                      // tipe properti ("STREET", "RAILROAD", atau "UTILITY")
-        //     "BANK",                     // status kepemilikan ("BANK", "OWNED", atau "MORTGAGED")
-        //     0,                               // tidak ada harga beli untuk Railroad (dianggap 0 karena tidak relevan)
-        //     100,                             // nilai gadai (mortgage value)
-
-        //     3,                               // punya 3 railroad
-        //     true,                            // milik orang lain
-
-        //     "Player1",                       // owner properti
-        //     "",                              // warna group DIKOSONGKAN karena bukan Street
-        //     {},                              // rentTable DIKOSONGKAN karena bukan Street
-        //     0,                               // harga bangun DIKOSONGKAN karena bukan Street
-        //     {25, 50, 100, 200}               // railroadRent berdasarkan jumlah kepemilikan Railroad yang sama (index 0-3: punya 1-4 railroad)
-        // ));  
-
-        // app.loadPopup(new PropertyPopup( 
-        //     "PLN",                           // nama properti
-        //     "UTILITY",                       // tipe properti ("STREET", "RAILROAD", atau "UTILITY")
-        //     "OWNED",                         // status kepemilikan ("BANK", "OWNED", atau "MORTGAGED")
-        //     0,                               // tidak ada harga beli untuk Utility (dianggap 0 karena tidak relevan)
-        //     75,                              // nilai gadai (mortgage value)
-
-        //     2,                               // punya 2 utility
-        //     false,                           // milik orang lain
-
-        //     "Player2",                       // owner properti
-        //     "",                              // warna group DIKOSONGKAN karena bukan Street
-        //     {},                              // rentTable DIKOSONGKAN karena bukan Street
-        //     0,                               // harga bangun DIKOSONGKAN karena bukan Street
-        //     {},                              // railroadRent DIKOSONGKAN karena bukan Railroad
-        //     {4, 10}                          // utilityMultiplier berdasarkan jumlah kepemilikan Utility yang sama (index 0-1: punya 1-2 utility)
-        // ));
+        app.loadPopup(popup);
 
         while (!WindowShouldClose())
         {

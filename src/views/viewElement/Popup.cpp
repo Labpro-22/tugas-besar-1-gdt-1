@@ -124,131 +124,185 @@ void ExceptionPopup::render() {
 
 PropertyPopup::PropertyPopup(
     const std::string& name,
-    const std::string& type,
-    const std::string& status,
+    Type type,
+    Status status,
     int buyPrice,
     int mortgageValue,
-    int levelOrCount,
     bool isOtherPlayer,
-    const std::string& ownerName,
-    const std::string& colorGroup,
-    const std::vector<int>& rentTable,
-    int buildCost,
-    const std::vector<int>& railroadRent,
-    const std::vector<int>& utilityMultiplier
+    const std::string& ownerName
 )
 : IndefinitePopup(View2D(getScreenCenter(), {520, 420}, [](){})),
   name(name),
   type(type),
   status(status),
-  ownerName(ownerName),
-  colorGroup(colorGroup),
-  rentTable(rentTable),
-  buildCost(buildCost),
   buyPrice(buyPrice),
   mortgageValue(mortgageValue),
-  railroadRent(railroadRent),
-  utilityMultiplier(utilityMultiplier),
-  levelOrCount(levelOrCount),
   isOtherPlayer(isOtherPlayer),
+  ownerName(ownerName),
   actionCommand("")
 {
-    // posisi tombol
-    Vector2 btnPos = {
-        this->pos.x,
-        this->pos.y + this->getRenderDim().y/2 - 60
+}
+
+void PropertyPopup::setStreetData(
+    const std::string& colorGroup,
+    const std::vector<int>& rentTable,
+    int baseRent,
+    int buildCost,
+    int level,
+    bool colorGroupComplete
+) {
+    streetData = StreetData{
+        colorGroup,
+        rentTable,
+        baseRent,
+        buildCost,
+        level,
+        colorGroupComplete
     };
+}
 
-    // BUTTON LOGIC
-    // BANK
-    if (status == "BANK") {
-        if (type == "STREET") {
-            addButton("BUY", "BUY_PROPERTY");
-            addButton("SKIP", "SKIP_PROPERTY");
-        } else {
-            addButton("OK", "ACK");
-        }
+void PropertyPopup::setRailroadData(
+    const std::vector<int>& rentTable,
+    int ownedCount
+) {
+    railroadData = RailroadData{
+        rentTable,
+        ownedCount
+    };
+}
+
+void PropertyPopup::setUtilityData(
+    const std::vector<int>& multiplier,
+    int ownedCount,
+    int diceRoll
+) {
+    utilityData = UtilityData{
+        multiplier,
+        ownedCount,
+        diceRoll
+    };
+}
+
+std::string PropertyPopup::buildDetails() const {
+    std::string s;
+
+    // STATUS
+    s += "Status: ";
+    if (status == Status::BANK) s += "BANK";
+    else if (status == Status::OWNED) s += "OWNED";
+    else s += "MORTGAGED";
+
+    if (status == Status::OWNED && !ownerName.empty()) {
+        s += " (" + ownerName + ")";
     }
+    s += "\n\n";
 
-    // OWNED
-    else if (status == "OWNED") {
+    // TYPE
+    if (type == Type::STREET) s += "Type: STREET\n";
+    else if (type == Type::RAILROAD) s += "Type: RAILROAD\n";
+    else s += "Type: UTILITY\n";
 
-        if (isOtherPlayer) {
-            addButton("PAY", "PAY_RENT");
-        } 
-        else {
-            // milik sendiri
+    // STREET
+    if (type == Type::STREET && streetData.has_value()) {
+        const auto& d = streetData.value();
 
-            if (type == "STREET") {
-                if (levelOrCount == 0) {
-                    addButton("BUILD", "BUILD_PROPERTY");
-                    addButton("MORTGAGE", "MORTGAGE_PROPERTY");
-                } 
-                else if (levelOrCount < 5) {
-                    addButton("BUILD", "BUILD_PROPERTY");
+        s += "Color: " + d.colorGroup + "\n";
+
+        // BANK --> hanya info beli
+        if (status == Status::BANK) {
+            s += "Buy Price: " + std::to_string(buyPrice) + "\n";
+            return s;
+        }
+
+        // RENT LOGIC
+        int rent = 0;
+
+        if (status != Status::MORTGAGED) {
+            if (d.level == 0) {
+                rent = d.baseRent;
+
+                // MONOPOLI TANPA BANGUNAN
+                if (d.colorGroupComplete) {
+                    rent *= 2;
                 }
-            } 
-            else {
-                addButton("MORTGAGE", "MORTGAGE_PROPERTY");
+            } else {
+                int idx = std::min(d.level, (int)d.rentTable.size() - 1);
+                rent = d.rentTable[idx];
             }
 
-            addButton("OK", "ACK");
+            rent = (int)(rent * d.festivalMultiplier);
+        }
+
+        s += "Rent: " + std::to_string(rent) + "\n";
+        s += "Level: " + std::to_string(d.level) + "\n";
+
+        if (!isOtherPlayer) {
+            if (status == Status::OWNED) {
+                if (d.level > 0) {
+                    s += "Cannot Mortgage (has buildings)\n";
+                } else {
+                    s += "Can Mortgage\n";
+                }
+            }
+
+            if (status == Status::MORTGAGED) {
+                s += "Mortgaged\n";
+                s += "Redeem Cost: " + std::to_string(buyPrice) + "\n";
+            }
+
+            s += "Mortgage Value: " + std::to_string(mortgageValue) + "\n";
         }
     }
 
-    // MORTGAGED
-    else if (status == "MORTGAGED") {
-        addButton("REDEEM", "REDEEM_PROPERTY");
-        addButton("OK", "ACK");
+    // RAILROAD
+    else if (type == Type::RAILROAD && railroadData.has_value()) {
+        const auto& d = railroadData.value();
+
+        int rent = 0;
+
+        if (status != Status::MORTGAGED && !d.rentTable.empty()) {
+            int idx = std::max(0, d.ownedCount - 1);
+            idx = std::min(idx, (int)d.rentTable.size() - 1);
+            rent = d.rentTable[idx];
+        }
+
+        s += "Owned: " + std::to_string(d.ownedCount) + "\n";
+        s += "Rent: " + std::to_string(rent) + "\n";
+
+        if (!isOtherPlayer) {
+            s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
+        }
     }
 
-    float startY = this->pos.y + this->getRenderDim().y/2 - 60;
+    // UTILITY
+    else if (type == Type::UTILITY && utilityData.has_value()) {
+        const auto& d = utilityData.value();
 
-    for (int i = 0; i < actionButtons.size(); i++) {
-        actionButtons[i].movePosition({
-            this->pos.x,
-            startY - i * 70
-        });
+        int rent = 0;
 
-        actionButtons[i].setRender([this, i]() {
-            auto& btn = actionButtons[i];
+        if (status != Status::MORTGAGED && !d.multiplier.empty()) {
+            int idx = std::max(0, d.ownedCount - 1);
+            idx = std::min(idx, (int)d.multiplier.size() - 1);
 
-            DrawRectangle(
-                btn.getRenderPos().x,
-                btn.getRenderPos().y,
-                btn.getRenderWidth(),
-                btn.getRenderHeight(),
-                btn.getRenderColor(DARKGREEN)
-            );
+            rent = d.lastDiceRoll * d.multiplier[idx];
+        }
 
-            std::string label = btn.getGameCommand();
+        s += "Owned: " + std::to_string(d.ownedCount) + "\n";
+        s += "Dice: " + std::to_string(d.lastDiceRoll) + "\n";
+        s += "Rent: " + std::to_string(rent) + "\n";
 
-            Vector2 t = MeasureTextEx(fontMap["Orbitron"],
-                                    label.c_str(), 28, 1);
-
-            DrawTextEx(fontMap["Orbitron"],
-                    label.c_str(),
-                    btn.getPos() - t/2,
-                    28, 1,
-                    WHITE);
-        });
+        if (!isOtherPlayer) {
+            s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
+        }
     }
-    std::cout << "PropertyPopup constructed\n";
-}
 
-void PropertyPopup::enable() {
-    for (auto& btn : actionButtons) btn.enable();
-    exitButton.enable();
-}
-
-void PropertyPopup::disable() {
-    for (auto& btn : actionButtons) btn.disable();
-    exitButton.disable();
+    return s;
 }
 
 void PropertyPopup::addButton(const std::string& label, const std::string& command) {
-    Interactable btn(
-        {220, 50},
+    // buat tombol
+    actionButtons.emplace_back(
+        Vector2{200, 50},
         true,
         false,
         label,
@@ -259,128 +313,53 @@ void PropertyPopup::addButton(const std::string& label, const std::string& comma
         }
     );
 
-    actionButtons.push_back(btn);
+    // ambil index tombol terakhir
+    int idx = actionButtons.size() - 1;
+
+    // set render
+    actionButtons[idx].setRender([this, idx]() {
+        auto& btn = actionButtons[idx];
+
+        DrawRectangle(
+            btn.getRenderPos().x,
+            btn.getRenderPos().y,
+            btn.getRenderWidth(),
+            btn.getRenderHeight(),
+            btn.getRenderColor(DARKGREEN)
+        );
+
+        std::string label = btn.getGameCommand();
+
+        Vector2 t = MeasureTextEx(fontMap["Orbitron"], label.c_str(), 24, 1);
+
+        DrawTextEx(
+            fontMap["Orbitron"],
+            label.c_str(),
+            btn.getPos() - t/2,
+            24,
+            1,
+            WHITE
+        );
+    });
+}
+
+void PropertyPopup::enable() {
+    for (auto& b : actionButtons) b.enable();
+    exitButton.enable();
+}
+
+void PropertyPopup::disable() {
+    for (auto& b : actionButtons) b.disable();
+    exitButton.disable();
 }
 
 void PropertyPopup::interactionCheck() {
-    for (auto& btn : actionButtons) btn.interactionCheck();
+    for (auto& b : actionButtons) b.interactionCheck();
     exitButton.interactionCheck();
 }
 
-const string PropertyPopup::catchCommand() {
-    if (actionCommand != "") return actionCommand;
-
-    for (auto& btn : actionButtons) {
-        string cmd = btn.catchCommand();
-        if (cmd != "NULL") return cmd;
-    }
-
-    return "NULL";
-}
-
-// Helper
-std::string PropertyPopup::buildDetails() const {
-    std::string s;
-
-    // STATUS
-    s += "Status: " + status;
-    if (status == "OWNED" && ownerName != "")
-        s += " (" + ownerName + ")";
-    s += "\n\n";
-    // std::cout << "Building details status\n";
-
-    // TYPE
-    s += "Type: " + type + "\n";
-    // std::cout << "Building details type\n";
-
-    // STREET
-    if (type == "STREET") {
-        s += "Color: " + colorGroup + "\n";
-
-        if (status == "BANK") {
-            s += "Buy Price: " + std::to_string(buyPrice) + "\n";
-            return s;
-        }
-
-        if (status == "OWNED") {
-            if (!rentTable.empty()) {
-                int idx = std::max(0, levelOrCount);
-                idx = std::min(idx, (int)rentTable.size() - 1);
-                int rent = rentTable[idx];
-                s += "Current Rent: " + std::to_string(rent) + "\n";
-            }
-
-            if (!isOtherPlayer) {
-                s += "Build Cost: " + std::to_string(buildCost) + "\n";
-                s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
-                s += "Level: " + std::to_string(levelOrCount) + "\n";
-            }
-        }
-
-        if (status == "MORTGAGED") {
-            s += "This property is mortgaged.\n";
-            if (!isOtherPlayer) {
-                s += "Mortgage Value: " + std::to_string(mortgageValue) + "\n";
-            }
-        }
-        // std::cout << "Building details street\n";
-    }
-
-    // RAILROAD
-    else if (type == "RAILROAD") {
-        if (status == "OWNED") {
-            if (!railroadRent.empty()) {
-                int idx = std::max(0, levelOrCount - 1);
-                idx = std::min(idx, (int)railroadRent.size() - 1);
-                int rent = railroadRent[idx];
-                s += "Rent: " + std::to_string(rent) + "\n";
-            }
-
-            s += "Owned Count: " + std::to_string(levelOrCount) + "\n";
-
-            if (!isOtherPlayer) {
-                s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
-            }
-        }
-
-        else if (status == "MORTGAGED") {
-            s += "This railroad is mortgaged.\n";
-
-            if (!isOtherPlayer) {
-                s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
-            }
-        }
-        // std::cout << "Building details railroad\n";
-    }
-    
-    // UTILITY
-    else if (type == "UTILITY") {
-        if (status == "OWNED") {
-            if (!utilityMultiplier.empty()) {
-                int idx = std::max(0, levelOrCount - 1);
-                idx = std::min(idx, (int)utilityMultiplier.size() - 1);
-                int mult = utilityMultiplier[idx];
-                s += "Multiplier: x" + std::to_string(mult) + "\n";
-            }
-
-            s += "Owned Count: " + std::to_string(levelOrCount) + "\n";
-
-            if (!isOtherPlayer) {
-                s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
-            }
-        }
-
-        else if (status == "MORTGAGED") {
-            s += "This utility is mortgaged.\n";
-
-            if (!isOtherPlayer) {
-                s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
-            }
-        }
-        // std::cout << "Building details utility\n";
-    }
-
-    return s;
+const std::string PropertyPopup::catchCommand() {
+    return actionCommand.empty() ? "NULL" : actionCommand;
 }
 
 void PropertyPopup::render() {
@@ -390,102 +369,128 @@ void PropertyPopup::render() {
     DrawRectangle(getRenderPos().x, getRenderPos().y,
                   getRenderWidth(), getRenderHeight(),
                   RAYWHITE);
-    // std::cout << "Setting up background\n";
-    
+
     // header
     DrawRectangle(getRenderPos().x, getRenderPos().y,
-                  getRenderWidth(), getRenderHeight() * 0.125,
+                  getRenderWidth(), getRenderHeight()*0.125f,
                   RED);
-    // std::cout << "Setting up header\n";
 
     // title
     Vector2 t = MeasureTextEx(fontMap["Orbitron"], name.c_str(), 28, 1);
     DrawTextEx(fontMap["Orbitron"], name.c_str(),
                pos - Vector2{t.x/2, getRenderHeight()/2 - 10},
                28,1, WHITE);
-    // std::cout << "Setting up title\n";
 
     // details
     std::string text = buildDetails();
 
-    // menghapus baris kosong
     std::stringstream ss(text);
     std::string line;
     std::string fixedText;
 
     while (std::getline(ss, line)) {
-        if (!line.empty()) {
+        if (!line.empty()) {   //BUANG BARIS KOSONG
             fixedText += line + "\n";
         }
     }
-    // std::cout << "Built details done\n";
 
     drawTextLinesWrapped(
         fontMap["Orbitron"],
         fixedText,
-        pos,
+        pos - Vector2{0, 60},
         22,
         1,
         BLACK,
         getRenderDim() - (Vector2){40,0}
     );
-    // std::cout << "Drawing text lines\n";
 
-    for (auto& btn : actionButtons) btn.render();
+    // buttons layout
+    float spacing = 60;
+    float totalHeight = actionButtons.size() * spacing;
+    float startY = pos.y + getRenderDim().y/2 - totalHeight - 20;
+
+    for (int i = 0; i < actionButtons.size(); i++) {
+        actionButtons[i].movePosition({
+            pos.x,
+            startY + i * spacing
+        });
+
+        actionButtons[i].render();
+    }
+
     exitButton.render();
-    // std::cout << "Rendering popup\n";
 }
 
-// Contoh pakai Popup untuk Street di view testing (Belum implementasi color group bonus)
-// app.loadPopup(new PropertyPopup(
-//     "Medan",                         // nama properti
-//     "STREET",                        // tipe properti ("STREET", "RAILROAD", atau "UTILITY")
-//     "OWNED",                         // status kepemilikan ("BANK", "OWNED", atau "MORTGAGED")
-//     200,                             // harga beli
-//     100,                             // nilai gadai (mortgage value)
+//Cara pakai PropertyPopup (contoh di ViewTesting.cpp):
+/*
+// STREET EXAMPLE
+PropertyPopup* streetPopup = new PropertyPopup(
+    "Medan",                          // nama properti
+    PropertyPopup::Type::STREET,      // tipe properti (STREET)
+    PropertyPopup::Status::OWNED,     // status (BANK / OWNED / MORTGAGED)
+    200,                              // buyPrice --> harga beli properti
+    100,                              // mortgageValue --> uang yang didapat saat digadai
+    true,                             // isOtherPlayer --> milik pemain lain?
+    "Player2"                         // ownerName --> nama pemilik
+);
 
-//     2,                               // 2 rumah dibangun  
-//     true,                            // milik orang lain
+// isi data khusus STREET
+streetPopup->setStreetData(
+    "YELLOW",                         // colorGroup --> grup warna
+    {20, 40, 60, 100, 150, 200},      // rentTable --> sewa per level (0–5)
+    20,                               // baseRent --> sewa dasar (level 0)
+    50,                               // buildCost --> harga bangun rumah/hotel
+    2,                                // level --> jumlah rumah (0–4), 5 = hotel
+    true                              // colorGroupComplete --> apakah monopoli?
+);
 
-//     "Player2",                       // owner properti
-//     "YELLOW",                        // warna group (hanya untuk Street)
-//     {20, 40, 60, 100, 150, 200},     // rentTable untuk Street (index 0-5: 0 rumah - hotel)
-//     50                               // harga bangun (hanya untuk Street)
-// ));                                  // railroadRent dan utilityMultiplier DIKOSONGKAN karena bukan Railroad/Utility
+// tombol (karena milik orang lain --> bayar)
+streetPopup->addButton("PAY RENT", "PAY_RENT");
 
-// Contoh pakai Popup untuk Railroad di view testing
-// app.loadPopup(new PropertyPopup(
-//     "Stasiun Gambir",                // nama properti
-//     "RAILROAD",                      // tipe properti ("STREET", "RAILROAD", atau "UTILITY")
-//     "OWNED",                         // status kepemilikan ("BANK", "OWNED", atau "MORTGAGED")
-//     0,                               // tidak ada harga beli untuk Railroad (dianggap 0 karena tidak relevan)
-//     100,                             // nilai gadai (mortgage value)
+app.loadPopup(streetPopup);
 
-//     3,                               // punya 3 railroad
-//     true,                            // milik orang lain
+// RAILROAD EXAMPLE
+PropertyPopup* railroadPopup = new PropertyPopup(
+    "Gambir Station",                 // nama properti
+    PropertyPopup::Type::RAILROAD,    // tipe RAILROAD
+    PropertyPopup::Status::OWNED,     // status
+    200,                              // buyPrice
+    100,                              // mortgageValue
+    true,                             // milik orang lain
+    "Player1"                         // nama owner
+);
 
-//     "Player1",                       // owner properti
-//     "",                              // warna group DIKOSONGKAN karena bukan Street
-//     {},                              // rentTable DIKOSONGKAN karena bukan Street
-//     0,                               // harga bangun DIKOSONGKAN karena bukan Street
-//     {25, 50, 100, 200}               // railroadRent berdasarkan jumlah kepemilikan Railroad yang sama (index 0-3: punya 1-4 railroad)
-// ));                                  // buildCost dan utilityMultiplier DIKOSONGKAN karena bukan Street/Utility
+// isi data railroad
+railroadPopup->setRailroadData(
+    {25, 50, 100, 200},               // rentTable --> berdasarkan jumlah railroad dimiliki
+    3                                 // ownedCount --> jumlah railroad dimiliki owner
+);
 
-// Contoh pakai Popup untuk Utility di view testing
-// app.loadPopup(new PropertyPopup( 
-//     "PLN",                           // nama properti
-//     "UTILITY",                       // tipe properti ("STREET", "RAILROAD", atau "UTILITY")
-//     "OWNED",                         // status kepemilikan ("BANK", "OWNED", atau "MORTGAGED")
-//     0,                               // tidak ada harga beli untuk Utility (dianggap 0 karena tidak relevan)
-//     75,                              // nilai gadai (mortgage value)
+// tombol
+railroadPopup->addButton("PAY RENT", "PAY_RENT");
 
-//     2,                               // punya 2 utility
-//     true,                            // milik orang lain
+app.loadPopup(railroadPopup);
 
-//     "Player2",                       // owner properti
-//     "",                              // warna group DIKOSONGKAN karena bukan Street
-//     {},                              // rentTable DIKOSONGKAN karena bukan Street
-//     0,                               // harga bangun DIKOSONGKAN karena bukan Street
-//     {},                              // railroadRent DIKOSONGKAN karena bukan Railroad
-//     {4, 10}                          // utilityMultiplier berdasarkan jumlah kepemilikan Utility yang sama (index 0-1: punya 1-2 utility)
-// ));
+// UTILITY EXAMPLE
+PropertyPopup* utilityPopup = new PropertyPopup(
+    "PLN",                            // nama properti
+    PropertyPopup::Type::UTILITY,     // tipe UTILITY
+    PropertyPopup::Status::OWNED,     // status
+    150,                              // buyPrice
+    75,                               // mortgageValue
+    true,                             // milik orang lain
+    "Player3"                         // owner
+);
+
+// isi data utility
+utilityPopup->setUtilityData(
+    {4, 10},                          // multiplier --> 1 utility = x4, 2 utility = x10
+    2,                                // ownedCount --> jumlah utility dimiliki
+    8                                 // diceRoll --> hasil dadu player yang mendarat
+);
+
+// tombol
+utilityPopup->addButton("PAY RENT", "PAY_RENT");
+
+app.loadPopup(utilityPopup);
+*/

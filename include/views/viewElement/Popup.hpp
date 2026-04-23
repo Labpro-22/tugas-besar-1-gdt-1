@@ -1,6 +1,7 @@
 #pragma once
 #include "View2D.hpp"
 #include "Interactable.hpp"
+#include <optional>
 
 class Popup : public View2D {
     public :
@@ -51,59 +52,109 @@ public:
 };
 
 class PropertyPopup : public IndefinitePopup {
-private:
-    // Basic
-    std::string name;
-    std::string type;     // "STREET", "RAILROAD", "UTILITY"
-    std::string status;   // "BANK", "OWNED", "MORTGAGED"
+public:
+    enum class Type {
+        STREET,
+        RAILROAD,
+        UTILITY
+    };
 
-    // Common
+    enum class Status {
+        BANK,
+        OWNED,
+        MORTGAGED
+    };
+
+private:
+    // BASIC 
+    std::string name;
+    Type type;
+    Status status;
+
     int buyPrice;
     int mortgageValue;
 
-    int levelOrCount = 0;
     bool isOtherPlayer = false;
-
     std::string ownerName;
 
     // STREET
-    std::string colorGroup;
-    std::vector<int> rentTable;
-    int buildCost;
+    struct StreetData {
+        std::string colorGroup;
+        std::vector<int> rentTable;
 
-    // RAILROAD & UTILITY
-    std::vector<int> railroadRent;
-    std::vector<int> utilityMultiplier;
+        int baseRent = 0;        // penting untuk monopoli tanpa bangunan
+        int buildCost = 0;
+        int level = 0;           // 0–4 rumah, 5 = hotel
+        bool colorGroupComplete = false;
+
+        float festivalMultiplier = 1.0f; // optional future
+    };
+
+    // RAILROAD 
+    struct RailroadData {
+        std::vector<int> rentTable;
+        int ownedCount = 0;
+    };
+
+    // UTILITY
+    struct UtilityData {
+        std::vector<int> multiplier;
+        int ownedCount = 0;
+
+        int lastDiceRoll = 0; // penting untuk hitung sewa
+    };
+
+    std::optional<StreetData> streetData;
+    std::optional<RailroadData> railroadData;
+    std::optional<UtilityData> utilityData;
 
     std::string actionCommand;
     std::vector<Interactable> actionButtons;
 
-    // Helper
+    // HELPER 
     std::string buildDetails() const;
 
 public:
     PropertyPopup(
         const std::string& name,
-        const std::string& type,
-        const std::string& status,
+        Type type,
+        Status status,
         int buyPrice,
         int mortgageValue,
-
-        int levelOrCount = 0,
         bool isOtherPlayer = false,
+        const std::string& ownerName = ""
+    );
 
-        const std::string& ownerName = "",
-        const std::string& colorGroup = "",
-        const std::vector<int>& rentTable = {},
-        int buildCost = 0,
-        const std::vector<int>& railroadRent = {},
-        const std::vector<int>& utilityMultiplier = {}
+    ~PropertyPopup() noexcept override = default;
+
+    // SETTER
+    void setStreetData(
+        const std::string& colorGroup,
+        const std::vector<int>& rentTable,
+        int baseRent,
+        int buildCost,
+        int level,
+        bool colorGroupComplete
+    );
+
+    void setRailroadData(
+        const std::vector<int>& rentTable,
+        int ownedCount
+    );
+
+    void setUtilityData(
+        const std::vector<int>& multiplier,
+        int ownedCount,
+        int diceRoll
     );
 
     void enable() override;
     void disable() override;
     void interactionCheck() override;
+
     void addButton(const std::string& label, const std::string& command);
-    const string catchCommand() override;
+
+    const std::string catchCommand() override;
+
     void render() override;
 };

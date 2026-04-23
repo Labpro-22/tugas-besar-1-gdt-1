@@ -6,7 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(raylib REQUIRED)
 
-add_executable(${PROJECT_NAME} src/views/ViewTesting.cpp
+add_executable(${PROJECT_NAME} src/core/Game.cpp
+                               src/core/main.cpp
+                               src/core/GameEngine.cpp
                                src/views/GUI.cpp
                                src/views/viewElement/View2D.cpp
                                src/views/viewElement/View3D.cpp
@@ -21,7 +23,6 @@ add_executable(${PROJECT_NAME} src/views/ViewTesting.cpp
                                src/views/animation/camera/CameraManager.cpp
                                src/views/animation/camera/CameraMovement.cpp
                                src/views/animation/camera/View3DCamera.cpp
-                               src/core/Game.cpp
                                src/models/Player/Player.cpp
                                src/models/Property/Property.cpp
                                src/models/Property/StreetProperty.cpp
@@ -75,7 +76,10 @@ add_executable(${PROJECT_NAME} src/views/ViewTesting.cpp
                                src/exception/InvalidFile/FileNotFoundException.cpp
                                src/exception/InvalidFile/InvalidConfigException.cpp
                                src/exception/InvalidFile/UnreadableFileException.cpp
-                               src/utils/data/ConfigLoader.cpp)
+                               src/utils/data/ConfigLoader.cpp
+                               src/utils/data/LogEntry.cpp
+                               src/utils/data/TransactionLogger.cpp
+                               )
 
 target_link_libraries(${PROJECT_NAME} raylib)
 target_include_directories(${PROJECT_NAME} PUBLIC include)

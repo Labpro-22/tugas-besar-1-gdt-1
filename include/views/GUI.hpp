@@ -1,5 +1,7 @@
 #pragma once
+#include "utils/Command.hpp"
 #include "views/IGUI.hpp"
+#include "views/viewElement/Entry.hpp"
 #include "views/viewElement/MenuView.hpp"
 #include "views/viewElement/board/BoardView.hpp"
 #include "views/viewElement/player/PlayerView.hpp"
@@ -21,6 +23,7 @@ class GUI : public IGUI {
 
         CameraManager camManager;
 
+        Command pendingCommand;
         float fps;
         bool exitRequested;
         void unloadView(View2D* p);
@@ -32,9 +35,10 @@ class GUI : public IGUI {
         void update() override;
         void display() override;
         bool shouldExit() const override;
+        void requestExit() override;
 
         // Input
-        string getCommand() override;
+        Command getCommand() override;
 
         // Navigasi view
         void loadMainMenu() override;

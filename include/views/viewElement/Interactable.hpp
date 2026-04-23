@@ -28,7 +28,7 @@ class Interactable : public View2D {
         virtual void enable() override;
         virtual void disable() override;
         virtual void interactionCheck() override;
-        virtual const string catchCommand() override;
+        virtual string catchCommand() override;
         virtual void onDrag(const Vector2& deltaPos);
         virtual void onDefault();
         virtual void onHover();

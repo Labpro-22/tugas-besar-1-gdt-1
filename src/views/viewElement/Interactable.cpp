@@ -64,7 +64,7 @@ void Interactable::disable() {
     active = false;
 }
 
-const string Interactable::catchCommand() {
+string Interactable::catchCommand() {
     if (releaseCommand) {
         releaseCommand = false;
         return gameCommand;

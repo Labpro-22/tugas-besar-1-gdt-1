@@ -47,6 +47,9 @@ class View2D {
         const Color getRenderColor(const Color& color) const;
         const bool isVisible() const;
         const bool closed() const;
+        const Vector2& getPosition() const;
+        
+        void setPosition(const Vector2& v);
         virtual void movePosition(const Vector2& v);
         void movePosition(float x, float y);
         void movePositionDelta(const Vector2& dv);
@@ -62,7 +65,7 @@ class View2D {
         virtual void enable() {};
         virtual void disable() {};
         virtual void interactionCheck() {};
-        virtual const string catchCommand();
+        virtual std::string catchCommand();
         virtual void render();
         static void addFont(string fontKey, string fontFilename);
         static Font getFont(string fontKey);

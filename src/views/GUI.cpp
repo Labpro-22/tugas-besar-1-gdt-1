@@ -1,4 +1,5 @@
 #include "views/GUI.hpp"
+#include "views/viewElement/GameHUDView.hpp"
 #include "core/Game.hpp"
 
 GUI::GUI(float fps, Board &board) : menu(nullptr), board(new BoardView(board)),
@@ -41,6 +42,8 @@ void GUI::loadGameView()
     players.clear();
 
     menu = nullptr;
+
+    views.insert(new GameHUDView());
 }
 
 void GUI::loadFinishMenu()

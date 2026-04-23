@@ -168,28 +168,6 @@ void GUI::loadPlayer(Player &player)
 
     int idx = playerProfiles.size();
 
-    Vector2 pos;
-
-    switch (idx)
-    {
-    case 0: // kiri atas
-        pos = {w / 2 + margin, h / 2 + margin};
-        break;
-    case 1: // kanan atas
-        pos = {screenW - w / 2 - margin, h / 2 + margin};
-        break;
-    case 2: // kiri bawah
-        pos = {w / 2 + margin, screenH - h / 2 - margin};
-        break;
-    case 3: // kanan bawah
-        pos = {screenW - w / 2 - margin, screenH - h / 2 - margin};
-        break;
-    default:
-        pos = {screenW / 2, screenH / 2}; // fallback
-    }
-
-    profile->setPosition(pos);
-
     profile->setActive(true);
 
     playerProfiles.push_back(profile);
@@ -322,9 +300,43 @@ void GUI::disableAll()
     }
 }
 
+void GUI::updatePlayerProfilesLayout()
+{
+    float screenW = GetScreenWidth();
+    float screenH = GetScreenHeight();
+
+    float w = 250.0f;
+    float h = 80.0f;
+    float margin = 20.0f;
+
+    for (int i = 0; i < playerProfiles.size(); i++)
+    {
+        Vector2 pos;
+
+        switch (i)
+        {
+        case 0:
+            pos = { w/2 + margin, h/2 + margin };
+            break;
+        case 1:
+            pos = { screenW - w/2 - margin, h/2 + margin };
+            break;
+        case 2:
+            pos = { w/2 + margin, screenH - h/2 - margin };
+            break;
+        case 3:
+            pos = { screenW - w/2 - margin, screenH - h/2 - margin };
+            break;
+        }
+
+        playerProfiles[i]->setPosition(pos);
+    }
+}
+
 void GUI::update()
 {
     camManager.updateCamMap();
+    updatePlayerProfilesLayout();
     set<View2D *> closedViews;
     for (View2D *view : views)
     {

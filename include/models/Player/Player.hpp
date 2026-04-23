@@ -27,6 +27,8 @@ private:
     int jailAttempts;
     bool hasRolledThisTurn;
     bool hasUsedSkillThisTurn;
+    bool pendingFestival;
+    int pendingDiscount;
 
 public:
     //constructor
@@ -74,10 +76,16 @@ public:
     void markSkillUsed();
     bool hasRolled() const;
     bool hasUsedSkill() const;
+    bool hasPendingFestival() const;
+    void setPendingFestival(bool v);
+    int getPendingDiscount() const;
+    void setPendingDiscount(int pct);
+    void clearPendingDiscount();
 
     //skill card---------------------------
     bool addCard(SkillCard* card);
     void removeCard(SkillCard* card);
+    SkillCard* findJailFreeCard() const;
     const std::vector<SkillCard*>& getHandCards() const;
     int getCardCount() const;
 

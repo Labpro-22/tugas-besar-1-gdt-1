@@ -1,4 +1,5 @@
 #include "models/Property/UtilityProperty.hpp"
+#include "models/Player/Player.hpp"
 
 UtilityProperty::UtilityProperty(const std::string &code,
                                  const std::string &name,
@@ -8,6 +9,9 @@ UtilityProperty::UtilityProperty(const std::string &code,
     : Property(code, name, PropertyType::UTILITY, purchasePrice, mortgageValue),
       multiplierTable(multiplierTable)
 {
+}
+const std::map<int, int>& UtilityProperty::getMultiplierTable() const {
+    return multiplierTable;
 }
 int UtilityProperty::calculateRent(int diceValue) const {
     if (owner == nullptr) return 0;

@@ -13,6 +13,7 @@ public:
 
     CardCategory getCategory() const override;
     bool isUsable() const;
+    virtual bool isJailFreeCard() const;
 
     virtual std::string getCardName() const = 0;
     virtual Card* clone() const = 0;

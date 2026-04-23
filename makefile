@@ -1,55 +1,45 @@
-# Makefile for C++ OOP Project (Optimized & Recursive)
+# Makefile for CLI build of Nimonspoli
+# For GUI build, use: cmake -S . -B build && cmake --build build
 
-# Compiler settings
 CXX      := g++
 CXXFLAGS := -Wall -Wextra -std=c++17 -I include
 
-# Directories
-SRC_DIR     := src
-OBJ_DIR     := build
-BIN_DIR     := bin
-INCLUDE_DIR := include
-DATA_DIR    := data
-CONFIG_DIR  := config
+SRC_DIR  := src
+OBJ_DIR  := build_cli
+BIN_DIR  := bin
 
-# Target executable
-TARGET := $(BIN_DIR)/game
+TARGET   := $(BIN_DIR)/nimonspoli_cli
 
-# 1. Recursive Source Finding
-# Secara otomatis mencari semua file .cpp di dalam src/ dan semua sub-foldernya
-SRCS := $(shell find $(SRC_DIR) -name '*.cpp')
+# Sumber CLI: semua .cpp KECUALI src/views/* (kecuali CLIGUI.cpp) dan entry main duplikat
+ALL_SRCS := $(shell find $(SRC_DIR) -name '*.cpp')
+EXCLUDE  := $(SRC_DIR)/views/GUI.cpp \
+            $(SRC_DIR)/views/GUITest.cpp \
+            $(SRC_DIR)/views/ThrowDice.cpp \
+            $(SRC_DIR)/views/ViewTesting.cpp \
+            $(shell find $(SRC_DIR)/views/viewElement $(SRC_DIR)/views/animation -name '*.cpp' 2>/dev/null)
 
-# 2. Dynamic Object Mapping
-# Mengubah path src/xxx/yyy.cpp menjadi build/xxx/yyy.o
+SRCS := $(filter-out $(EXCLUDE), $(ALL_SRCS))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
-# Main targets
-all: directories $(TARGET)
+all: $(TARGET)
 
-# Create necessary root directories
-directories:
-	@mkdir -p $(OBJ_DIR) $(BIN_DIR) $(DATA_DIR) $(CONFIG_DIR)
-
-# Link object files to create executable
 $(TARGET): $(OBJS)
+	@mkdir -p $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "Build successful! Executable is at $(TARGET)"
+	@echo "CLI build OK -> $(TARGET)"
 
-# Compile source files into object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Run the game
 run: all
 	./$(TARGET)
 
-# Clean up generated files
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
-	@echo "Cleaned up $(OBJ_DIR) and $(BIN_DIR)"
+	rm -rf $(OBJ_DIR)
+	rm -f $(TARGET)
+	rm -rf $(BIN_DIR) 2>/dev/null || true
 
-# Rebuild everything from scratch
 rebuild: clean all
 
-.PHONY: all clean rebuild run directories
+.PHONY: all clean rebuild run

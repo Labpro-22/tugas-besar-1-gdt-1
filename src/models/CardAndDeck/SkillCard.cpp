@@ -12,3 +12,7 @@ CardCategory SkillCard::getCategory() const {
 bool SkillCard::isUsable() const {
     return remainingUses > 0;
 }
+
+bool SkillCard::isJailFreeCard() const {
+    return false;
+}

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "models/Player/Player.hpp"
 #include <string>
 #include <vector>
 #include <map>
@@ -62,6 +61,7 @@ public:
 
     void activateFestival();
     void decrementFestivalDuration();
+    void setFestivalState(int multiplier, int duration);
 
     virtual int calculateRent(int diceValue = 0) const = 0;
     virtual int getAssetValue() const = 0;

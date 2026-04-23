@@ -1,0 +1,181 @@
+#include "core/TurnManager.hpp"
+
+#include "core/Game.hpp"
+#include "models/Player/Player.hpp"
+#include "models/BoardAndTiles/Board.hpp"
+#include "models/BoardAndTiles/Tile.hpp"
+#include "models/BoardAndTiles/SpecialTile/JailTile.hpp"
+#include "models/BoardAndTiles/PropertyTile.hpp"
+#include "models/Property/Property.hpp"
+#include "views/IGUI.hpp"
+#include "utils/data/TransactionLogger.hpp"
+#include "models/CardAndDeck/SkillCard.hpp"
+
+TurnManager::TurnManager(Game* game, DiceManager* dice, IGUI* gui, TransactionLogger* logger)
+    : game(game), dice(dice), gui(gui), logger(logger),
+      phase(TurnPhase::START), hasActed(false), shieldActive(false) {}
+
+std::string TurnManager::waitForInput(const std::string& prompt) {
+    gui->showInputPrompt(prompt);
+    while (!gui->shouldExit()) {
+        gui->update();
+        gui->display();
+        std::string command = gui->getCommand();
+        if (!command.empty() && command != "NULL") {
+            return command;
+        }
+    }
+    return "";
+}
+
+void TurnManager::startTurn(Player* player) {
+    phase = TurnPhase::START;
+    hasActed = false;
+    shieldActive = false;
+
+    player->startTurn();
+    distributeSkillCard(player);
+    decrementFestivalDurations();
+
+    phase = TurnPhase::AWAITING_ROLL;
+}
+
+void TurnManager::endTurn(Player* player) {
+    if (player != nullptr) {
+        player->resetConsecutiveDoubles();
+    }
+
+    hasActed = false;
+    shieldActive = false;
+    phase = TurnPhase::ENDED;
+}
+
+bool TurnManager::canRoll(Player* player) const {
+    if (player == nullptr || player->hasPendingFestival()) {
+        return false;
+    }
+    if (!player->hasRolled()) {
+        return true;
+    }
+    return phase == TurnPhase::POST_ROLL && player->getConsecutiveDoubles() > 0;
+}
+
+bool TurnManager::canUseSkill(Player* player) const {
+    return !player->hasRolled() && !player->hasUsedSkill();
+}
+
+Tile* TurnManager::processMovement(Player* player, int steps) {
+    Board* board = game->getBoard();
+    if (board == nullptr) return nullptr;
+
+    int from = player->getPosition();
+    if (board->passesGo(from, steps)) {
+        player->addMoney(game->getGoSalary());
+    }
+    int next = board->getNextIndex(from, steps);
+    player->setPosition(next);
+
+    phase = TurnPhase::POST_ROLL;
+    return board->getTile(next);
+}
+
+void TurnManager::distributeSkillCard(Player* player) {
+    CardDeck<SkillCard>* deck = game->getSkillDeck();
+    if (deck == nullptr || deck->isEmpty()) return;
+    SkillCard* card = deck->draw();
+    if (card == nullptr) return;
+
+    gui->showMessage("Kamu mendapatkan 1 kartu acak baru!");
+    gui->showMessage("Kartu yang didapat: " + card->getCardName() + ".");
+
+    if (player->getCardCount() >= 3) {
+        handleDropCard(player, card);
+        return;
+    }
+
+    player->addCard(card);
+    gui->showMessage("Kartu " + card->getCardName() + " masuk ke tanganmu.");
+    if (logger != nullptr) {
+        logger->log(game->getCurrentTurn(), player->getUsername(),
+                    "KARTU", "Mendapat kartu skill: " + card->getCardName());
+    }
+}
+
+void TurnManager::handleDropCard(Player* player, SkillCard* drawnCard) {
+    if (player == nullptr || drawnCard == nullptr || game == nullptr || game->getSkillDeck() == nullptr) {
+        return;
+    }
+
+    CardDeck<SkillCard>* deck = game->getSkillDeck();
+    const auto& hand = player->getHandCards();
+
+    gui->showMessage("Kamu sudah memiliki 3 kartu di tangan.");
+    gui->showMessage("Kamu diwajibkan membuang 1 kartu.");
+    gui->showMessage("Daftar kartu kemampuanmu:");
+
+    for (size_t i = 0; i < hand.size(); ++i) {
+        gui->showMessage(std::to_string(i + 1) + ". " + hand[i]->getCardName() +
+                         " - " + hand[i]->getDescription());
+    }
+    gui->showMessage(std::to_string(hand.size() + 1) + ". " + drawnCard->getCardName() +
+                     " - " + drawnCard->getDescription());
+
+    int choice = -1;
+    const int maxChoice = static_cast<int>(hand.size()) + 1;
+    while (choice < 1 || choice > maxChoice) {
+        std::string input = waitForInput("Pilih nomor kartu yang ingin dibuang (1-" +
+                                         std::to_string(maxChoice) + "):");
+        try {
+            choice = std::stoi(input);
+        } catch (...) {
+            choice = -1;
+        }
+        if (choice < 1 || choice > maxChoice) {
+            gui->showMessage("Nomor kartu tidak valid.");
+        }
+    }
+
+    if (choice == maxChoice) {
+        deck->discard(drawnCard);
+        gui->showMessage(drawnCard->getCardName() + " dibuang.");
+        if (logger != nullptr) {
+            logger->log(game->getCurrentTurn(), player->getUsername(),
+                        "KARTU", "Mendapat " + drawnCard->getCardName() +
+                        ", lalu langsung membuangnya");
+        }
+        return;
+    }
+
+    SkillCard* discarded = hand[choice - 1];
+    player->removeCard(discarded);
+    deck->discard(discarded);
+    player->addCard(drawnCard);
+
+    gui->showMessage(discarded->getCardName() + " dibuang.");
+    gui->showMessage("Sekarang kamu memiliki 3 kartu di tangan.");
+    if (logger != nullptr) {
+        logger->log(game->getCurrentTurn(), player->getUsername(),
+                    "KARTU", "Mendapat " + drawnCard->getCardName() +
+                    ", buang " + discarded->getCardName());
+    }
+}
+
+void TurnManager::decrementFestivalDurations() {
+    Board* board = game->getBoard();
+    if (board == nullptr) return;
+    for (Tile* t : board->getAllTiles()) {
+        auto* pt = dynamic_cast<PropertyTile*>(t);
+        if (pt == nullptr) continue;
+        Property* prop = pt->getProperty();
+        if (prop != nullptr) prop->decrementFestivalDuration();
+    }
+}
+
+TurnPhase TurnManager::getPhase() const { return phase; }
+void TurnManager::setPhase(TurnPhase p) { phase = p; }
+
+bool TurnManager::isShieldActive() const { return shieldActive; }
+void TurnManager::setShieldActive(bool v) { shieldActive = v; }
+
+bool TurnManager::hasActedThisTurn() const { return hasActed; }
+void TurnManager::markActed() { hasActed = true; }

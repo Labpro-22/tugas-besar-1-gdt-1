@@ -1,4 +1,21 @@
 #include "models/Property/StreetProperty.hpp"
+#include "models/Player/Player.hpp"
+
+namespace {
+int requiredStreetCount(const std::string& colorGroup) {
+    if (colorGroup == "COKLAT" || colorGroup == "BIRU_TUA") {
+        return 2;
+    }
+
+    if (colorGroup == "BIRU_MUDA" || colorGroup == "MERAH_MUDA" ||
+        colorGroup == "ORANGE" || colorGroup == "MERAH" ||
+        colorGroup == "KUNING" || colorGroup == "HIJAU") {
+        return 3;
+    }
+
+    return 0;
+}
+}
 
 StreetProperty::StreetProperty(const std::string &code,
                                const std::string &name,
@@ -19,6 +36,9 @@ StreetProperty::StreetProperty(const std::string &code,
 std::string StreetProperty::getColorGroup() const { return colorGroup; }
 
 BuildingState StreetProperty::getBuildingState() const { return buildingState; }
+int StreetProperty::getHouseBuildCost() const { return houseBuildCost; }
+int StreetProperty::getHotelBuildCost() const { return hotelBuildCost; }
+const std::vector<int>& StreetProperty::getRentLevels() const { return rentLevels; }
 
 bool StreetProperty::hasHotel() const {
     return buildingState == BuildingState::HOTEL;
@@ -52,6 +72,11 @@ void StreetProperty::clearBuildings() {
     buildingState = BuildingState::NONE;
 }
 
+void StreetProperty::demolishOneLevel() {
+    if (buildingState == BuildingState::NONE) return;
+    buildingState = static_cast<BuildingState>(static_cast<int>(buildingState) - 1);
+}
+
 int StreetProperty::sellBuildingValue() const {
     int buildingValue = 0;
     if (buildingState == BuildingState::HOTEL) {
@@ -62,13 +87,34 @@ int StreetProperty::sellBuildingValue() const {
     return buildingValue;
 }
 
-int StreetProperty::calculateRent(int diceValue) const {
+int StreetProperty::calculateRent(int /*diceValue*/) const {
     if (rentLevels.empty()) return 0;
-    size_t stateIdx = static_cast<size_t>(buildingState); 
+
+    size_t stateIdx = static_cast<size_t>(buildingState);
+    int rent = 0;
     if (stateIdx < rentLevels.size()) {
-        return rentLevels[stateIdx] * festivalMultiplier;
+        rent = rentLevels[stateIdx];
+    } else {
+        rent = rentLevels.back();
     }
-    return rentLevels.back() * festivalMultiplier;
+
+    if (buildingState == BuildingState::NONE && owner != nullptr) {
+        const int required = requiredStreetCount(colorGroup);
+        int ownedCount = 0;
+        for (Property *property : owner->getOwnedProperties()) {
+            auto *street = dynamic_cast<StreetProperty *>(property);
+            if (street == nullptr) continue;
+            if (street->getColorGroup() == colorGroup) {
+                ++ownedCount;
+            }
+        }
+
+        if (required > 0 && ownedCount == required) {
+            rent *= 2;
+        }
+    }
+
+    return rent * festivalMultiplier;
 }
 
 int StreetProperty::getAssetValue() const {

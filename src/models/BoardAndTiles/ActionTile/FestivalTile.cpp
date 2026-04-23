@@ -1,41 +1,21 @@
 #include "models/BoardAndTiles/ActionTile/FestivalTile.hpp"
-// #include "core/Game.hpp"
+#include "core/Game.hpp"
 #include "models/Player/Player.hpp"
-#include "models/Property/Property.hpp"
+#include <iostream>
 
 FestivalTile::FestivalTile(int index)
     : ActionTile(index, "FES", "Festival") {}
 
-void FestivalTile::onLanded(Player &player, Game &game)
+void FestivalTile::onLanded(Player &player, Game & /*game*/)
 {
-    // const std::vector<Property *> &properties = player.getProperties();
+    if (player.getOwnedProperties().empty()) {
+        std::cout << player.getUsername()
+                  << " mendarat di Festival, tapi tidak memiliki properti. Festival hangus.\n";
+        return;
+    }
 
-    // if (properties.empty())
-    // {
-    //     game.getUI().display("Kamu tidak memiliki properti untuk dikenakan efek festival.");
-    //     return;
-    // }
-
-    // game.getUI().displayPlayerProperties(player);
-    // game.getUI().display("Masukkan kode properti: ");
-
-    // std::string code = game.getUI().getInput();
-    // Property *target = player.getPropertyByCode(code);
-
-    // if (target == nullptr)
-    // {
-    //     game.getUI().display("Kode properti tidak valid atau bukan milikmu!");
-    //     return;
-    // }
-
-    // target->applyFestival();
-
-    // game.getLogger().log(
-    //     game.getCurrentTurn(),
-    //     player.getUsername(),
-    //     "FESTIVAL",
-    //     target->getCode() + ": sewa " +
-    //         std::to_string(target->getCurrentRent() / target->getFestivalMultiplier()) +
-    //         " -> " + std::to_string(target->getCurrentRent()) +
-    //         ", durasi " + std::to_string(target->getFestivalDuration()) + " giliran");
+    player.setPendingFestival(true);
+    std::cout << player.getUsername()
+              << " mendarat di Festival! Pilih properti untuk digandakan sewanya.\n"
+              << "Ketik: FESTIVAL <kode_properti>\n";
 }

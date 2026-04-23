@@ -1,6 +1,7 @@
 #include "core/GameEngine.hpp"
 
 #include <iostream>
+#include <memory>
 
 GameEngine::GameEngine(IGUI *gui)
     : game(nullptr),
@@ -68,42 +69,39 @@ void GameEngine::update()
 
 void GameEngine::startNameInputFlow(int count)
 {
-    std::vector<std::string> names;
-    int index = 0;
+    auto names = std::make_shared<std::vector<std::string>>();
+    auto index = std::make_shared<int>(0);
+    auto handler = std::make_shared<std::function<void(const Command &)>>();
 
-    std::function<void(const Command &)> handler;
-
-    handler = [this, count, names, index, handler](const Command &cmd) mutable
+    *handler = [this, count, names, index, handler](const Command &cmd)
     {
         if (cmd.getType() != "INPUT")
-        {
-            currentHandler = nullptr;
             return;
-        }
 
         if (cmd.getArgs().empty() || cmd.getArgs()[0].empty())
         {
             gui->showMessage("Nama tidak boleh kosong");
-            currentHandler = nullptr;
+            gui->showInputPrompt("Nama pemain " + std::to_string(*index + 1) + ":");
+            currentHandler = *handler;
             return;
         }
 
-        names.push_back(cmd.getArgs()[0]);
-        index++;
+        names->push_back(cmd.getArgs()[0]);
+        (*index)++;
 
-        if (index < count)
+        if (*index < count)
         {
-            gui->showInputPrompt("Nama pemain " + std::to_string(index + 1) + ":");
-            currentHandler = handler;
+            gui->showInputPrompt("Nama pemain " + std::to_string(*index + 1) + ":");
+            currentHandler = *handler;
         }
         else
         {
-            finalizePlayers(names);
+            finalizePlayers(*names);
         }
     };
 
     gui->showInputPrompt("Nama pemain 1:");
-    currentHandler = handler;
+    currentHandler = *handler;
 }
 
 void GameEngine::finalizePlayers(const std::vector<std::string> &names)
@@ -136,6 +134,11 @@ void GameEngine::finalizePlayers(const std::vector<std::string> &names)
 
     gui->loadGameView();
     gui->renderBoard(*game);
+
+    for (auto p : game->getActivePlayers())
+    {
+        gui->loadPlayer(*p);
+    }
 }
 
 void GameEngine::initNewGame(const std::string &configPath)
@@ -166,14 +169,12 @@ void GameEngine::initNewGame(const std::string &configPath)
     {
         if (cmd.getType() != "INPUT")
         {
-            currentHandler = nullptr;
             return;
         }
 
         if (cmd.getArgs().empty() || cmd.getArgs()[0].empty())
         {
             gui->showMessage("Masukkan angka 2-4");
-            currentHandler = nullptr;
             return;
         }
 
@@ -182,7 +183,6 @@ void GameEngine::initNewGame(const std::string &configPath)
         if (!std::all_of(s.begin(), s.end(), ::isdigit))
         {
             gui->showMessage("Input harus angka");
-            currentHandler = nullptr;
             return;
         }
 
@@ -191,7 +191,6 @@ void GameEngine::initNewGame(const std::string &configPath)
         if (count < 2 || count > 4)
         {
             gui->showMessage("Jumlah pemain harus 2-4");
-            currentHandler = nullptr;
             return;
         }
 

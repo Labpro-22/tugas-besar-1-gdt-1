@@ -1,8 +1,9 @@
 #include "views/GUI.hpp"
 #include "core/Game.hpp"
+#include "models/CardAndDeck/LassoCard.hpp"
 
 GUI::GUI(float fps, Board& board) : menu(nullptr), board(new BoardView(board)),
-         debuggingEntry(nullptr), dice(nullptr), chancePile(nullptr), communityChestPile(nullptr),
+         debuggingEntry(nullptr), dice(nullptr), chancePile(nullptr), communityChestPile(nullptr), skillCard(nullptr),
          fps(fps), camManager(CameraManager()), exitRequested(false) {
     camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize()*1.1f, 10.0f, 0}, {0,0,0}, 45.0f));
     View3DCamera* boardCam = camManager.getCurrentCamera();
@@ -140,6 +141,7 @@ void GUI::loadPlayer(Player& player) {
         default: playerColor = LIGHTGRAY;
     }
     players.push_back(new PlayerView(player, board, playerColor, &camManager));
+    players.back()->setVisible(false);
 }
 
 void GUI::loadDice(PlayerView* player) {
@@ -153,6 +155,12 @@ void GUI::loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile
     this->chancePile = new CardPileView(chancePile, cardPos, cardDim);
     this->communityChestPile = new CardPileView(comChestPile, {cardPos.x*-1, cardPos.y, cardPos.z*-1}, cardDim*-1);
 }
+
+void GUI::loadSkillHand(Player& player, Card* incomingCard) {
+    skillCard = new SkillHandView(player, camManager.getCurrentCamera(), incomingCard);
+    views.insert(skillCard);
+}
+
 Command GUI::getCommand()
 {
     if (!pendingCommand.isNull())
@@ -257,13 +265,20 @@ Command GUI::getCommand()
                     movingPlayer->moveSpaces(moveVal);
                 });
             } else if (tokens[1] == "DRAW") {
-                if (tokens[2] == "CC") {
-                    // reshuffle deck
-                    communityChestPile->drawCard();
-                } else if (tokens[2] == "CH") {
-                    // reshuffle deck
-                    chancePile->drawCard();
-                }
+                camManager.switchTo("ACTION_CAM", 1, [this, tokens](){
+                    if (tokens[2] == "CC") {
+                        // reshuffle deck
+                        communityChestPile->drawCard();
+                    } else if (tokens[2] == "CH") {
+                        // reshuffle deck
+                        chancePile->drawCard();
+                    }
+                });
+            } else if (tokens[1] == "HAND") {
+                camManager.switchTo("ACTION_CAM", 1, [this, tokens](){
+                    loadSkillHand(players[stoi(tokens[2])]->getPlayer(), new LassoCard);
+                });
+                
             }
 
             return {"NULL", {}};
@@ -323,6 +338,12 @@ void GUI::update()
         }
     }
 
+    if (skillCard != nullptr) {
+        if (skillCard->closed()) {
+            skillCard = nullptr;
+        }
+    }
+
     if (!popupStack.empty())
     {
         while (popupStack.top()->closed())
@@ -360,6 +381,8 @@ void GUI::display()
         if (communityChestPile != nullptr) communityChestPile->render();
         if (dice != nullptr) dice->render();
     EndMode3D();
+    if (skillCard != nullptr)
+        skillCard->render();
     if (menu != nullptr)
         menu->render();
     if (debuggingEntry != nullptr)

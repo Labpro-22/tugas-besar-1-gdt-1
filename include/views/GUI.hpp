@@ -5,6 +5,7 @@
 #include "views/viewElement/MenuView.hpp"
 #include "views/viewElement/cards/CardView.hpp"
 #include "views/viewElement/cards/CardPileView.hpp"
+#include "views/viewElement/cards/SkillHandView.hpp"
 #include "views/viewElement/board/BoardView.hpp"
 #include "views/viewElement/player/PlayerView.hpp"
 #include "views/viewElement/player/DiceView.hpp"
@@ -26,7 +27,7 @@ class GUI : public IGUI {
         vector<PlayerView*> players;
         CardPileView* chancePile;
         CardPileView* communityChestPile;
-        
+        SkillHandView* skillCard;
 
         CameraManager camManager;
 
@@ -73,6 +74,7 @@ class GUI : public IGUI {
         void loadPopup(Popup* popup);
         void loadPlayer(Player& player);
         void loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile);
+        void loadSkillHand(Player& player, Card* incomingCard);
         void loadDice(PlayerView* player);
         void enableAll();
         void disableAll();

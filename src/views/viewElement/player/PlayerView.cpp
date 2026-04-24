@@ -25,6 +25,10 @@ PlayerView::PlayerView(Player& player, BoardView* board, Color color, CameraMana
     }, [](){}));
 }
 
+Player& PlayerView::getPlayer() {
+    return player;
+}
+
 string PlayerView::getPlayerCamKey() {
     return "CAM" + player.getUsername();
 }

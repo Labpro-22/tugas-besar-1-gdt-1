@@ -8,14 +8,15 @@ class CardPileView {
         Vector3 pos;
         Vector2 cardSize;
         CardDeck<Card>& cardPile;
-        CardView* drawnCard;
-        vector<CardView*> cards;
+        ActionCardView* drawnCard;
+        vector<ActionCardView*> cards;
         BoardView* board;
         CardCategory category;
     public:
         CardPileView(CardDeck<Card>& cardPile, const Vector3& pos, const Vector2& cardSize);
         CardCategory getPileCategory();
         Vector3 getPos();
+        Vector2 getCardSize();
         CardDeck<Card>& getDeck();
         void updatePile();
         void drawCard();

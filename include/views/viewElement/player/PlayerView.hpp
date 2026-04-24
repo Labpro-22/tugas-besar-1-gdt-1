@@ -18,7 +18,8 @@ class PlayerView : public View3D {
         static Model* playerModel;
     public :
         PlayerView(Player& player, BoardView* board, Color color, CameraManager* camManager);
-        ~PlayerView();
+        ~PlayerView() {};
+        Player& getPlayer();
         string getPlayerCamKey();
         View3DCamera* getPlayerCamera();
         void setCurrentTile(TileView* currentTile);

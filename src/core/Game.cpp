@@ -1,15 +1,29 @@
 #include "core/Game.hpp"
 #include "exception/InvalidEntryInput/InvalidDiceNumberException.hpp"
 
-#include <cstdlib>
+#include <chrono>
+#include <random>
 
 // DiceManager
-DiceManager::DiceManager() : die1(0), die2(0) {}
+DiceManager::DiceManager()
+    : die1(0),
+      die2(0),
+      rng([] {
+          std::random_device rd;
+          const auto now = static_cast<unsigned int>(
+              std::chrono::high_resolution_clock::now().time_since_epoch().count());
+          std::seed_seq seed{
+              rd(), rd(), rd(), rd(),
+              now
+          };
+          return std::mt19937(seed);
+      }()),
+      dieDistribution(1, 6) {}
 
 std::pair<int, int> DiceManager::rollRandom()
 {
-    die1 = rand() % 6 + 1;
-    die2 = rand() % 6 + 1;
+    die1 = dieDistribution(rng);
+    die2 = dieDistribution(rng);
     return {die1, die2};
 }
 

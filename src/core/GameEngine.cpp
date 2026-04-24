@@ -62,6 +62,14 @@ std::string propertyLogLabel(const Property* property) {
     return property->getName() + " (" + property->getCode() + ")";
 }
 
+std::mt19937 makeRandomEngine() {
+    std::random_device rd;
+    const auto now = static_cast<unsigned int>(
+        std::chrono::high_resolution_clock::now().time_since_epoch().count());
+    std::seed_seq seed{rd(), rd(), rd(), rd(), now};
+    return std::mt19937(seed);
+}
+
 std::string buildingStateLabel(const StreetProperty* property) {
     if (property == nullptr) return "tanah kosong";
 
@@ -771,21 +779,32 @@ void GameEngine::initNewGame() {
         }
     }
 
-    int initBalance = config.getMisc().getInitialBalance();
+    std::vector<std::string> usernames;
+    usernames.reserve(numPlayers);
     for (int i = 0; i < numPlayers; ++i) {
         std::string uname = waitForInput(gui,
             "Username pemain ke-" + std::to_string(i + 1) + ":");
+        usernames.push_back(uname);
+    }
+
+    std::mt19937 rng = makeRandomEngine();
+    std::shuffle(usernames.begin(), usernames.end(), rng);
+
+    int initBalance = config.getMisc().getInitialBalance();
+    for (const std::string& uname : usernames) {
         game->addPlayer(new Player(uname, initBalance));
     }
 
     std::vector<int> order(numPlayers);
     std::iota(order.begin(), order.end(), 0);
-    unsigned seed = static_cast<unsigned>(
-        std::chrono::system_clock::now().time_since_epoch().count());
-    std::shuffle(order.begin(), order.end(), std::default_random_engine(seed));
     game->setTurnOrder(order);
     game->setCurrentTurnIndex(0);
     game->setCurrentTurn(1);
+
+    gui->showMessage("Urutan giliran sudah diacak.");
+    for (int i = 0; i < static_cast<int>(usernames.size()); ++i) {
+        gui->showMessage(std::to_string(i + 1) + ". " + usernames[i]);
+    }
 
     // Set all players to start on GO (tile index 1)
     Board* b = game->getBoard();

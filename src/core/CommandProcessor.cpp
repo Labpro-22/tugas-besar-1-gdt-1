@@ -767,10 +767,10 @@ CommandResult CommandProcessor::handleDropCard(Player* player, int index) {
 
 // ── Apply effects per card type ───────────────────────────────────────────────
 
-void CommandProcessor::applyMoveCard(Player* player, MoveCard* card) {
+bool CommandProcessor::applyMoveCard(Player* player, MoveCard* card) {
     int steps = card->getSteps();
     Board* board = game->getBoard();
-    if (board == nullptr) return;
+    if (board == nullptr) return false;
     if (board->passesGo(player->getPosition(), steps)) {
         player->addMoney(game->getGoSalary());
         gui->showMessage("Melewati GO! Terima " + formatMoney(game->getGoSalary()) + ".");
@@ -786,11 +786,12 @@ void CommandProcessor::applyMoveCard(Player* player, MoveCard* card) {
                             " petak -> " + tileName);
     }
     if (landed) engine->handleTileLandingPublic(player, landed);
+    return true;
 }
 
-void CommandProcessor::applyTeleportCard(Player* player, TeleportCard* /*card*/) {
+bool CommandProcessor::applyTeleportCard(Player* player, TeleportCard* /*card*/) {
     Board* board = game->getBoard();
-    if (board == nullptr) return;
+    if (board == nullptr) return false;
     gui->showMessage("TeleportCard: kamu dapat berpindah ke petak manapun.");
     gui->showMessage("Masukkan kode petak tujuan.");
     while (true) {
@@ -818,9 +819,10 @@ void CommandProcessor::applyTeleportCard(Player* player, TeleportCard* /*card*/)
         engine->handleTileLandingPublic(player, target);
         break;
     }
+    return true;
 }
 
-void CommandProcessor::applyDiscountCard(Player* player, DiscountCard* card) {
+bool CommandProcessor::applyDiscountCard(Player* player, DiscountCard* card) {
     // Efek DiscountCard: diskon pembelian properti selama 1 giliran.
     // Diskon disimpan di player sebagai pending discount yang dicek saat beli properti.
     player->setPendingDiscount(card->getDiscount());
@@ -831,18 +833,20 @@ void CommandProcessor::applyDiscountCard(Player* player, DiscountCard* card) {
                             "KARTU", "Pakai DiscountCard diskon " +
                             std::to_string(card->getDiscount()) + "%");
     }
+    return true;
 }
 
-void CommandProcessor::applyShieldCard(Player* player, ShieldCard* /*card*/) {
+bool CommandProcessor::applyShieldCard(Player* player, ShieldCard* /*card*/) {
     turn->setShieldActive(true);
     gui->showMessage("ShieldCard aktif: kamu kebal dari tagihan sewa dan sanksi giliran ini.");
     if (engine->logger != nullptr) {
         engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                             "KARTU", "Pakai ShieldCard -> kebal sewa & sanksi");
     }
+    return true;
 }
 
-void CommandProcessor::applyLassoCard(Player* player, LassoCard* /*card*/) {
+bool CommandProcessor::applyLassoCard(Player* player, LassoCard* /*card*/) {
     const auto& activePlayers = game->getActivePlayers();
     // Cari pemain lawan yang berada DI DEPAN posisi player
     std::vector<Player*> candidates;
@@ -857,9 +861,9 @@ void CommandProcessor::applyLassoCard(Player* player, LassoCard* /*card*/) {
         gui->showMessage("LassoCard: tidak ada pemain lawan yang berada di depanmu.");
         if (engine->logger != nullptr) {
             engine->logger->log(game->getCurrentTurn(), player->getUsername(),
-                                "KARTU", "Pakai LassoCard -> tidak ada target");
+                                "KARTU", "Coba LassoCard -> tidak ada target");
         }
-        return;
+        return false;
     }
     // Sort by smallest distance (paling dekat di depan)
     std::sort(candidates.begin(), candidates.end(), [&](Player* a, Player* b){
@@ -888,9 +892,10 @@ void CommandProcessor::applyLassoCard(Player* player, LassoCard* /*card*/) {
                             "KARTU", "Pakai LassoCard -> tarik " + target->getUsername() +
                             " ke petak " + std::to_string(myPos));
     }
+    return true;
 }
 
-void CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*card*/) {
+bool CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*card*/) {
     // Kumpulkan semua properti lawan yang punya bangunan
     std::vector<std::pair<Player*, Property*>> targets;
     for (Player* other : game->getActivePlayers()) {
@@ -907,9 +912,9 @@ void CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*car
         gui->showMessage("DemolitionCard: tidak ada bangunan milik lawan yang bisa dihancurkan.");
         if (engine->logger != nullptr) {
             engine->logger->log(game->getCurrentTurn(), player->getUsername(),
-                                "KARTU", "Pakai DemolitionCard -> tidak ada target");
+                                "KARTU", "Coba DemolitionCard -> tidak ada target");
         }
-        return;
+        return false;
     }
     gui->showMessage("DemolitionCard: pilih properti lawan yang akan dihancurkan.");
     for (int i = 0; i < static_cast<int>(targets.size()); ++i) {
@@ -946,6 +951,7 @@ void CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*car
                             sp->getName() + " (" + sp->getCode() + ") milik " +
                             targets[choice].first->getUsername());
     }
+    return true;
 }
 
 CommandResult CommandProcessor::handleUseSkill(Player* player, int index) {
@@ -965,32 +971,38 @@ CommandResult CommandProcessor::handleUseSkill(Player* player, int index) {
         return CommandResult::INVALID;
     }
 
-    player->removeCard(card);
-    player->markSkillUsed();
-
+    bool applied = false;
     switch (card->getKind()) {
         case SkillCardKind::MOVE:
-            applyMoveCard(player, static_cast<MoveCard*>(card));
+            applied = applyMoveCard(player, static_cast<MoveCard*>(card));
             break;
         case SkillCardKind::TELEPORT:
-            applyTeleportCard(player, static_cast<TeleportCard*>(card));
+            applied = applyTeleportCard(player, static_cast<TeleportCard*>(card));
             break;
         case SkillCardKind::DISCOUNT:
-            applyDiscountCard(player, static_cast<DiscountCard*>(card));
+            applied = applyDiscountCard(player, static_cast<DiscountCard*>(card));
             break;
         case SkillCardKind::SHIELD:
-            applyShieldCard(player, static_cast<ShieldCard*>(card));
+            applied = applyShieldCard(player, static_cast<ShieldCard*>(card));
             break;
         case SkillCardKind::LASSO:
-            applyLassoCard(player, static_cast<LassoCard*>(card));
+            applied = applyLassoCard(player, static_cast<LassoCard*>(card));
             break;
         case SkillCardKind::DEMOLITION:
-            applyDemolitionCard(player, static_cast<DemolitionCard*>(card));
+            applied = applyDemolitionCard(player, static_cast<DemolitionCard*>(card));
             break;
         case SkillCardKind::JAIL_FREE:
             return CommandResult::INVALID;
     }
 
+    if (!applied) {
+        gui->showMessage("Kartu tidak digunakan karena efeknya tidak berhasil.");
+        gui->showMessage("Kamu masih boleh memakai kartu kemampuan lain pada giliran ini.");
+        return CommandResult::INVALID;
+    }
+
+    player->removeCard(card);
+    player->markSkillUsed();
     if (game->getSkillDeck() != nullptr) game->getSkillDeck()->discard(card);
     return CommandResult::CONTINUE;
 }

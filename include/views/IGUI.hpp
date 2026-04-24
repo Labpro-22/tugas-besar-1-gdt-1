@@ -21,7 +21,7 @@ public:
     virtual void display() = 0;
     virtual bool shouldExit() const = 0;
     virtual void requestExit() = 0;
-    
+
     // Input tunggal: command string dari user (kembalikan "NULL" / kosong jika belum ada)
     virtual Command getCommand() = 0;
 
@@ -45,4 +45,5 @@ public:
     virtual void renderAuction(const Property &property, int currentBid, const Player *highBidder) = 0;
     virtual void renderBankruptcy(const Player &player) = 0;
     virtual void renderWinner(const Player &winner) = 0;
+    virtual void loadPlayer(Player &player) = 0;
 };

@@ -10,65 +10,59 @@
 #include "views/viewElement/player/PlayerView.hpp"
 #include "views/viewElement/player/DiceView.hpp"
 #include "views/viewElement/Popup.hpp"
+#include "views/viewElement/player/PlayerProfileView.hpp"
 #include "views/animation/ViewAnimation.hpp"
 #include "views/animation/camera/CameraManager.hpp"
 #include "views/animation/camera/CameraMovement.hpp"
 #include <set>
 #include <stack>
 
-class GUI : public IGUI {
-    private:
-        set<View2D*> views;
-        stack<Popup*> popupStack;
-        MenuView* menu;
-        Entry* debuggingEntry;
-        BoardView* board;
-        DiceView* dice;
-        vector<PlayerView*> players;
-        CardPileView* chancePile;
-        CardPileView* communityChestPile;
-        SkillHandView* skillCard;
+class GUI : public IGUI
+{
+private:
+    set<View2D *> views;
+    stack<Popup *> popupStack;
+    MenuView *menu;
+    Entry *debuggingEntry;
+    BoardView *board;
+    vector<PlayerView *> players;
+    vector<PlayerProfileView *> playerProfiles;
+    DiceView* dice;
+    CardPileView* chancePile;
+    CardPileView* communityChestPile;
+    SkillHandView* skillCard;
 
-        CameraManager camManager;
+    CameraManager camManager;
 
-        Command pendingCommand;
-        float fps;
-        bool exitRequested;
-        void unloadView(View2D* p);
-    public:
-        GUI(float fps, Board& board);
-        ~GUI() override = default;
+    Command pendingCommand;
+    float fps;
+    bool exitRequested;
+    void unloadView(View2D *p);
 
-        // Lifecycle
-        void update() override;
-        void display() override;
-        bool shouldExit() const override;
-        void requestExit() override;
+public:
+    GUI(float fps, Board &board);
+    ~GUI() override = default;
 
-        // Input
-        Command getCommand() override;
+    // Lifecycle
+    void updatePlayerProfilesLayout();
+    void update() override;
+    void display() override;
+    bool shouldExit() const override;
+    void requestExit() override;
 
-        // Navigasi view
-        void loadMainMenu() override;
-        void loadGameView() override;
-        void loadFinishMenu() override;
-        void enterGame();
+    // Input
+    Command getCommand() override;
 
-        // Popup / prompt
-        void showMessage(const std::string& message) override;
-        void showConfirm(const std::string& question) override;
-        void showInputPrompt(const std::string& prompt) override;
+    // Navigasi view
+    void loadMainMenu() override;
+    void loadGameView() override;
+    void loadFinishMenu() override;
+    void enterGame();
 
-        // Render state game
-        void renderBoard(const Game& game) override;
-        void renderPlayer(const Player& player) override;
-        void renderProperty(const Property& property) override;
-        void renderDice(int die1, int die2) override;
-        void renderLog(const std::vector<LogEntry>& entries) override;
-        void renderSkillHand(const std::vector<SkillCard*>& hand) override;
-        void renderAuction(const Property& property, int currentBid, const Player* highBidder) override;
-        void renderBankruptcy(const Player& player) override;
-        void renderWinner(const Player& winner) override;
+    // Popup / prompt
+    void showMessage(const std::string &message) override;
+    void showConfirm(const std::string &question) override;
+    void showInputPrompt(const std::string &prompt) override;
 
         // Utility khusus GUI raylib (bukan bagian IGUI)
         void loadPopup(Popup* popup);
@@ -78,7 +72,23 @@ class GUI : public IGUI {
         void loadDice(PlayerView* player);
         void enableAll();
         void disableAll();
+    // Render state game
+    void renderBoard(const Game &game) override;
+    void renderPlayer(const Player &player) override;
+    void renderProperty(const Property &property) override;
+    void renderDice(int die1, int die2) override;
+    void renderLog(const std::vector<LogEntry> &entries) override;
+    void renderSkillHand(const std::vector<SkillCard *> &hand) override;
+    void renderAuction(const Property &property, int currentBid, const Player *highBidder) override;
+    void renderBankruptcy(const Player &player) override;
+    void renderWinner(const Player &winner) override;
 
-        // Testing
-        void loadDebuggingEntry();
+    // Utility khusus GUI raylib (bukan bagian IGUI)
+    void loadPopup(Popup *popup);
+    void loadPlayer(Player &player);
+    void enableAll();
+    void disableAll();
+
+    // Testing
+    void loadDebuggingEntry();
 };

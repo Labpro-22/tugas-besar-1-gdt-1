@@ -1,4 +1,5 @@
 #include "views/GUI.hpp"
+#include "views/viewElement/GameHUDView.hpp"
 #include "core/Game.hpp"
 #include "models/CardAndDeck/LassoCard.hpp"
 
@@ -27,7 +28,24 @@ void GUI::requestExit()
 
 void GUI::loadGameView()
 {
-    // TODO: muat view permainan utama
+    while (!popupStack.empty()) {
+        delete popupStack.top();
+        popupStack.pop();
+    }
+
+    for (auto v : views)
+        delete v;
+    views.clear();
+
+    for (auto p : playerProfiles) delete p;
+    playerProfiles.clear();
+
+    for (auto p : players) delete p;
+    players.clear();
+
+    menu = nullptr;
+
+    views.insert(new GameHUDView());
 }
 
 void GUI::loadFinishMenu()
@@ -131,17 +149,50 @@ void GUI::loadPopup(Popup *popup)
     views.insert(popup);
 }
 
-void GUI::loadPlayer(Player& player) {
-    Color playerColor;
-    switch(players.size()) {
-        case 0: playerColor = RED; break;
-        case 1: playerColor = BLUE; break;
-        case 2: playerColor = GREEN; break;
-        case 3: playerColor = YELLOW; break;
-        default: playerColor = LIGHTGRAY;
+void GUI::loadPlayer(Player &player)
+{
+    Color color;
+    switch (playerProfiles.size())
+    {
+    case 0:
+        color = RED;
+        break;
+    case 1:
+        color = BLUE;
+        break;
+    case 2:
+        color = GREEN;
+        break;
+    case 3:
+        color = YELLOW;
+        break;
+    default:
+        color = LIGHTGRAY;
     }
-    players.push_back(new PlayerView(player, board, playerColor, &camManager));
+
+    PlayerView *playerView = new PlayerView(player, board, color, &camManager);
+    players.push_back(playerView);
     players.back()->setVisible(false);
+
+    PlayerProfileView *profile = new PlayerProfileView();
+    profile->setPlayer(&player);
+    profile->setColor(color);
+
+    profile->setHitboxDim({250, 80});
+
+    float screenW = GetScreenWidth();
+    float screenH = GetScreenHeight();
+
+    float w = 250.0f;
+    float h = 80.0f;
+    float margin = 20.0f;
+
+    int idx = playerProfiles.size();
+
+    profile->setActive(true);
+
+    playerProfiles.push_back(profile);
+    views.insert(profile);
 }
 
 void GUI::loadDice(PlayerView* player) {
@@ -180,7 +231,7 @@ Command GUI::getCommand()
             views.erase(p);
             delete p;
             popupStack.pop();
-            
+
             std::stringstream ss(raw);
             std::string item;
             std::vector<std::string> tokens;
@@ -308,6 +359,39 @@ void GUI::disableAll()
     }
 }
 
+void GUI::updatePlayerProfilesLayout()
+{
+    float screenW = GetScreenWidth();
+    float screenH = GetScreenHeight();
+
+    float w = 250.0f;
+    float h = 80.0f;
+    float margin = 20.0f;
+
+    for (int i = 0; i < playerProfiles.size(); i++)
+    {
+        Vector2 pos;
+
+        switch (i)
+        {
+        case 0:
+            pos = { w/2 + margin, h/2 + margin };
+            break;
+        case 1:
+            pos = { screenW - w/2 - margin, h/2 + margin };
+            break;
+        case 2:
+            pos = { w/2 + margin, screenH - h/2 - margin };
+            break;
+        case 3:
+            pos = { screenW - w/2 - margin, screenH - h/2 - margin };
+            break;
+        }
+
+        playerProfiles[i]->setPosition(pos);
+    }
+}
+
 void GUI::update()
 {
     camManager.updateCamMap();
@@ -319,6 +403,7 @@ void GUI::update()
         }
     }
     
+  updatePlayerProfilesLayout();
     set<View2D*> closedViews;
     for (View2D* view : views) {
         if (view->closed()) {
@@ -381,18 +466,8 @@ void GUI::display()
         if (communityChestPile != nullptr) communityChestPile->render();
         if (dice != nullptr) dice->render();
     EndMode3D();
-    if (skillCard != nullptr)
-        skillCard->render();
-    if (menu != nullptr)
-        menu->render();
-    if (debuggingEntry != nullptr)
-        debuggingEntry->render();
-    stack<Popup *> temp = popupStack;
-    while (!temp.empty())
-    {
-        temp.top()->render();
-        temp.pop();
-    }
+    for (View2D *view : views)
+        view->render();
 }
 
 void GUI::loadDebuggingEntry()

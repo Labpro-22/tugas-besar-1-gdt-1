@@ -29,6 +29,11 @@ Player& PlayerView::getPlayer() {
     return player;
 }
 
+PlayerView::~PlayerView()
+{
+    UnloadModel(model);
+}
+
 string PlayerView::getPlayerCamKey() {
     return "CAM" + player.getUsername();
 }

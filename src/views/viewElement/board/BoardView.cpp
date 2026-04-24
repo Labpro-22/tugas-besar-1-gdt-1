@@ -2,7 +2,7 @@
 #include "../include/models/Property/StreetProperty.hpp"
 
 
-void getBaseBoardTexture(RenderTexture2D* texture, int width, int height) {
+void getBaseBoardTexture(RenderTexture2D* texture, int width, int height, float boardSize) {
     BeginTextureMode(*texture);
     ClearBackground({205, 230, 208, 255});
     Image img = LoadImage("data/GUIAssets/nimonspoli_logo.png");
@@ -19,7 +19,7 @@ void getBaseBoardTexture(RenderTexture2D* texture, int width, int height) {
     ImageRotate(&img, 45);
     Texture chanceBase = LoadTextureFromImage(img);
     UnloadImage(img);
-    DrawTexture(chanceBase, 250, height - chanceBase.height - 250, WHITE);
+    DrawTexture(chanceBase, 320, height - chanceBase.height - 320, WHITE);
 
     img = LoadImage("data/GUIAssets/comchest_base.png");
     ImageResize(&img, img.width*0.65, img.height*0.65);
@@ -27,7 +27,7 @@ void getBaseBoardTexture(RenderTexture2D* texture, int width, int height) {
     ImageRotate(&img, 225);
     Texture comchestBase = LoadTextureFromImage(img);
     UnloadImage(img);
-    DrawTexture(comchestBase,width - chanceBase.width - 250, 250, WHITE);
+    DrawTexture(comchestBase,width - chanceBase.width - 320, 320, WHITE);
     
     
 
@@ -45,11 +45,12 @@ Model getBoardModel(Board& board) {
 
 BoardView::BoardView(Board& board) : View3D({0,0.015,0}, getBoardModel(board), WHITE), board(board) {
     RenderTexture2D texture = LoadRenderTexture(1500, 1500);
-    getBaseBoardTexture(&texture, 1500, 1500);
-    model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture.texture;
-    int i = 0;
     int tilePerDirection = board.getAllTiles().size() / 4;
     float boardSide = (tilePerDirection - 1)*TileView::getTileDim().x + 2*TileView::getTileDim().y;
+    getBaseBoardTexture(&texture, 1500, 1500, boardSide);
+    model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture.texture;
+    int i = 0;
+
     Vector3 startingPos = {-(boardSide - TileView::getTileDim().y)/2, 0.03, (boardSide - TileView::getTileDim().y)/2};
     Vector3 translationNorm = {-1, 0, 0};
     Matrix tileRotation = MatrixRotate({0,1,0}, 0);

@@ -2,16 +2,17 @@
 #include "views/viewElement/GameHUDView.hpp"
 #include "core/Game.hpp"
 
-GUI::GUI(float fps, Board &board) : menu(nullptr), board(new BoardView(board)),
-                                    debuggingEntry(nullptr),
-                                    fps(fps), camManager(CameraManager()), exitRequested(false)
-{
-    camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize() * 1.1f, 10.0f, 0}, {0, 0, 0}, 45.0f));
-    View3DCamera *boardCam = camManager.getCurrentCamera();
-    boardCam->addMovement("ROTATE_INDEFINITE",
-                          new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this]()
-                                             { boardCam->rotateAroundTarget(27 * (1 / this->fps), {0, 1, 0}); }, []() {}));
-    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize() * 1.25f, 0}, {0, 0, 0}, 45.0f));
+GUI::GUI(float fps, Board& board) : menu(nullptr), board(new BoardView(board)),
+         debuggingEntry(nullptr), dice(nullptr), chancePile(nullptr), communityChestPile(nullptr),
+         fps(fps), camManager(CameraManager()), exitRequested(false) {
+    camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize()*1.1f, 10.0f, 0}, {0,0,0}, 45.0f));
+    View3DCamera* boardCam = camManager.getCurrentCamera();
+    boardCam->addMovement("ROTATE_INDEFINITE", 
+        new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this](){
+            boardCam->rotateAroundTarget(27*(1/this->fps), {0,1,0});
+        }, [](){}));
+    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize()*1.25f, 0}, {0,0,0}, 45.0f));
+    camManager.addCamera("ACTION_CAM", View3DCamera({-this->board->getBoardSize()*0.8f, this->board->getBoardSize()*0.6f, 0}, {0,0,0}, 45.0f));
 }
 
 bool GUI::shouldExit() const
@@ -197,6 +198,17 @@ void GUI::loadPlayer(Player &player)
     views.insert(profile);
 }
 
+void GUI::loadDice(PlayerView* player) {
+    dice = new DiceView(player, &camManager.getCamera("ACTION_CAM"));
+    views.insert(dice->getThrowButton());
+}
+
+void GUI::loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile) {
+    Vector2 cardDim = (Vector2){7.6f, 4.275f}*(board->getBoardSize()/30.0f);
+    Vector3 cardPos = {-cardDim.x/2 - board->getBoardSize()*0.015f, 0.015, -cardDim.x/2 - board->getBoardSize()*0.015f};
+    this->chancePile = new CardPileView(chancePile, cardPos, cardDim);
+    this->communityChestPile = new CardPileView(comChestPile, {cardPos.x*-1, cardPos.y, cardPos.z*-1}, cardDim*-1);
+}
 Command GUI::getCommand()
 {
     if (!pendingCommand.isNull())
@@ -239,7 +251,6 @@ Command GUI::getCommand()
     for (View2D *view : views)
     {
         std::string raw = view->catchCommand();
-
         if (raw == "NULL")
             continue;
 
@@ -282,18 +293,33 @@ Command GUI::getCommand()
         // HANDLE INTERNAL GUI
         if (tokens[0] == "DISPLAY")
         {
-            if (tokens.size() >= 2 && tokens[1] == "TOP_VIEW")
-            {
-                camManager.switchTo("TOP_VIEW", 1, []() {});
-            }
-            else if (tokens[1] == "MOVE_PLAYER")
-            {
-                camManager.switchTo(players[stoi(tokens[2])]->getPlayerCamKey(), 1, [this, tokens]()
-                                    { players[stoi(tokens[2])]->moveToTile(*board->getTileFromIdx(stoi(tokens[3]))); });
-            }
-            else if (tokens[1] == "BOARD_CAM")
-            {
-                camManager.switchTo("BOARD_CAM", 1, []() {});
+            if (tokens[1] == "TOP_VIEW") {
+                camManager.switchTo("TOP_VIEW", 1, [](){});
+            } else if (tokens[1] == "ACTION_CAM") {
+                camManager.switchTo("ACTION_CAM", 1, [](){});
+            } else if (tokens[1] == "BOARD_CAM") {
+                camManager.switchTo("BOARD_CAM", 1, [](){});
+            } else if (tokens[1] == "ROLL_DICE") {
+                camManager.switchTo("ACTION_CAM", 1, [this, tokens](){ loadDice(players[stoi(tokens[2])]); });
+            } else if (tokens[1] == "THROW") {
+                //call GameEngine buat dapetin angka dadu
+                dice->initializeThrowDice(6, 6);
+                dice->getThrowButton()->setActive(false);
+            } else if (tokens[1] == "THROW_DONE") {
+                dice->moveDiceOffScreen();
+                PlayerView* movingPlayer = dice->getPlayer();
+                int moveVal = dice->getMoveValue();
+                camManager.switchTo(dice->getPlayer()->getPlayerCamKey(), 1, [this, movingPlayer, moveVal](){
+                    movingPlayer->moveSpaces(moveVal);
+                });
+            } else if (tokens[1] == "DRAW") {
+                if (tokens[2] == "CC") {
+                    // reshuffle deck
+                    communityChestPile->drawCard();
+                } else if (tokens[2] == "CH") {
+                    // reshuffle deck
+                    chancePile->drawCard();
+                }
             }
 
             return {"NULL", {}};
@@ -360,11 +386,17 @@ void GUI::update()
 {
     camManager.updateCamMap();
     updatePlayerProfilesLayout();
-    set<View2D *> closedViews;
-    for (View2D *view : views)
-    {
-        if (view->closed())
-        {
+    if (dice != nullptr) {
+        dice->update();
+        if (dice->isDone()) {
+            delete dice;
+            dice = nullptr;
+        }
+    }
+    
+    set<View2D*> closedViews;
+    for (View2D* view : views) {
+        if (view->closed()) {
             closedViews.insert(view);
         }
         else
@@ -409,12 +441,14 @@ void GUI::update()
 void GUI::display()
 {
     BeginMode3D(camManager.mount());
-    DrawGrid(40, 1);
+    DrawGrid(40,1);
     board->render();
-
-    for (PlayerView *player : players)
+    for (PlayerView* player : players) {
         player->render();
-
+    }
+    if (chancePile != nullptr) chancePile->render();
+    if (communityChestPile != nullptr) communityChestPile->render();
+    if (dice != nullptr) dice->render();
     EndMode3D();
 
     for (View2D *view : views)
@@ -425,6 +459,6 @@ void GUI::loadDebuggingEntry()
 {
     debuggingEntry = new Entry({800, 50}, "Enter Command", 30, "Orbitron", [this]()
                                { this->debuggingEntry->setGameCommand(this->debuggingEntry->getEntryText()); });
-    debuggingEntry->movePosition({debuggingEntry->getRenderWidth(), GetScreenHeight() - debuggingEntry->getRenderHeight() / 2});
+    debuggingEntry->movePosition({debuggingEntry->getRenderWidth(), debuggingEntry->getRenderHeight() / 2});
     views.insert(debuggingEntry);
 }

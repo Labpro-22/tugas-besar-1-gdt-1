@@ -11,7 +11,7 @@ int main()
     InitWindow(1200, 800, "Nimonspoli");
     ToggleFullscreen();
     SetTargetFPS(120);
-
+    PlayerView::loadPlayerModel("data/GUIAssets/playerpawn.obj");
     View2D::addFont("Kabel", "data/GUIAssets/kabel.ttf");
     View2D::addFont("Orbitron", "data/GUIAssets/Orbitron-VariableFont_wght.ttf");
 
@@ -24,6 +24,25 @@ int main()
         GUI app(120, *b);
         GameEngine engine(&app);
         app.loadMainMenu();
+        Player player = Player("Big Man", 500);
+        Player player2 = Player("Little Man", 500);
+        Player player3 = Player("Medium Man", 500);
+        Player player4 = Player("Nonexistent Man", 500);
+        // app.loadPlayer(player);
+        // app.loadPlayer(player2);
+        // app.loadPlayer(player3);
+        // app.loadPlayer(player4);
+        // CardDeck<Card> chancePile;
+        // CardDeck<Card> comChestPile;
+        // chancePile.addCard(new ChanceCard(ChanceType::GO_TO_JAIL));
+        // chancePile.addCard(new ChanceCard(ChanceType::GO_TO_NEAREST_STATION));
+        // chancePile.addCard(new ChanceCard(ChanceType::MOVE_BACK_3));
+        // chancePile.addCard(new ChanceCard(ChanceType::GO_TO_JAIL));
+        // comChestPile.addCard(new CommunityChestCard(CommunityType::CAMPAIGN_FEE));
+        // comChestPile.addCard(new CommunityChestCard(CommunityType::CAMPAIGN_FEE));
+        // comChestPile.addCard(new CommunityChestCard(CommunityType::CAMPAIGN_FEE));
+        // comChestPile.addCard(new CommunityChestCard(CommunityType::CAMPAIGN_FEE));
+        // app.loadCardPiles(chancePile, comChestPile);
         app.loadDebuggingEntry();
 
         while (!WindowShouldClose() && !app.shouldExit())

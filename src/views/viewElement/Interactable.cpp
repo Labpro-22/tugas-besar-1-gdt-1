@@ -64,6 +64,10 @@ void Interactable::disable() {
     active = false;
 }
 
+void Interactable::sendCommand() {
+    releaseCommand = true;
+}
+
 string Interactable::catchCommand() {
     if (releaseCommand) {
         releaseCommand = false;

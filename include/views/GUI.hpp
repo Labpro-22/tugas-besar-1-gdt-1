@@ -3,8 +3,11 @@
 #include "views/IGUI.hpp"
 #include "views/viewElement/Entry.hpp"
 #include "views/viewElement/MenuView.hpp"
+#include "views/viewElement/cards/CardView.hpp"
+#include "views/viewElement/cards/CardPileView.hpp"
 #include "views/viewElement/board/BoardView.hpp"
 #include "views/viewElement/player/PlayerView.hpp"
+#include "views/viewElement/player/DiceView.hpp"
 #include "views/viewElement/Popup.hpp"
 #include "views/viewElement/player/PlayerProfileView.hpp"
 #include "views/animation/ViewAnimation.hpp"
@@ -13,16 +16,19 @@
 #include <set>
 #include <stack>
 
-class GUI : public IGUI
-{
-private:
-    set<View2D *> views;
-    stack<Popup *> popupStack;
-    MenuView *menu;
-    Entry *debuggingEntry;
-    BoardView *board;
-    vector<PlayerView *> players;
-    vector<PlayerProfileView *> playerProfiles;
+class GUI : public IGUI {
+    private:
+        set<View2D*> views;
+        stack<Popup*> popupStack;
+        MenuView* menu;
+        Entry* debuggingEntry;
+        BoardView* board;
+        DiceView* dice;
+        vector<PlayerView*> players;
+        vector<PlayerProfileView *> playerProfiles;
+        CardPileView* chancePile;
+        CardPileView* communityChestPile;
+        
 
     CameraManager camManager;
 
@@ -61,15 +67,17 @@ public:
     void renderPlayer(const Player &player) override;
     void renderProperty(const Property &property) override;
     void renderDice(int die1, int die2) override;
-    void renderLog(const std::vector<LogEntry> &entries) override;
+    void renderLog(const std::vector<LogEntry> &entries);
     void renderSkillHand(const std::vector<SkillCard *> &hand) override;
     void renderAuction(const Property &property, int currentBid, const Player *highBidder) override;
     void renderBankruptcy(const Player &player) override;
     void renderWinner(const Player &winner) override;
 
     // Utility khusus GUI raylib (bukan bagian IGUI)
-    void loadPopup(Popup *popup);
-    void loadPlayer(Player &player);
+    void loadPopup(Popup* popup);
+    void loadPlayer(Player& player);
+    void loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile);
+    void loadDice(PlayerView* player);
     void enableAll();
     void disableAll();
 

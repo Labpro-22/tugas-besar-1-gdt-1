@@ -11,9 +11,9 @@ PhysicsObject* PhysicsEngine::getObject(string objIdent) const {
     return nullptr;
 }
 
-void PhysicsEngine::addObject(string objIdent, PhysicsObject& obj) {
-    objects[objIdent] = &obj;
-    obj.applyConstantForce(calculateGravitationalForce(objIdent), {0,0,0});
+void PhysicsEngine::addObject(string objIdent, PhysicsObject* obj) {
+    objects[objIdent] = obj;
+    obj->applyConstantForce(calculateGravitationalForce(objIdent), {0,0,0});
 }
 
 const float PhysicsEngine::getLowestDeltaTime() const {

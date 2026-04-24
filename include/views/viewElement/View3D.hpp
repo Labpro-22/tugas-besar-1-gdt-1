@@ -13,13 +13,17 @@ class View3D {
         Vector3 pos;
         Model model;
         Matrix transformation;
+        bool visible;
         Color color;
         Vector3 dimension;
         map<string, View3DAnimation*> animations;
     public:
         View3D();
         View3D(const Vector3& pos, const Model& model, const Color& color);
+        ~View3D();
         const Vector3 getPos() const;
+        Model getModel() const;
+        Matrix getTransformation() const;
         void movePosition(const Vector3& pos);
         void movePositionDelta(const Vector3& deltaPos);
         void setPosX(float x);
@@ -32,3 +36,5 @@ class View3D {
         void animationCheck();
         virtual void render();
 };
+
+Mesh CopyMesh(Mesh original);

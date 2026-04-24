@@ -3,8 +3,11 @@
 #include "views/IGUI.hpp"
 #include "views/viewElement/Entry.hpp"
 #include "views/viewElement/MenuView.hpp"
+#include "views/viewElement/cards/CardView.hpp"
+#include "views/viewElement/cards/CardPileView.hpp"
 #include "views/viewElement/board/BoardView.hpp"
 #include "views/viewElement/player/PlayerView.hpp"
+#include "views/viewElement/player/DiceView.hpp"
 #include "views/viewElement/Popup.hpp"
 #include "views/viewElement/player/PlayerProfileView.hpp"
 #include "views/animation/ViewAnimation.hpp"
@@ -23,6 +26,9 @@ private:
     BoardView *board;
     vector<PlayerView *> players;
     vector<PlayerProfileView *> playerProfiles;
+    DiceView* dice;
+        CardPileView* chancePile;
+        CardPileView* communityChestPile;
 
     CameraManager camManager;
 
@@ -56,6 +62,13 @@ public:
     void showConfirm(const std::string &question) override;
     void showInputPrompt(const std::string &prompt) override;
 
+        // Utility khusus GUI raylib (bukan bagian IGUI)
+        void loadPopup(Popup* popup);
+        void loadPlayer(Player& player);
+        void loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile);
+        void loadDice(PlayerView* player);
+        void enableAll();
+        void disableAll();
     // Render state game
     void renderBoard(const Game &game) override;
     void renderPlayer(const Player &player) override;

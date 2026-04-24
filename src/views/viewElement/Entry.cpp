@@ -118,8 +118,9 @@ void Entry::interactionCheck()
             key = GetCharPressed();
         }
 
-        if (IsKeyPressed(KEY_ENTER))
+        if (IsKeyPressed(KEY_ENTER)) {
             onEnter();
+        }
 
         auto handleKeyRepeat = [&](int raylibKey, float &holdTime, float &repeatTimer, std::function<void()> action)
         {

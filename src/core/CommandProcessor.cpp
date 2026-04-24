@@ -83,6 +83,7 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
     auto tokens = tokenize(command);
     if (tokens.empty()) return CommandResult::CONTINUE;
 
+    const std::string rawCmd = tokens[0];
     std::string cmd = normalize(tokens[0]);
 
     if (isAwaitingBonusRoll(player) && !isAllowedDuringBonusRoll(cmd)) {
@@ -123,6 +124,14 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
         }
         if (cmd == "BANGUN") {
             if (tokens.size() < 2) { gui->showMessage("Format: BANGUN <kode>"); return CommandResult::INVALID; }
+            return handleBuild(player, tokens[1]);
+        }
+        if (cmd == "BUILD") {
+            if (rawCmd != "BUILD") {
+                gui->showMessage("Perintah BUILD harus ditulis dengan huruf kapital.");
+                return CommandResult::INVALID;
+            }
+            if (tokens.size() < 2) { gui->showMessage("Format: BUILD <kode>"); return CommandResult::INVALID; }
             return handleBuild(player, tokens[1]);
         }
         if (cmd == "GUNAKAN_KEMAMPUAN") {
@@ -635,61 +644,80 @@ CommandResult CommandProcessor::handleEndTurn(Player* player) {
 }
 
 CommandResult CommandProcessor::handleHelp(Player* player) {
-    gui->showMessage("=== Daftar Perintah ===");
-    gui->showMessage("Selalu tersedia:");
-    gui->showMessage("  CETAK_PAPAN                 - tampilkan papan permainan");
-    gui->showMessage("  CETAK_AKTA <kode>           - tampilkan akta properti");
-    gui->showMessage("  CETAK_PROPERTI              - tampilkan daftar properti milikmu");
-    gui->showMessage("  CETAK_KARTU                 - tampilkan kartu kemampuan di tangan");
-    gui->showMessage("  CETAK_LOG [n]               - tampilkan n log terakhir (tanpa n = semua)");
-    gui->showMessage("  HELP                        - tampilkan bantuan ini");
-    gui->showMessage("  EXIT                        - keluar dari permainan");
+    gui->showMessage("=== PANDUAN COMMAND NIMONSPOLI ===");
 
     if (player == nullptr) {
-        gui->showMessage("");
-        gui->showMessage("Belum ada pemain aktif. Mulai permainan baru lewat menu utama.");
+        gui->showMessage("@HELP:TURN:Fase saat ini: MENU UTAMA");
+        gui->showMessage("@HELP:ACTION:  NEW_GAME                    - mulai permainan baru");
+        gui->showMessage("@HELP:ACTION:  LOAD_GAME <nama_save>       - muat data simpan");
+        gui->showMessage("@HELP:ACTION:  MUAT <nama_save>            - alias LOAD_GAME");
+        gui->showMessage("@HELP:NOTE:  EXIT                        - keluar dari program");
         return CommandResult::CONTINUE;
     }
 
-    gui->showMessage("");
     if (player->isJailed()) {
-        gui->showMessage("Fase saat ini: DI DALAM PENJARA");
-        gui->showMessage("  LEMPAR_DADU                 - coba keluar penjara (butuh double)");
-        gui->showMessage("  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
+        gui->showMessage("@HELP:TURN:Fase saat ini: DI DALAM PENJARA");
+        gui->showMessage("@HELP:TURN:  LEMPAR_DADU                 - coba keluar penjara dengan double");
+        gui->showMessage("@HELP:TURN:  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
         if (player->getJailAttempts() >= 3) {
-            gui->showMessage("  (Ini percobaan ke-4. Denda penjara wajib dibayar otomatis.)");
+            gui->showMessage("@HELP:NOTE:  Percobaan ke-4: denda penjara wajib dibayar otomatis.");
         }
     } else if (player->hasPendingFestival()) {
-        gui->showMessage("Fase saat ini: WAJIB PILIH PROPERTI FESTIVAL");
-        gui->showMessage("  FESTIVAL <kode>             - pilih properti yang dikenai efek festival");
-        if (player->getConsecutiveDoubles() > 0) {
-            gui->showMessage("  (Setelah Festival dipilih, lanjutkan LEMPAR_DADU/ATUR_DADU untuk bonus roll.)");
-        }
+        gui->showMessage("@HELP:TURN:Fase saat ini: WAJIB PILIH PROPERTI FESTIVAL");
+        gui->showMessage("@HELP:ACTION:  FESTIVAL <kode>             - pilih properti untuk efek Festival");
     } else if (isAwaitingBonusRoll(player)) {
-        gui->showMessage("Fase saat ini: MENUNGGU LEMPARAN BONUS (karena double)");
-        gui->showMessage("  LEMPAR_DADU                 - lempar dadu bonus");
-        gui->showMessage("  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
-        gui->showMessage("  SIMPAN <nama_save>          - simpan progres permainan");
+        gui->showMessage("@HELP:TURN:Fase saat ini: MENUNGGU LEMPARAN BONUS");
+        gui->showMessage("@HELP:TURN:  LEMPAR_DADU                 - lempar dadu bonus");
+        gui->showMessage("@HELP:TURN:  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
     } else if (!player->hasRolled()) {
-        gui->showMessage("Fase saat ini: AWAL GILIRAN (belum lempar dadu)");
-        gui->showMessage("  LEMPAR_DADU                 - lempar dadu");
-        gui->showMessage("  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
-        gui->showMessage("  GUNAKAN_KEMAMPUAN <nomor>   - pakai kartu kemampuan (1-based)");
-        gui->showMessage("  BUANG_KARTU <nomor>         - buang kartu di tangan (1-based)");
-        gui->showMessage("  SIMPAN <nama_save>          - simpan progres permainan");
+        gui->showMessage("@HELP:TURN:Fase saat ini: AWAL GILIRAN");
+        gui->showMessage("@HELP:TURN:  LEMPAR_DADU                 - lempar dadu");
+        gui->showMessage("@HELP:TURN:  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
+        gui->showMessage("@HELP:ACTION:  GUNAKAN_KEMAMPUAN <nomor>   - pakai kartu kemampuan");
+        gui->showMessage("@HELP:ACTION:  BUANG_KARTU <nomor>         - buang kartu kemampuan");
+        gui->showMessage("@HELP:PROPERTY:  SIMPAN <nama_save>          - simpan progres permainan");
     } else {
-        gui->showMessage("Fase saat ini: SETELAH LEMPAR DADU");
-        gui->showMessage("  GADAI <kode>                - gadai properti milikmu");
-        gui->showMessage("  TEBUS <kode>                - tebus properti yang digadai");
-        gui->showMessage("  BANGUN <kode>               - bangun rumah/hotel di properti");
-        gui->showMessage("  AKHIRI_GILIRAN              - akhiri giliran");
+        gui->showMessage("@HELP:TURN:Fase saat ini: SETELAH LEMPAR DADU");
+        gui->showMessage("@HELP:PROPERTY:  GADAI <kode>                - gadai properti milikmu");
+        gui->showMessage("@HELP:PROPERTY:  TEBUS <kode>                - tebus properti yang digadai");
+        gui->showMessage("@HELP:PROPERTY:  BANGUN <kode>               - bangun rumah/hotel");
+        gui->showMessage("@HELP:TURN:  AKHIRI_GILIRAN              - akhiri giliran");
     }
 
-    gui->showMessage("");
-    gui->showMessage("Catatan:");
-    gui->showMessage("  - Indeks kartu dan pilihan selalu dimulai dari 1.");
-    gui->showMessage("  - SIMPAN hanya bisa dilakukan sebelum aksi di giliranmu.");
-    gui->showMessage("  - MUAT hanya tersedia dari menu utama (bukan saat giliran berjalan).");
+    gui->showMessage("=== INFORMASI ===");
+    gui->showMessage("@HELP:INFO:  CETAK_PAPAN                 - tampilkan papan permainan");
+    gui->showMessage("@HELP:INFO:  CETAK_AKTA <kode>           - tampilkan akta 1 properti");
+    gui->showMessage("@HELP:INFO:  CETAK_DEED <kode>           - alias CETAK_AKTA");
+    gui->showMessage("@HELP:INFO:  CETAK_PROPERTI              - tampilkan properti milikmu");
+    gui->showMessage("@HELP:INFO:  CETAK_KARTU                 - tampilkan kartu kemampuan");
+    gui->showMessage("@HELP:INFO:  CETAK_LOG [n]               - tampilkan log terakhir");
+
+    gui->showMessage("=== AKSI GILIRAN ===");
+    gui->showMessage("@HELP:TURN:  LEMPAR_DADU                 - lempar dadu acak");
+    gui->showMessage("@HELP:TURN:  ATUR_DADU <x> <y>           - set dadu untuk testing/demo");
+    gui->showMessage("@HELP:ACTION:  GUNAKAN_KEMAMPUAN <nomor>   - pakai 1 kartu sebelum lempar");
+    gui->showMessage("@HELP:ACTION:  BUANG_KARTU <nomor>         - buang kartu di tangan");
+    gui->showMessage("@HELP:ACTION:  FESTIVAL <kode>             - pilih target efek Festival");
+    gui->showMessage("@HELP:TURN:  AKHIRI_GILIRAN              - selesai giliran");
+
+    gui->showMessage("=== PROPERTI DAN UANG ===");
+    gui->showMessage("@HELP:PROPERTY:  BANGUN <kode>               - bangun rumah/hotel jika monopoli");
+    gui->showMessage("@HELP:PROPERTY:  GADAI <kode>                - gadai properti");
+    gui->showMessage("@HELP:PROPERTY:  TEBUS <kode>                - tebus properti tergadai");
+    gui->showMessage("@HELP:PROPERTY:  SIMPAN <nama_save>          - simpan di awal giliran");
+    gui->showMessage("@HELP:PROPERTY:  MUAT <nama_save>            - hanya dari menu utama");
+
+    gui->showMessage("=== MODE KHUSUS ===");
+    gui->showMessage("@HELP:SPECIAL:  BID <jumlah>                - beri penawaran saat LELANG");
+    gui->showMessage("@HELP:SPECIAL:  PASS                        - lewat saat LELANG");
+    gui->showMessage("@HELP:SPECIAL:  LEWAT                       - alias PASS saat LELANG");
+    gui->showMessage("@HELP:SPECIAL:  Pilihan angka               - dipakai pada Penjara, PPH, dan likuidasi");
+    gui->showMessage("@HELP:SPECIAL:  y / n                       - konfirmasi beli, save overwrite, atau jual bangunan");
+
+    gui->showMessage("=== CATATAN ===");
+    gui->showMessage("@HELP:NOTE:  Indeks kartu dan pilihan dimulai dari 1.");
+    gui->showMessage("@HELP:NOTE:  SIMPAN hanya bisa sebelum aksi di giliranmu.");
+    gui->showMessage("@HELP:NOTE:  EXIT                        - keluar dari permainan");
     return CommandResult::CONTINUE;
 }
 

@@ -24,12 +24,14 @@ const std::string UI_GREEN   = "\033[38;5;42m";
 const std::string UI_YELLOW  = "\033[38;5;220m";
 const std::string UI_RED     = "\033[38;5;203m";
 const std::string UI_MAGENTA = "\033[38;5;177m";
+const std::string UI_ORANGE  = "\033[38;5;208m";
 
 enum class MessageTone {
     INFO,
     SUCCESS,
     WARNING,
-    ERROR
+    ERROR,
+    ACTION
 };
 
 std::string formatMoney(int amount) {
@@ -174,9 +176,51 @@ std::string toneColor(MessageTone tone) {
         case MessageTone::SUCCESS: return UI_GREEN;
         case MessageTone::WARNING: return UI_YELLOW;
         case MessageTone::ERROR:   return UI_RED;
+        case MessageTone::ACTION:  return UI_ORANGE;
         case MessageTone::INFO:    return UI_CYAN;
     }
     return UI_CYAN;
+}
+
+std::string sectionHeaderColor(const std::string& line) {
+    if (containsAny(line, {"giliran sekarang", "fase"})) return UI_WHITE;
+    if (containsAny(line, {"aksi", "mode khusus"})) return UI_ORANGE;
+    if (containsAny(line, {"properti", "uang"})) return UI_GREEN;
+    if (containsAny(line, {"catatan"})) return UI_YELLOW;
+    if (containsAny(line, {"informasi"})) return UI_CYAN;
+    return UI_WHITE;
+}
+
+std::string helpTagColor(const std::string& tag) {
+    if (tag == "TURN") return UI_WHITE;
+    if (tag == "INFO") return UI_CYAN;
+    if (tag == "ACTION") return UI_ORANGE;
+    if (tag == "PROPERTY") return UI_GREEN;
+    if (tag == "SPECIAL") return UI_MAGENTA;
+    if (tag == "NOTE") return UI_YELLOW;
+    return UI_CYAN;
+}
+
+bool renderTaggedHelpLine(const std::string& line) {
+    const std::string marker = "@HELP:";
+    if (line.rfind(marker, 0) != 0) return false;
+
+    const size_t tagStart = marker.size();
+    const size_t tagEnd = line.find(':', tagStart);
+    if (tagEnd == std::string::npos) return false;
+
+    const std::string tag = line.substr(tagStart, tagEnd - tagStart);
+    const std::string text = line.substr(tagEnd + 1);
+    const std::string color = helpTagColor(tag);
+
+    if (tag == "NOTE") {
+        std::cout << colorize("!", color, true) << "  "
+                  << colorize(text, color) << "\n";
+    } else {
+        std::cout << colorize("|", color, true) << "  "
+                  << colorize(text, color) << "\n";
+    }
+    return true;
 }
 
 std::string tonePrefix(MessageTone tone) {
@@ -184,6 +228,7 @@ std::string tonePrefix(MessageTone tone) {
         case MessageTone::SUCCESS: return "OK";
         case MessageTone::WARNING: return "!";
         case MessageTone::ERROR:   return "X";
+        case MessageTone::ACTION:  return ">";
         case MessageTone::INFO:    return "-";
     }
     return "-";
@@ -196,6 +241,11 @@ MessageTone classifyMessageTone(const std::string& message) {
     }
     if (containsAny(message, {"peringatan", "dibatalkan", "sudah ada", "harus", "hanya dapat"})) {
         return MessageTone::WARNING;
+    }
+    if (containsAny(message, {"lelang", "gadai", "digadaikan", "tebus", "ditebus",
+                              "pajak", "pph", "pbm", "bayar", "membayar", "dibayar",
+                              "aksi lempar dadu selesai"})) {
+        return MessageTone::ACTION;
     }
     if (containsAny(message, {"berhasil", "disimpan", "dimuat", "menjadi milikmu",
                               "kini menjadi milikmu", "masuk ke tanganmu", "mendapat"})) {
@@ -217,11 +267,19 @@ std::string bannerLine(char fill = '=') {
     return std::string(60, fill);
 }
 
+std::string centerText(const std::string& text, int width) {
+    if ((int)text.size() >= width) return text.substr(0, width);
+    int left = (width - (int)text.size()) / 2;
+    int right = width - (int)text.size() - left;
+    return std::string(left, ' ') + text + std::string(right, ' ');
+}
+
 void printBanner(const std::string& title, const std::string& color, char fill = '=') {
+    const std::string line = bannerLine(fill);
     std::cout << "\n"
-              << colorize(bannerLine(fill), color, true) << "\n"
-              << colorize(title, color, true) << "\n"
-              << colorize(bannerLine(fill), color, true) << "\n";
+              << colorize(line, color, true) << "\n"
+              << colorize(centerText(title, static_cast<int>(line.size())), color, true) << "\n"
+              << colorize(line, color, true) << "\n";
 }
 
 }
@@ -239,7 +297,7 @@ const std::string CLIGUI::FG_DBLUE   = "\033[38;5;27m";
 const std::string CLIGUI::FG_GRAY    = "\033[38;5;250m";
 const std::string CLIGUI::FG_DEFAULT = "\033[39m";
 
-const int CLIGUI::CELL_W   = 10;
+const int CLIGUI::CELL_W   = 12;
 const int CLIGUI::CENTER_W = 9 * (CLIGUI::CELL_W + 1) - 1;
 
 std::string CLIGUI::colorPrefix(TileColor c) {
@@ -414,9 +472,15 @@ std::pair<std::string,std::string> CLIGUI::cellContent(const CellInfo& ci) {
         if (ci.getJailInmates()  > 0) info += "IN:" + std::to_string(ci.getJailInmates()) + " ";
         if (ci.getJailVisiting() > 0) info += "V:"  + std::to_string(ci.getJailVisiting());
     } else {
-        info = ci.getOwnerTag();
-        if (!ci.getBuilding().empty()) info += " " + ci.getBuilding();
-        if (!ci.getPlayers().empty())  info += " " + ci.getPlayers();
+        // Prioritize visible player tokens so all four pawns remain readable.
+        if (!ci.getPlayers().empty()) {
+            info = ci.getPlayers();
+            if (!ci.getOwnerTag().empty()) info += " " + ci.getOwnerTag();
+            if (!ci.getBuilding().empty()) info += " " + ci.getBuilding();
+        } else {
+            info = ci.getOwnerTag();
+            if (!ci.getBuilding().empty()) info += " " + ci.getBuilding();
+        }
     }
     std::string row1 = fitLeft(info, CELL_W);
     return {row0, row1};
@@ -613,6 +677,7 @@ void CLIGUI::loadMainMenu() {
               << colorize("Warna pesan:", UI_WHITE, true) << " "
               << colorize("info", UI_CYAN) << " | "
               << colorize("berhasil", UI_GREEN) << " | "
+              << colorize("aksi", UI_ORANGE) << " | "
               << colorize("peringatan", UI_YELLOW) << " | "
               << colorize("gagal", UI_RED) << " | "
               << colorize("input", UI_MAGENTA) << "\n";
@@ -635,6 +700,13 @@ void CLIGUI::showMessage(const std::string& message) {
     std::stringstream ss(message);
     std::string line;
     while (std::getline(ss, line)) {
+        if (renderTaggedHelpLine(line)) {
+            continue;
+        }
+        if (line.rfind("===", 0) == 0) {
+            std::cout << "\n" << colorize(line, sectionHeaderColor(line), true) << "\n";
+            continue;
+        }
         std::cout << colorize(prefix, color, true) << "  "
                   << colorize(line, color) << "\n";
     }
@@ -818,7 +890,7 @@ void CLIGUI::renderSkillHand(const std::vector<SkillCard*>& hand) {
 }
 
 void CLIGUI::renderAuction(const Property& property, int currentBid, const Player* highBidder) {
-    std::cout << "\n" << colorize("LELANG", UI_YELLOW, true) << "  "
+    std::cout << "\n" << colorize("LELANG", UI_ORANGE, true) << "  "
               << property.getName()
               << " | bid saat ini: " << colorize(formatMoney(currentBid), UI_GREEN, true);
     if (highBidder != nullptr)

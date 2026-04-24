@@ -11,6 +11,7 @@
 #include <numeric>
 #include <filesystem>
 #include <sstream>
+#include <set>
 
 #include "models/Player/Player.hpp"
 #include "models/BoardAndTiles/Board.hpp"
@@ -714,6 +715,7 @@ void GameEngine::run() {
         std::istringstream iss(command);
         std::string action;
         iss >> action;
+        action = normalizeInput(action);
         std::string argument;
         if (iss >> argument) {
             std::string rest;
@@ -781,10 +783,30 @@ void GameEngine::initNewGame() {
 
     std::vector<std::string> usernames;
     usernames.reserve(numPlayers);
+    std::set<std::string> usedUsernames;
     for (int i = 0; i < numPlayers; ++i) {
-        std::string uname = waitForInput(gui,
-            "Username pemain ke-" + std::to_string(i + 1) + ":");
-        usernames.push_back(uname);
+        while (!gui->shouldExit()) {
+            std::string uname = waitForInput(gui,
+                "Username pemain ke-" + std::to_string(i + 1) + " (maks 7 karakter):");
+            if (uname.empty()) {
+                gui->showMessage("Username tidak boleh kosong.");
+                continue;
+            }
+            if (uname.size() > 7) {
+                gui->showMessage("Username maksimal 7 karakter.");
+                continue;
+            }
+
+            std::string key = normalizeInput(uname);
+            if (usedUsernames.count(key) > 0) {
+                gui->showMessage("Username \"" + uname + "\" sudah digunakan. Pilih nama lain.");
+                continue;
+            }
+
+            usedUsernames.insert(key);
+            usernames.push_back(uname);
+            break;
+        }
     }
 
     std::mt19937 rng = makeRandomEngine();
@@ -821,11 +843,7 @@ bool GameEngine::initLoadGame(const std::string& requestedPath) {
     if (filepath.empty()) {
         filepath = waitForInput(gui, "Nama file save:");
     }
-    if (!loadFromPath(filepath)) {
-        gui->showMessage("Gagal memuat permainan.");
-        return false;
-    }
-    return true;
+    return loadFromPath(filepath);
 }
 
 void GameEngine::gameLoop() {
@@ -856,12 +874,16 @@ void GameEngine::gameLoop() {
 }
 
 void GameEngine::processPlayerTurn(Player* player) {
-    if (resumeLoadedTurn) {
+    const bool resumedLoadedTurn = resumeLoadedTurn;
+    if (resumedLoadedTurn) {
         resumeLoadedTurn = false;
     } else {
         turnManager->startTurn(player);
     }
     gui->renderPlayer(*player);
+    if (!resumedLoadedTurn) {
+        turnManager->drawSkillCardForTurn(player);
+    }
 
     if (player->isJailed()) {
         CommandResult jailResult = handleJailedPlayerTurn(player);

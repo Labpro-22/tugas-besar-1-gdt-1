@@ -71,8 +71,8 @@ int main() {
     EndDrawing();
 
 
-        View2D::unloadFonts();
-        CloseWindow();
+    View2D::unloadFonts();
+    CloseWindow();
 
-        return 0;
-    }
+    return 0;
+}

@@ -22,6 +22,7 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/views/viewElement/cards/CardView.cpp
                                src/views/viewElement/cards/CardPileView.cpp
                                src/views/viewElement/player/PlayerView.cpp
+                               src/views/viewElement/player/DiceView.cpp
                                src/views/viewElement/player/PlayerProfileView.cpp
                                src/views/viewElement/player/DiceView.cpp
                                src/views/animation/ViewAnimation.cpp

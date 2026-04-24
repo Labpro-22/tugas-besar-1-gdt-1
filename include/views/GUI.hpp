@@ -83,11 +83,6 @@ public:
     void renderBankruptcy(const Player &player) override;
     void renderWinner(const Player &winner) override;
 
-    // Utility khusus GUI raylib (bukan bagian IGUI)
-    void loadPopup(Popup *popup);
-    void loadPlayer(Player &player);
-    void enableAll();
-    void disableAll();
 
     // Testing
     void loadDebuggingEntry();

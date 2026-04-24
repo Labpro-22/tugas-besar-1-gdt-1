@@ -59,7 +59,7 @@ MainMenuView::MainMenuView() : MenuView(View2D(getScreenCenter(),
                    this->exitButton.getRenderColor(WHITE)); });
 
     // ANIMATION
-    ViewAnimation *anim = new ViewAnimation(*this, 120, true, []() {}, [this]()
+    View2DAnimation *anim = new View2DAnimation(*this, 120, true, []() {}, [this]()
                                             { closeView = true; });
 
     anim->setMoveAnimation({pos.x, pos.y - getRenderHeight()}, 1);

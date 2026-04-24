@@ -16,6 +16,8 @@ class CardPileView {
         CardPileView(CardDeck<Card>& cardPile, const Vector3& pos, const Vector2& cardSize);
         CardCategory getPileCategory();
         Vector3 getPos();
+        CardDeck<Card>& getDeck();
+        void updatePile();
         void drawCard();
         void render();
 };

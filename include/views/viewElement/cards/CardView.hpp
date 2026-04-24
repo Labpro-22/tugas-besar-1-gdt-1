@@ -7,13 +7,11 @@ class CardPileView;
 
 class CardView : public View3D {
     protected :
+        Card* card;
         RenderTexture2D cardTexture;
-        bool flipped;
-        static map<CardCategory, Texture2D> cardTextureMap;
-        static bool texturesLoaded;
         CardPileView* pile;
     public :
-        CardView(CardPileView* pile, const Vector2& cardSize, const Vector3& pos);
-        virtual void renderContent(Card& card);
-        static void loadCardTextures();
+        CardView(Card* card, CardPileView* pile, const Vector2& cardSize, const Vector3& pos);
+        ~CardView();
+        Card* getCard() const;
 };

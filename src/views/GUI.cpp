@@ -143,7 +143,7 @@ void GUI::loadPlayer(Player& player) {
 }
 
 void GUI::loadDice(PlayerView* player) {
-    dice = new DiceView(player, &camManager.getCamera("DICE_CAM"));
+    dice = new DiceView(player, &camManager.getCamera("ACTION_CAM"));
     views.insert(dice->getThrowButton());
 }
 
@@ -151,7 +151,7 @@ void GUI::loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile
     Vector2 cardDim = (Vector2){7.6f, 4.275f}*(board->getBoardSize()/30.0f);
     Vector3 cardPos = {-cardDim.x/2 - board->getBoardSize()*0.015f, 0.015, -cardDim.x/2 - board->getBoardSize()*0.015f};
     this->chancePile = new CardPileView(chancePile, cardPos, cardDim);
-    this->communityChestPile = new CardPileView(comChestPile, cardPos*-1, cardDim*-1);
+    this->communityChestPile = new CardPileView(comChestPile, {cardPos.x*-1, cardPos.y, cardPos.z*-1}, cardDim*-1);
 }
 Command GUI::getCommand()
 {
@@ -195,7 +195,6 @@ Command GUI::getCommand()
     for (View2D *view : views)
     {
         std::string raw = view->catchCommand();
-        cout<<raw<<endl;
         if (raw == "NULL")
             continue;
 
@@ -248,7 +247,7 @@ Command GUI::getCommand()
                 camManager.switchTo("ACTION_CAM", 1, [this, tokens](){ loadDice(players[stoi(tokens[2])]); });
             } else if (tokens[1] == "THROW") {
                 //call GameEngine buat dapetin angka dadu
-                dice->initializeThrowDice(3, 4);
+                dice->initializeThrowDice(6, 6);
                 dice->getThrowButton()->setActive(false);
             } else if (tokens[1] == "THROW_DONE") {
                 dice->moveDiceOffScreen();
@@ -259,8 +258,10 @@ Command GUI::getCommand()
                 });
             } else if (tokens[1] == "DRAW") {
                 if (tokens[2] == "CC") {
+                    // reshuffle deck
                     communityChestPile->drawCard();
                 } else if (tokens[2] == "CH") {
+                    // reshuffle deck
                     chancePile->drawCard();
                 }
             }

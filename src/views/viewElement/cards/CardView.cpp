@@ -36,43 +36,47 @@ Model createCardModel(Vector2 cardDim) {
     return cardModel;
 }
 
-map<CardCategory, Texture2D> CardView::cardTextureMap;
-
-CardView::CardView(CardPileView* pile, const Vector2& cardSize, const Vector3& pos) : View3D(pos, 
-    createCardModel(cardSize), WHITE), 
-    cardTexture(LoadRenderTexture(cardTextureMap[pile->getPileCategory()].width, 
-                cardTextureMap[pile->getPileCategory()].height)) {
+CardView::CardView(Card* card, CardPileView* pile, const Vector2& cardSize, const Vector3& pos) : View3D(pos, 
+    createCardModel(cardSize), WHITE), pile(pile), card(card) {
     string decalPath;
+    string cardHeader;
+    switch(pile->getPileCategory()) {
+        case CardCategory::CHANCE :
+            decalPath = "data/GUIAssets/chance_template.png";
+            cardHeader = "CHANCE";
+            break;
+        case CardCategory::COMMUNITY :
+            decalPath = "data/GUIAssets/comchest_template.png";
+            cardHeader = "COMMUNITY CHEST";
+            break;
+        default :
+            decalPath = "data/GUIAssets/skill_template.png";
+            cardHeader = "SKILL";
+    }
+    Texture2D cText = LoadTexture(decalPath.c_str());
+    cardTexture = LoadRenderTexture(cText.width, cText.height);
+    Vector2 textureDim = {(float)cardTexture.texture.width, (float)cardTexture.texture.height};
+    RenderTexture2D textTexture = LoadRenderTexture(textureDim.x, textureDim.y);
+    
+    BeginTextureMode(textTexture);
+    drawTextLinesWrapped(View2D::getFont("Kabel"), cardHeader, {textureDim.x/2,textureDim.y*0.6f}, 72, 1, BLACK, textureDim*0.8f);
+    drawTextLinesWrapped(View2D::getFont("Kabel"), card->getDescription(), {textureDim.x/2,textureDim.y*0.75f}, 48, 1, BLACK, textureDim*0.8f);
+    EndTextureMode();
+
     BeginTextureMode(cardTexture);
-    DrawTextureEx(cardTextureMap[pile->getPileCategory()], {0,0}, 0, 1, WHITE);
+    DrawTextureEx(cText, {0,0}, 0, 1, WHITE);
+    DrawTextureEx(textTexture.texture, {0,0}, 0, 1, WHITE);
     EndTextureMode();
     model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = cardTexture.texture;
     transformation = MatrixRotateY(5*M_PI/4);
     transformation = MatrixRotateX(M_PI)*transformation;
 }
 
-void CardView::renderContent(Card& card) {
-    string cardHeader;
-    if (card.getCategory() == CardCategory::CHANCE) {
-        cardHeader = "CHANCE";
-    } else if (card.getCategory() == CardCategory::COMMUNITY) {
-        cardHeader = "COMMUNITY CHEST";
-    }
-    Vector2 textureDim = {(float)cardTexture.texture.width, (float)cardTexture.texture.height};
-    Vector2 textDim = MeasureTextEx(View2D::getFont("Kabel"), cardHeader.c_str(), 36, 1);
-    RenderTexture2D textTexture = LoadRenderTexture(textDim.x, textDim.y);
-    BeginTextureMode(textTexture);
-    drawTextLinesWrapped(View2D::getFont("Kabel"), cardHeader, {textureDim.x/2, textureDim.y*3/8}, 36, 1, BLACK, textureDim);
-    EndTextureMode();
-    Image textImg = LoadImageFromTexture(textTexture.texture);
-    ImageFlipVertical(&textImg);
-    BeginTextureMode(cardTexture);
-    
-    EndTextureMode();
+Card* CardView::getCard() const {
+    return card;
 }
 
-void CardView::loadCardTextures() {
-    cardTextureMap[CardCategory::CHANCE] = LoadTexture("data/GUIAssets/chance_template.png");
-    cardTextureMap[CardCategory::COMMUNITY] = LoadTexture("data/GUIAssets/comchest_template.png");
-    cardTextureMap[CardCategory::SKILL] = LoadTexture("data/GUIAssets/skill_template.png");
+CardView::~CardView() {
+    //UnloadTexture(cardTexture.texture);
 }
+

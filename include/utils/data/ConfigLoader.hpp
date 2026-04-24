@@ -54,10 +54,12 @@ private:
     std::vector<Property*> loadProperties(std::string filename);
     std::map<int, int> loadRailroadRents(std::string filename);
     std::map<int, int> loadUtilityMultipliers(std::string filename);
+    std::map<int, ActionTileConfig> loadActionTiles(std::string filename);
     TaxConfig loadTaxConfig(std::string filename);
     SpecialConfig loadSpecialConfig(std::string filename);
     MiscConfig loadMiscConfig(std::string filename);
 
+    static TileColor colorGroupToTileColor(const std::string& group);
     StreetProperty* createStreetProperty(std::vector<std::string> tokens);
     RailroadProperty* createRailroadProperty(std::vector<std::string> tokens, const std::map<int, int>& rentTable);
     UtilityProperty* createUtilityProperty(std::vector<std::string> tokens, const std::map<int, int>& multiplierTable);

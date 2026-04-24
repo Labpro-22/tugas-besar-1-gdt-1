@@ -1,7 +1,9 @@
 #include "models/BoardAndTiles/Board.hpp"
 #include "models/BoardAndTiles/SpecialTile/GoTile.hpp"
 #include "models/BoardAndTiles/SpecialTile/JailTile.hpp"
+#include "models/BoardAndTiles/PropertyTile.hpp"
 #include "models/BoardAndTiles/PropertyTile/RailroadTile.hpp"
+#include "models/Property/StreetProperty.hpp"
 #include "exception/InvalidEntryInput/InvalidTileException.hpp"
 #include "exception/InvalidFile/InvalidConfigException.hpp"
 
@@ -20,11 +22,11 @@ void Board::addTile(Tile *tile)
     tileByCode[tile->getCode()] = tile;
     boardSize = static_cast<int>(tiles.size());
 
-    if (GoTile *go = dynamic_cast<GoTile *>(tile))
-        goTile = go;
+    if (tile->getKind() == TileKind::GO)
+        goTile = static_cast<GoTile *>(tile);
 
-    if (JailTile *jail = dynamic_cast<JailTile *>(tile))
-        jailTile = jail;
+    if (tile->getKind() == TileKind::JAIL)
+        jailTile = static_cast<JailTile *>(tile);
 }
 
 Tile *Board::getTile(int index) const
@@ -52,22 +54,19 @@ int Board::getNextIndex(int currentIndex, int steps) const
 
 bool Board::passesGo(int fromIndex, int steps) const
 {
-    if (goTile == nullptr)
-        return false;
+    if (goTile == nullptr) return false;
+    if (steps <= 0)        return false;
 
     int goIndex = goTile->getIndex();
     int toIndex = getNextIndex(fromIndex, steps);
 
-    if (fromIndex == goIndex)
-        return false;
+    if (fromIndex == goIndex) return false;
+    if (toIndex == goIndex)   return true;
 
-    if (toIndex == goIndex)
-        return false;
-
-    if (toIndex > fromIndex)
-        return goIndex > fromIndex && goIndex <= toIndex ? false : false;
-
-    return fromIndex < goIndex || toIndex >= goIndex ? false : true;
+    if (toIndex > fromIndex) {
+        return goIndex > fromIndex && goIndex < toIndex;
+    }
+    return goIndex > fromIndex || goIndex < toIndex;
 }
 
 GoTile *Board::getGoTile() const
@@ -87,10 +86,10 @@ RailroadTile *Board::getNearestRailroad(int currentIndex) const
 
     for (Tile *tile : tiles)
     {
-        RailroadTile *railroad = dynamic_cast<RailroadTile *>(tile);
-
-        if (railroad == nullptr)
+        if (tile->getKind() != TileKind::RAILROAD)
             continue;
+
+        RailroadTile *railroad = static_cast<RailroadTile *>(tile);
 
         int steps = (railroad->getIndex() - currentIndex + boardSize) % boardSize;
 
@@ -102,6 +101,32 @@ RailroadTile *Board::getNearestRailroad(int currentIndex) const
     }
 
     return nearest;
+}
+
+std::vector<StreetProperty *> Board::getStreetGroup(const std::string &colorGroup) const
+{
+    std::vector<StreetProperty *> streets;
+
+    for (Tile *tile : tiles)
+    {
+        if (tile->getCategory() != TileCategory::PROPERTY)
+            continue;
+
+        auto *propertyTile = static_cast<PropertyTile *>(tile);
+
+        Property *property = propertyTile->getProperty();
+        if (property == nullptr || !property->isStreet())
+            continue;
+
+        auto *street = static_cast<StreetProperty *>(property);
+
+        if (street->getColorGroup() == colorGroup)
+        {
+            streets.push_back(street);
+        }
+    }
+
+    return streets;
 }
 
 int Board::getSize() const

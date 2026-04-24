@@ -8,6 +8,7 @@ private:
 
 public:
     LuxuryTaxTile(int index, int flatAmount);
-    const int getFlatAmount() const;
+    int getFlatAmount() const;
     int calculateTax(const Player &player) const override;
+    TileKind getKind() const override { return TileKind::LUXURY_TAX; }
 };

@@ -9,6 +9,7 @@ public:
     ~TeleportCard();
 
     std::string getCardName() const override;
+    SkillCardKind getKind() const override;
     Card* clone() const override;
 };
 

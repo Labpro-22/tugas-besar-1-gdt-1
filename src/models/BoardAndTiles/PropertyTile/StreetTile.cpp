@@ -3,99 +3,47 @@
 // #include "core/Game.hpp"
 #include "models/Player/Player.hpp"
 #include "exception/PlayerTurn/PropertyManagement/InsufficientMoneyException.hpp"
+#include <iostream>
 
 StreetTile::StreetTile(int index, const std::string &code, const std::string &name, TileColor color, StreetProperty *street)
     : PropertyTile(index, code, name, color, street) {}
 
-void StreetTile::onLanded(Player &player, Game &game)
-{
-    // StreetProperty *street = static_cast<StreetProperty *>(property);
+void StreetTile::onLanded(Player &player, Game &game) {
+    // 1. Ambil objek Property yang tersimpan di dalam Tile ini
+    Property* prop = this->getProperty(); 
 
-    // // ── BANK: tawarkan pembelian ─────────────────────────────
-    // if (street->getStatus() == PropertyStatus::BANK)
-    // {
-    //     game.getUI().display("Kamu mendarat di " + name + " (" + code + ")!");
-    //     game.getUI().displayDeed(street);
-    //     game.getUI().display("Uang kamu saat ini: M" + std::to_string(player.getWallet().getBalance()));
-    //     game.getUI().display("Apakah kamu ingin membeli properti ini seharga M" + std::to_string(street->getPrice()) + "? (y/n): ");
+    // 2. Cek apakah properti sudah ada pemiliknya
+    if (prop->isOwned()) {
+        Player* owner = prop->getOwner(); // Sekarang getOwner() valid!
 
-    //     std::string choice = game.getUI().getInput();
+        // 3. Cek apakah yang menginjak bukan pemiliknya sendiri, dan properti tidak digadai
+        if (owner != &player && !prop->isMortgaged()) {
+            
+            // 4. Hitung sewa (asumsi tidak ada dadu khusus untuk street, jadi kosongi/default 0)
+            int rentCost = prop->calculateRent(); // Sekarang calculateRent() valid!
 
-    //     if (choice == "y" || choice == "Y")
-    //     {
-    //         try
-    //         {
-    //             player.getWaller().deduct(street->getPrice());
-    //             street->setOwner(&player);
+            // 5. PENANGANAN EKSEPSI JIKA UANG TIDAK CUKUP
+            if (!player.canAfford(rentCost)) {
+                // Kita pass pointer player, pointer property, dan harga sewanya
+                throw InsufficientMoneyException(&player, prop, rentCost); 
+            }
 
-    //             game.getUI().display(name + " kini menjadi milikmu!");
-    //             game.getUI().display("Uang tersisa: M" + std::to_string(player.getWallet().getBalance()));
+            // 6. Jika uang cukup, lakukan transaksi normal
+            player.deductMoney(rentCost);
+            owner->addMoney(rentCost);
 
-    //             game.getLogger().log(
-    //                 game.getCurrentTurn(),
-    //                 player.getUsername(),
-    //                 "BELI",
-    //                 "Beli " + name + " (" + code + ") seharga M" + std::to_string(street->getPrice()));
-    //         }
-    //         catch (const InsufficientMoneyException &e)
-    //         {
-    //             game.getUI().display("Uang tidak cukup untuk membeli properti ini!");
-    //             game.getUI().display("Properti ini akan masuk ke sistem lelang...");
-    //             game.getAuctionSystem().auction(street, player, game);
-    //         }
-    //     }
-    //     else
-    //     {
-    //         game.getUI().display("Properti ini akan masuk ke sistem lelang...");
-    //         game.getAuctionSystem().auction(street, player, game);
-    //     }
-
-    //     return;
-    // }
-
-    // // ── MORTGAGED: tidak ada sewa ────────────────────────────
-    // if (street->getStatus() == PropertyStatus::MORTGAGED)
-    // {
-    //     game.getUI().display("Kamu mendarat di " + name + " (" + code + "), milik " + street->getOwner()->getUsername() + ".");
-    //     game.getUI().display("Properti ini sedang digadaikan [M]. Tidak ada sewa yang dikenakan.");
-    //     return;
-    // }
-
-    // // ── OWNED oleh diri sendiri: tidak ada sewa ──────────────
-    // if (street->getOwner() == &player)
-    //     return;
-
-    // // ── OWNED oleh pemain lain: bayar sewa ───────────────────
-    // int rent = street->calculateRent();
-
-    // game.getUI().display("Kamu mendarat di " + name + " (" + code + "), milik " + street->getOwner()->getUsername() + "!");
-    // game.getUI().display("Kondisi  : " + street->getBuildingLabel());
-    // game.getUI().display("Sewa     : M" + std::to_string(rent));
-
-    // try
-    // {
-    //     player.getWallet().deduct(rent);
-    //     street->getOwner()->getWallet().receive(rent);
-
-    //     game.getUI().display(
-    //         "Uang kamu: M" + std::to_string(player.getWallet().getBalance() + rent) +
-    //         " -> M" + std::to_string(player.getWallet().getBalance()));
-    //     game.getUI().display(
-    //         "Uang " + street->getOwner()->getUsername() +
-    //         ": M" + std::to_string(street->getOwner()->getWallet().getBalance() - rent) +
-    //         " -> M" + std::to_string(street->getOwner()->getWallet().getBalance()));
-
-    //     game.getLogger().log(
-    //         game.getCurrentTurn(),
-    //         player.getUsername(),
-    //         "SEWA",
-    //         "Bayar M" + std::to_string(rent) + " ke " + street->getOwner()->getUsername() +
-    //             " (" + code + ", " + street->getBuildingLabel() + ")");
-    // }
-    // catch (const InsufficientMoneyException &e)
-    // {
-    //     game.getUI().display("Kamu tidak mampu membayar sewa penuh! (M" + std::to_string(rent) + ")");
-    //     game.getUI().display("Uang kamu saat ini: M" + std::to_string(player.getWallet().getBalance()));
-    //     game.getBankruptcyHandler().handle(player, street->getOwner(), rent);
-    // }
+            std::cout << player.getUsername() << " mendarat di " << prop->getName() 
+                      << " milik " << owner->getUsername() << ".\n";
+            std::cout << player.getUsername() << " otomatis membayar sewa sebesar " << rentCost << ".\n";
+        } 
+        else if (owner == &player) {
+            std::cout << player.getUsername() << " mendarat di propertinya sendiri (" << prop->getName() << ").\n";
+        } 
+        else if (prop->isMortgaged()) {
+            std::cout << prop->getName() << " sedang digadaikan. " << player.getUsername() << " bebas dari uang sewa!\n";
+        }
+    } else {
+        // Jika belum dimiliki (opsional dicetak, karena spesifikasi M2 biasanya ada command BELI manual)
+        std::cout << player.getUsername() << " mendarat di " << prop->getName() << " yang belum dimiliki siapa pun.\n";
+    }
 }

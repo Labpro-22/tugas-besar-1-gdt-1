@@ -9,4 +9,5 @@ public:
     UtilityTile(int index, const std::string &code, const std::string &name, UtilityProperty *utility);
 
     void onLanded(Player &player, Game &game) override;
+    TileKind getKind() const override { return TileKind::UTILITY; }
 };

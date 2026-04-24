@@ -1,6 +1,5 @@
 #pragma once
 
-#include "models/Player/Player.hpp"
 #include <string>
 #include <vector>
 #include <map>
@@ -52,6 +51,9 @@ public:
     int getMortgageValue() const;
     int getFestivalMultiplier() const;
     int getFestivalDuration() const;
+    bool isStreet() const;
+    bool isRailroad() const;
+    bool isUtility() const;
 
     void setOwner(Player *owner);
     void clearOwner();
@@ -62,6 +64,7 @@ public:
 
     void activateFestival();
     void decrementFestivalDuration();
+    void setFestivalState(int multiplier, int duration);
 
     virtual int calculateRent(int diceValue = 0) const = 0;
     virtual int getAssetValue() const = 0;

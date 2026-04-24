@@ -12,4 +12,5 @@ public:
 
     void onLanded(Player &player, Game &game) override;
     void onPassed(Player &player, Game &game) override;
+    TileKind getKind() const override { return TileKind::GO; }
 };

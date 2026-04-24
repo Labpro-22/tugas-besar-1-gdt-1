@@ -20,3 +20,19 @@ enum class TileCategory
     ACTION,
     SPECIAL
 };
+
+enum class TileKind
+{
+    STREET,
+    RAILROAD,
+    UTILITY,
+    CHANCE,
+    COMMUNITY_CHEST,
+    FESTIVAL,
+    INCOME_TAX,
+    LUXURY_TAX,
+    GO,
+    GO_TO_JAIL,
+    JAIL,
+    FREE_PARKING
+};

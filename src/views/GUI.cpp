@@ -92,12 +92,17 @@ void GUI::renderProperty(const Property & /*property*/)
     // TODO
 }
 
+void GUI::renderOwnedProperties(const Player & /*player*/)
+{
+    // TODO
+}
+
 void GUI::renderDice(int /*die1*/, int /*die2*/)
 {
     // TODO
 }
 
-void GUI::renderLog(const std::vector<LogEntry> & /*entries*/)
+void GUI::renderLog(const std::vector<LogEntry> & /*entries*/, const std::string & /*title*/)
 {
     // TODO
 }
@@ -422,11 +427,17 @@ void GUI::update()
     }
 
     updatePlayerProfilesLayout();
-    set<View2D *> closedViews;
-    for (View2D *view : views)
-    {
-        if (view->closed())
-        {
+    if (dice != nullptr) {
+        dice->update();
+        if (dice->isDone()) {
+            delete dice;
+            dice = nullptr;
+        }
+    }
+    
+    set<View2D*> closedViews;
+    for (View2D* view : views) {
+        if (view->closed()) {
             closedViews.insert(view);
         }
         else
@@ -471,7 +482,7 @@ void GUI::update()
 void GUI::display()
 {
     BeginMode3D(camManager.mount());
-    DrawGrid(40, 1);
+    DrawGrid(40,1);
     board->render();
     for (PlayerView *player : players)
     {

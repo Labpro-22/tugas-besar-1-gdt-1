@@ -9,6 +9,10 @@ std::string TeleportCard::getCardName() const {
     return "TeleportCard";
 }
 
+SkillCardKind TeleportCard::getKind() const {
+    return SkillCardKind::TELEPORT;
+}
+
 Card* TeleportCard::clone() const {
     return new TeleportCard();
 }

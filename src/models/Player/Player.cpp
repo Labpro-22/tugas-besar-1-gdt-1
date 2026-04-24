@@ -5,6 +5,22 @@
 #include "models/Property/UtilityProperty.hpp"
 #include "models/CardAndDeck/SkillCard.hpp"
 
+namespace {
+int requiredStreetCount(const std::string& colorGroup) {
+    if (colorGroup == "COKLAT" || colorGroup == "BIRU_TUA") {
+        return 2;
+    }
+
+    if (colorGroup == "BIRU_MUDA" || colorGroup == "MERAH_MUDA" ||
+        colorGroup == "ORANGE" || colorGroup == "MERAH" ||
+        colorGroup == "KUNING" || colorGroup == "HIJAU") {
+        return 3;
+    }
+
+    return 0;
+}
+}
+
 Player::Player(const std::string &username, int initialBalance)
     : username(username),
       balance(initialBalance),
@@ -14,7 +30,9 @@ Player::Player(const std::string &username, int initialBalance)
       consecutiveDoubles(0),
       jailAttempts(0),
       hasRolledThisTurn(false),
-      hasUsedSkillThisTurn(false)
+      hasUsedSkillThisTurn(false),
+      pendingFestival(false),
+      pendingDiscount(0)
 {
 }
 
@@ -70,6 +88,25 @@ void Player::resetJailAttempts() {
     jailAttempts = 0;
 }
 
+// Property ownership
+void Player::addProperty(Property* property) {
+    if (property == nullptr) return;
+    ownedProperties.push_back(property);
+}
+
+void Player::removeProperty(Property* property) {
+    for (auto it = ownedProperties.begin(); it != ownedProperties.end(); ++it) {
+        if (*it == property) {
+            ownedProperties.erase(it);
+            return;
+        }
+    }
+}
+
+const std::vector<Property*>& Player::getOwnedProperties() const {
+    return ownedProperties;
+}
+
 // Property Utils
 int Player::countOwnedRailroads() const {
     int count = 0;
@@ -88,10 +125,21 @@ int Player::countOwnedUtilities() const {
 }
 
 bool Player::ownsFullColorGroup(const std::string& colorGroup) const {
-    // This requires knowledge of all properties in that group.
-    // Simplifying: this logic usually resides in a Manager or requires a Board reference.
-    // For now, return false or implement if we can find a way.
-    return false; 
+    const int required = requiredStreetCount(colorGroup);
+    if (required <= 0) {
+        return false;
+    }
+
+    int ownedCount = 0;
+    for (Property *property : ownedProperties) {
+        if (!property->isStreet()) continue;
+        auto *street = static_cast<StreetProperty *>(property);
+        if (street->getColorGroup() == colorGroup) {
+            ++ownedCount;
+        }
+    }
+
+    return ownedCount == required;
 }
 
 int Player::calculatePropertyAssetValue() const {
@@ -121,7 +169,17 @@ int Player::calculateTotalWealth() const {
 void Player::startTurn() {
     hasRolledThisTurn = false;
     hasUsedSkillThisTurn = false;
+    pendingFestival = false;
+    consecutiveDoubles = 0;
+    pendingDiscount = 0;
 }
+
+bool Player::hasPendingFestival() const { return pendingFestival; }
+void Player::setPendingFestival(bool v) { pendingFestival = v; }
+
+int Player::getPendingDiscount() const { return pendingDiscount; }
+void Player::setPendingDiscount(int pct) { pendingDiscount = pct; }
+void Player::clearPendingDiscount() { pendingDiscount = 0; }
 
 void Player::markRolled() {
     hasRolledThisTurn = true;
@@ -155,6 +213,15 @@ void Player::removeCard(SkillCard* card) {
             return;
         }
     }
+}
+
+SkillCard* Player::findJailFreeCard() const {
+    for (SkillCard* card : handCards) {
+        if (card != nullptr && card->isJailFreeCard()) {
+            return card;
+        }
+    }
+    return nullptr;
 }
 
 const std::vector<SkillCard*>& Player::getHandCards() const {

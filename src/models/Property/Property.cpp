@@ -25,6 +25,9 @@ int Property::getPurchasePrice() const { return purchasePrice; }
 int Property::getMortgageValue() const { return mortgageValue; }
 int Property::getFestivalMultiplier() const { return festivalMultiplier; }
 int Property::getFestivalDuration() const { return festivalDuration; }
+bool Property::isStreet() const { return type == PropertyType::STREET; }
+bool Property::isRailroad() const { return type == PropertyType::RAILROAD; }
+bool Property::isUtility() const { return type == PropertyType::UTILITY; }
 
 void Property::setOwner(Player *owner) { this->owner = owner; }
 void Property::clearOwner() { this->owner = nullptr; }
@@ -34,11 +37,29 @@ bool Property::isOwned() const { return owner != nullptr; }
 bool Property::isMortgaged() const { return status == PropertyStatus::MORTGAGED; }
 
 void Property::activateFestival() {
-    festivalMultiplier = 2; // Asumsi default
-    festivalDuration = 3;   // Asumsi default
+    const int MAX_MULTIPLIER = 8;
+    if (festivalDuration == 0 || festivalMultiplier < 2) {
+        festivalMultiplier = 2;
+    } else if (festivalMultiplier < MAX_MULTIPLIER) {
+        festivalMultiplier *= 2;
+        if (festivalMultiplier > MAX_MULTIPLIER) festivalMultiplier = MAX_MULTIPLIER;
+    }
+    festivalDuration = 3;
 }
 
 void Property::decrementFestivalDuration() {
     if (festivalDuration > 0) festivalDuration--;
     if (festivalDuration == 0) festivalMultiplier = 1;
+}
+
+void Property::setFestivalState(int multiplier, int duration) {
+    festivalMultiplier = multiplier;
+    festivalDuration = duration;
+    if (festivalDuration <= 0) {
+        festivalDuration = 0;
+        festivalMultiplier = 1;
+    }
+    if (festivalMultiplier <= 0) {
+        festivalMultiplier = 1;
+    }
 }

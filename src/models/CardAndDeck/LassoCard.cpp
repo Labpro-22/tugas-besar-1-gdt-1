@@ -9,6 +9,10 @@ std::string LassoCard::getCardName() const {
     return "LassoCard";
 }
 
+SkillCardKind LassoCard::getKind() const {
+    return SkillCardKind::LASSO;
+}
+
 Card* LassoCard::clone() const {
     return new LassoCard();
 }

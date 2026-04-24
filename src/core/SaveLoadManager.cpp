@@ -7,6 +7,7 @@
 #include "models/CardAndDeck/CommunityChestCard.hpp"
 #include "models/CardAndDeck/DemolitionCard.hpp"
 #include "models/CardAndDeck/DiscountCard.hpp"
+#include "models/CardAndDeck/JailFreeCard.hpp"
 #include "models/CardAndDeck/LassoCard.hpp"
 #include "models/CardAndDeck/MoveCard.hpp"
 #include "models/CardAndDeck/ShieldCard.hpp"
@@ -128,39 +129,26 @@ CommunityType communityTypeFromToken(const std::string& token) {
     return CommunityType::CAMPAIGN_FEE;
 }
 
-int skillCardValue(const SkillCard* card) {
-    if (auto* move = dynamic_cast<const MoveCard*>(card)) {
-        return move->getSteps();
-    }
-    if (auto* discount = dynamic_cast<const DiscountCard*>(card)) {
-        return discount->getDiscount();
-    }
-    return 0;
-}
-
-int skillCardDuration(const SkillCard* card) {
-    if (auto* discount = dynamic_cast<const DiscountCard*>(card)) {
-        return discount->getDuration();
-    }
-    if (auto* shield = dynamic_cast<const ShieldCard*>(card)) {
-        return shield->getDuration();
-    }
-    return 0;
-}
-
 std::string encodeCardToken(const Card* card) {
-    if (auto* chance = dynamic_cast<const ChanceCard*>(card)) {
-        return "ChanceCard:" + chanceTypeToToken(chance->getType());
+    if (card == nullptr) return "";
+
+    switch (card->getCategory()) {
+        case CardCategory::CHANCE: {
+            auto* chance = static_cast<const ChanceCard*>(card);
+            return "ChanceCard:" + chanceTypeToToken(chance->getType());
+        }
+        case CardCategory::COMMUNITY: {
+            auto* community = static_cast<const CommunityChestCard*>(card);
+            return "CommunityChestCard:" + communityTypeToToken(community->getType());
+        }
+        case CardCategory::SKILL: {
+            auto* skill = static_cast<const SkillCard*>(card);
+            return skill->getCardName() + ":" +
+                   std::to_string(skill->getPrimaryValue()) + ":" +
+                   std::to_string(skill->getDurationValue());
+        }
     }
-    if (auto* community = dynamic_cast<const CommunityChestCard*>(card)) {
-        return "CommunityChestCard:" + communityTypeToToken(community->getType());
-    }
-    if (auto* skill = dynamic_cast<const SkillCard*>(card)) {
-        return skill->getCardName() + ":" +
-               std::to_string(skillCardValue(skill)) + ":" +
-               std::to_string(skillCardDuration(skill));
-    }
-    return card != nullptr ? card->getCardName() : "";
+    return card->getCardName();
 }
 
 template <typename T>
@@ -190,6 +178,7 @@ SkillCard* decodeSkillCardToken(const std::string& token) {
     if (name == "TeleportCard")   return new TeleportCard();
     if (name == "LassoCard")      return new LassoCard();
     if (name == "DemolitionCard") return new DemolitionCard();
+    if (name == "JailFreeCard")   return new JailFreeCard();
     return nullptr;
 }
 
@@ -586,22 +575,23 @@ bool SaveLoadManager::save(const std::string& filepath) {
             if (card == nullptr) continue;
             ofs << "CARD " << escapeField(p->getUsername())
                 << "|" << escapeField(card->getCardName())
-                << "|" << skillCardValue(card)
-                << "|" << skillCardDuration(card)
+                << "|" << card->getPrimaryValue()
+                << "|" << card->getDurationValue()
                 << "\n";
         }
     }
 
     if (board != nullptr) {
         for (Tile* t : board->getAllTiles()) {
-            auto* pt = dynamic_cast<PropertyTile*>(t);
-            if (pt == nullptr) continue;
+            if (t->getCategory() != TileCategory::PROPERTY) continue;
+            auto* pt = static_cast<PropertyTile*>(t);
             Property* prop = pt->getProperty();
             if (prop == nullptr) continue;
 
             std::string ownerName = prop->getOwner() ? prop->getOwner()->getUsername() : "BANK";
             int buildingIdx = 0;
-            if (auto* sp = dynamic_cast<StreetProperty*>(prop)) {
+            if (prop->isStreet()) {
+                auto* sp = static_cast<StreetProperty*>(prop);
                 buildingIdx = static_cast<int>(sp->getBuildingState());
             }
 
@@ -920,8 +910,8 @@ bool SaveLoadManager::load(const std::string& filepath) {
         for (const auto& pp : pendingProps) {
             Tile* t = nullptr;
             try { t = board->getTile(pp.code); } catch (...) { continue; }
-            auto* pt = dynamic_cast<PropertyTile*>(t);
-            if (pt == nullptr) continue;
+            if (t->getCategory() != TileCategory::PROPERTY) continue;
+            auto* pt = static_cast<PropertyTile*>(t);
             Property* prop = pt->getProperty();
             if (prop == nullptr) continue;
 
@@ -932,7 +922,8 @@ bool SaveLoadManager::load(const std::string& filepath) {
             }
             prop->setStatus(pp.status);
 
-            if (auto* sp = dynamic_cast<StreetProperty*>(prop)) {
+            if (prop->isStreet()) {
+                auto* sp = static_cast<StreetProperty*>(prop);
                 const PropertyStatus originalStatus = pp.status;
                 if (pp.buildingIdx > 0 && originalStatus == PropertyStatus::MORTGAGED) {
                     prop->setStatus(PropertyStatus::OWNED);

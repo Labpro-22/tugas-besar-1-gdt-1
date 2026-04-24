@@ -80,7 +80,8 @@ std::string rentConditionLabel(const Property* property) {
     if (property == nullptr) return "";
 
     std::string label;
-    if (auto* street = dynamic_cast<const StreetProperty*>(property)) {
+    if (property->isStreet()) {
+        auto* street = static_cast<const StreetProperty*>(property);
         label = buildingStateLabel(street);
     } else if (property->getType() == PropertyType::RAILROAD) {
         label = "Railroad";
@@ -891,17 +892,19 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         return;
     }
 
-    if (auto* chanceTile = dynamic_cast<ChanceTile*>(tile)) {
-        handleChanceLanding(player, chanceTile);
-        return;
+    switch (tile->getKind()) {
+        case TileKind::CHANCE:
+            handleChanceLanding(player, static_cast<ChanceTile*>(tile));
+            return;
+        case TileKind::COMMUNITY_CHEST:
+            handleCommunityChestLanding(player, static_cast<CommunityChestTile*>(tile));
+            return;
+        default:
+            break;
     }
 
-    if (auto* communityTile = dynamic_cast<CommunityChestTile*>(tile)) {
-        handleCommunityChestLanding(player, communityTile);
-        return;
-    }
-
-    if (auto* pt = dynamic_cast<PropertyTile*>(tile)) {
+    if (tile->getCategory() == TileCategory::PROPERTY) {
+        auto* pt = static_cast<PropertyTile*>(tile);
         Property* prop = pt->getProperty();
         if (prop == nullptr) return;
 
@@ -1031,7 +1034,8 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         return;
     }
 
-    if (auto* incomeTax = dynamic_cast<IncomeTaxTile*>(tile)) {
+    if (tile->getKind() == TileKind::INCOME_TAX) {
+        auto* incomeTax = static_cast<IncomeTaxTile*>(tile);
         gui->showMessage("Kamu mendarat di Pajak Penghasilan (PPH).");
         gui->showMessage("1. Bayar flat " + formatMoney(incomeTax->getFlatAmount()));
         gui->showMessage("2. Bayar " + std::to_string(incomeTax->getTaxPercentage()) +
@@ -1074,7 +1078,8 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         return;
     }
 
-    if (auto* luxuryTax = dynamic_cast<LuxuryTaxTile*>(tile)) {
+    if (tile->getKind() == TileKind::LUXURY_TAX) {
+        auto* luxuryTax = static_cast<LuxuryTaxTile*>(tile);
         int amount = luxuryTax->getFlatAmount();
         gui->showMessage("Kamu mendarat di Pajak Barang Mewah (PBM).");
         gui->showMessage("Pajak sebesar " + formatMoney(amount) + " langsung dipotong.");
@@ -1093,7 +1098,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         return;
     }
 
-    if (dynamic_cast<FestivalTile*>(tile) != nullptr) {
+    if (tile->getKind() == TileKind::FESTIVAL) {
         if (player->getOwnedProperties().empty()) {
             if (logger != nullptr) {
                 logger->log(game->getCurrentTurn(), player->getUsername(),
@@ -1114,13 +1119,14 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         return;
     }
 
-    if (auto* goTile = dynamic_cast<GoTile*>(tile)) {
+    if (tile->getKind() == TileKind::GO) {
+        auto* goTile = static_cast<GoTile*>(tile);
         gui->showMessage(player->getUsername() + " mendarat tepat di petak GO.");
         gui->showMessage("Kamu menerima " + formatMoney(goTile->getSalary()) + ".");
         return;
     }
 
-    if (dynamic_cast<GoToJailTile*>(tile) != nullptr) {
+    if (tile->getKind() == TileKind::GO_TO_JAIL) {
         player->setStatus(PlayerStatus::JAILED);
         if (game->getBoard() && game->getBoard()->getJailTile()) {
             player->setPosition(game->getBoard()->getJailTile()->getIndex());
@@ -1133,7 +1139,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         return;
     }
 
-    if (dynamic_cast<JailTile*>(tile) != nullptr) {
+    if (tile->getKind() == TileKind::JAIL) {
         if (player->isJailed()) {
             gui->showMessage(player->getUsername() + " sedang berada di Penjara.");
         } else {
@@ -1142,7 +1148,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         return;
     }
 
-    if (dynamic_cast<FreeParkingTile*>(tile) != nullptr) {
+    if (tile->getKind() == TileKind::FREE_PARKING) {
         gui->showMessage(player->getUsername() + " mendarat di Bebas Parkir.");
         return;
     }

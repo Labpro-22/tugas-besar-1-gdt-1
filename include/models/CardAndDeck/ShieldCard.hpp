@@ -12,10 +12,12 @@ public:
     ~ShieldCard();
 
     std::string getCardName() const override;
+    SkillCardKind getKind() const override;
     Card* clone() const override;
 
     int getDuration() const;
     void decrementDuration();
+    int getDurationValue() const override;
 };
 
 #endif

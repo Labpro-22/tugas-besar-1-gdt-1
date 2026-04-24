@@ -51,6 +51,9 @@ public:
     int getMortgageValue() const;
     int getFestivalMultiplier() const;
     int getFestivalDuration() const;
+    bool isStreet() const;
+    bool isRailroad() const;
+    bool isUtility() const;
 
     void setOwner(Player *owner);
     void clearOwner();

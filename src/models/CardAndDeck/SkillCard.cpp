@@ -16,3 +16,11 @@ bool SkillCard::isUsable() const {
 bool SkillCard::isJailFreeCard() const {
     return false;
 }
+
+int SkillCard::getPrimaryValue() const {
+    return 0;
+}
+
+int SkillCard::getDurationValue() const {
+    return 0;
+}

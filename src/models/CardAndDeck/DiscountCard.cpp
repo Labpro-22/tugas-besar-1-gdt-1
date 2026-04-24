@@ -11,6 +11,10 @@ std::string DiscountCard::getCardName() const {
     return "DiscountCard";
 }
 
+SkillCardKind DiscountCard::getKind() const {
+    return SkillCardKind::DISCOUNT;
+}
+
 Card* DiscountCard::clone() const {
     return new DiscountCard(discountPercent);
 }
@@ -25,4 +29,12 @@ int DiscountCard::getDuration() const {
 
 void DiscountCard::decrementDuration() {
     if (duration > 0) duration--;
+}
+
+int DiscountCard::getPrimaryValue() const {
+    return discountPercent;
+}
+
+int DiscountCard::getDurationValue() const {
+    return duration;
 }

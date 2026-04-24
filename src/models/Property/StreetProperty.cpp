@@ -102,8 +102,8 @@ int StreetProperty::calculateRent(int /*diceValue*/) const {
         const int required = requiredStreetCount(colorGroup);
         int ownedCount = 0;
         for (Property *property : owner->getOwnedProperties()) {
-            auto *street = dynamic_cast<StreetProperty *>(property);
-            if (street == nullptr) continue;
+            if (!property->isStreet()) continue;
+            auto *street = static_cast<StreetProperty *>(property);
             if (street->getColorGroup() == colorGroup) {
                 ++ownedCount;
             }

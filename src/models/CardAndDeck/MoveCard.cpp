@@ -9,10 +9,18 @@ std::string MoveCard::getCardName() const {
     return "MoveCard";
 }
 
+SkillCardKind MoveCard::getKind() const {
+    return SkillCardKind::MOVE;
+}
+
 Card* MoveCard::clone() const {
     return new MoveCard(steps);
 }
 
 int MoveCard::getSteps() const {
+    return steps;
+}
+
+int MoveCard::getPrimaryValue() const {
     return steps;
 }

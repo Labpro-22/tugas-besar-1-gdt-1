@@ -75,7 +75,8 @@ std::string streetColorLabel(const std::string& colorGroup) {
 }
 
 std::string propertyColorLabel(const Property& property) {
-    if (auto* street = dynamic_cast<const StreetProperty*>(&property)) {
+    if (property.isStreet()) {
+        auto* street = static_cast<const StreetProperty*>(&property);
         return streetColorLabel(street->getColorGroup());
     }
     if (property.getType() == PropertyType::UTILITY) {
@@ -85,7 +86,8 @@ std::string propertyColorLabel(const Property& property) {
 }
 
 std::string propertyGroupLabel(const Property& property) {
-    if (auto* street = dynamic_cast<const StreetProperty*>(&property)) {
+    if (property.isStreet()) {
+        auto* street = static_cast<const StreetProperty*>(&property);
         return streetColorLabel(street->getColorGroup());
     }
     if (property.getType() == PropertyType::RAILROAD) {
@@ -98,8 +100,8 @@ std::string propertyGroupLabel(const Property& property) {
 }
 
 std::string buildingLabel(const Property& property) {
-    auto* street = dynamic_cast<const StreetProperty*>(&property);
-    if (street == nullptr) return "";
+    if (!property.isStreet()) return "";
+    auto* street = static_cast<const StreetProperty*>(&property);
 
     switch (street->getBuildingState()) {
         case BuildingState::HOUSE_1: return "1 rumah";
@@ -326,7 +328,8 @@ CellInfo CLIGUI::makeCellInfo(Tile* t, const Game& game) {
     ci.setColorTag(colorTag(t->getColor()));
 
     // ownership & building
-    if (auto* pt = dynamic_cast<PropertyTile*>(t)) {
+    if (t->getCategory() == TileCategory::PROPERTY) {
+        auto* pt = static_cast<PropertyTile*>(t);
         if (Property* p = pt->getProperty()) {
             if (p->getOwner()) {
                 const auto& allPlayers = game.getPlayers();
@@ -337,14 +340,15 @@ CellInfo CLIGUI::makeCellInfo(Tile* t, const Game& game) {
                     }
                 }
             }
-            if (auto* sp = dynamic_cast<StreetProperty*>(p)) {
+            if (p->isStreet()) {
+                auto* sp = static_cast<StreetProperty*>(p);
                 ci.setBuilding(buildingStr(sp->getBuildingState()));
             }
         }
     }
 
     // jail special
-    bool isJail = (dynamic_cast<JailTile*>(t) != nullptr);
+    bool isJail = (t->getKind() == TileKind::JAIL);
     if (isJail) {
         ci.setJailCell(true);
         int inmates = 0, visiting = 0;
@@ -576,7 +580,7 @@ void CLIGUI::renderBoard(const Game& game) {
 
 // ── Everything else ───────────────────────────────────────────────────────────
 
-CLIGUI::CLIGUI() : exitRequested(false), awaitingInput(false) {}
+CLIGUI::CLIGUI() : exitRequested(false), awaitingInput(false), winnerBannerPrinted(false) {}
 
 void CLIGUI::update() {}
 void CLIGUI::display() {}
@@ -619,6 +623,7 @@ void CLIGUI::loadGameView() {
 }
 
 void CLIGUI::loadFinishMenu() {
+    winnerBannerPrinted = false;
     printBanner("PERMAINAN BERAKHIR", UI_RED, '-');
 }
 
@@ -666,7 +671,8 @@ void CLIGUI::renderProperty(const Property& property) {
     std::vector<std::string> detailLines;
     std::vector<std::string> buildLines;
 
-    if (auto* street = dynamic_cast<const StreetProperty*>(&property)) {
+    if (property.isStreet()) {
+        auto* street = static_cast<const StreetProperty*>(&property);
         const auto& rents = street->getRentLevels();
         if (!rents.empty()) {
             static const std::vector<std::string> rentLabels = {
@@ -683,12 +689,14 @@ void CLIGUI::renderProperty(const Property& property) {
         }
         buildLines.push_back(kvText("Harga Rumah", formatMoney(street->getHouseBuildCost())));
         buildLines.push_back(kvText("Harga Hotel", formatMoney(street->getHotelBuildCost())));
-    } else if (auto* railroad = dynamic_cast<const RailroadProperty*>(&property)) {
+    } else if (property.isRailroad()) {
+        auto* railroad = static_cast<const RailroadProperty*>(&property);
         for (const auto& [count, rent] : railroad->getRentTable()) {
             detailLines.push_back(kvText("Sewa (" + std::to_string(count) + " stasiun)",
                                          formatMoney(rent)));
         }
-    } else if (auto* utility = dynamic_cast<const UtilityProperty*>(&property)) {
+    } else if (property.isUtility()) {
+        auto* utility = static_cast<const UtilityProperty*>(&property);
         for (const auto& [count, mult] : utility->getMultiplierTable()) {
             detailLines.push_back(kvText("Sewa (" + std::to_string(count) + " utilitas)",
                                          std::to_string(mult) + "x dadu"));
@@ -825,7 +833,10 @@ void CLIGUI::renderBankruptcy(const Player& player) {
 }
 
 void CLIGUI::renderWinner(const Player& winner) {
-    printBanner("PEMENANG", UI_GREEN);
+    if (!winnerBannerPrinted) {
+        printBanner("PEMENANG", UI_GREEN);
+        winnerBannerPrinted = true;
+    }
     std::cout << colorize(winner.getUsername(), UI_GREEN, true)
               << " dengan total kekayaan "
               << colorize(formatMoney(winner.calculateTotalWealth()), UI_GREEN, true) << "\n";

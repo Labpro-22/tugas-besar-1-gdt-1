@@ -7,4 +7,5 @@ public:
     explicit ChanceTile(int index);
 
     void onLanded(Player &player, Game &game) override;
+    TileKind getKind() const override { return TileKind::CHANCE; }
 };

@@ -13,11 +13,14 @@ public:
     ~DiscountCard();
 
     std::string getCardName() const override;
+    SkillCardKind getKind() const override;
     Card* clone() const override;
 
     int getDiscount() const;
     int getDuration() const;
     void decrementDuration();
+    int getPrimaryValue() const override;
+    int getDurationValue() const override;
 };
 
 #endif

@@ -164,8 +164,8 @@ void TurnManager::decrementFestivalDurations() {
     Board* board = game->getBoard();
     if (board == nullptr) return;
     for (Tile* t : board->getAllTiles()) {
-        auto* pt = dynamic_cast<PropertyTile*>(t);
-        if (pt == nullptr) continue;
+        if (t->getCategory() != TileCategory::PROPERTY) continue;
+        auto* pt = static_cast<PropertyTile*>(t);
         Property* prop = pt->getProperty();
         if (prop != nullptr) prop->decrementFestivalDuration();
     }

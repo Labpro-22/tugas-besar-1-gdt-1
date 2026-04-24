@@ -7,4 +7,5 @@ public:
     explicit FestivalTile(int index);
 
     void onLanded(Player &player, Game &game) override;
+    TileKind getKind() const override { return TileKind::FESTIVAL; }
 };

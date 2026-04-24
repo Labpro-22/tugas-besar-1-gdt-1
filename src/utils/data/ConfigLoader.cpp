@@ -247,14 +247,17 @@ Tile* ConfigLoader::createTileForIndex(int index,
     // Property tiles (street / railroad / utility)
     if (index >= 0 && index < (int)properties.size() && properties[index] != nullptr) {
         Property* prop = properties[index];
-        if (auto* sp = dynamic_cast<StreetProperty*>(prop)) {
+        if (prop->isStreet()) {
+            auto* sp = static_cast<StreetProperty*>(prop);
             TileColor color = colorGroupToTileColor(sp->getColorGroup());
             return new StreetTile(id, sp->getCode(), sp->getName(), color, sp);
         }
-        if (auto* rp = dynamic_cast<RailroadProperty*>(prop)) {
+        if (prop->isRailroad()) {
+            auto* rp = static_cast<RailroadProperty*>(prop);
             return new RailroadTile(id, rp->getCode(), rp->getName(), rp);
         }
-        if (auto* up = dynamic_cast<UtilityProperty*>(prop)) {
+        if (prop->isUtility()) {
+            auto* up = static_cast<UtilityProperty*>(prop);
             return new UtilityTile(id, up->getCode(), up->getName(), up);
         }
     }

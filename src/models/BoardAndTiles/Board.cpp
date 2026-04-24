@@ -22,11 +22,11 @@ void Board::addTile(Tile *tile)
     tileByCode[tile->getCode()] = tile;
     boardSize = static_cast<int>(tiles.size());
 
-    if (GoTile *go = dynamic_cast<GoTile *>(tile))
-        goTile = go;
+    if (tile->getKind() == TileKind::GO)
+        goTile = static_cast<GoTile *>(tile);
 
-    if (JailTile *jail = dynamic_cast<JailTile *>(tile))
-        jailTile = jail;
+    if (tile->getKind() == TileKind::JAIL)
+        jailTile = static_cast<JailTile *>(tile);
 }
 
 Tile *Board::getTile(int index) const
@@ -86,10 +86,10 @@ RailroadTile *Board::getNearestRailroad(int currentIndex) const
 
     for (Tile *tile : tiles)
     {
-        RailroadTile *railroad = dynamic_cast<RailroadTile *>(tile);
-
-        if (railroad == nullptr)
+        if (tile->getKind() != TileKind::RAILROAD)
             continue;
+
+        RailroadTile *railroad = static_cast<RailroadTile *>(tile);
 
         int steps = (railroad->getIndex() - currentIndex + boardSize) % boardSize;
 
@@ -109,13 +109,16 @@ std::vector<StreetProperty *> Board::getStreetGroup(const std::string &colorGrou
 
     for (Tile *tile : tiles)
     {
-        auto *propertyTile = dynamic_cast<PropertyTile *>(tile);
-        if (propertyTile == nullptr)
+        if (tile->getCategory() != TileCategory::PROPERTY)
             continue;
 
-        auto *street = dynamic_cast<StreetProperty *>(propertyTile->getProperty());
-        if (street == nullptr)
+        auto *propertyTile = static_cast<PropertyTile *>(tile);
+
+        Property *property = propertyTile->getProperty();
+        if (property == nullptr || !property->isStreet())
             continue;
+
+        auto *street = static_cast<StreetProperty *>(property);
 
         if (street->getColorGroup() == colorGroup)
         {

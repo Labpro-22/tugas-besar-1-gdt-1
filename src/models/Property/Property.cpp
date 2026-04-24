@@ -25,6 +25,9 @@ int Property::getPurchasePrice() const { return purchasePrice; }
 int Property::getMortgageValue() const { return mortgageValue; }
 int Property::getFestivalMultiplier() const { return festivalMultiplier; }
 int Property::getFestivalDuration() const { return festivalDuration; }
+bool Property::isStreet() const { return type == PropertyType::STREET; }
+bool Property::isRailroad() const { return type == PropertyType::RAILROAD; }
+bool Property::isUtility() const { return type == PropertyType::UTILITY; }
 
 void Property::setOwner(Player *owner) { this->owner = owner; }
 void Property::clearOwner() { this->owner = nullptr; }

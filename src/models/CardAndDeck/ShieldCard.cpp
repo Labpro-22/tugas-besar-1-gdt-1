@@ -10,6 +10,10 @@ std::string ShieldCard::getCardName() const {
     return "ShieldCard";
 }
 
+SkillCardKind ShieldCard::getKind() const {
+    return SkillCardKind::SHIELD;
+}
+
 Card* ShieldCard::clone() const {
     return new ShieldCard();
 }
@@ -20,4 +24,8 @@ int ShieldCard::getDuration() const {
 
 void ShieldCard::decrementDuration() {
     if (duration > 0) duration--;
+}
+
+int ShieldCard::getDurationValue() const {
+    return duration;
 }

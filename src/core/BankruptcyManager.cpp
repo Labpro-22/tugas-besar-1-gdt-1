@@ -23,13 +23,13 @@ std::string formatMoney(int amount) {
 }
 
 std::string propertyColorLabel(const Property* property) {
-    auto* street = dynamic_cast<const StreetProperty*>(property);
-    if (street == nullptr) {
+    if (property == nullptr || !property->isStreet()) {
         if (property != nullptr && property->getType() == PropertyType::RAILROAD) return "STASIUN";
         if (property != nullptr && property->getType() == PropertyType::UTILITY) return "UTILITAS";
         return "DEFAULT";
     }
 
+    auto* street = static_cast<const StreetProperty*>(property);
     const std::string color = street->getColorGroup();
     if (color == "BIRU_MUDA") return "BIRU MUDA";
     if (color == "MERAH_MUDA") return "PINK";
@@ -58,7 +58,8 @@ std::string ownershipStatusLabel(const Property* property) {
     }
 
     std::string status = "OWNED";
-    if (auto* street = dynamic_cast<const StreetProperty*>(property)) {
+    if (property->isStreet()) {
+        auto* street = static_cast<const StreetProperty*>(property);
         std::string building = buildingLabel(street);
         if (!building.empty()) {
             status += " (" + building + ")";
@@ -99,7 +100,8 @@ int BankruptcyManager::calculateSaleValue(const Property* property) const {
     if (property == nullptr || property->isMortgaged()) return 0;
 
     int total = property->getPurchasePrice();
-    if (auto* street = dynamic_cast<const StreetProperty*>(property)) {
+    if (property->isStreet()) {
+        auto* street = static_cast<const StreetProperty*>(property);
         total += street->sellBuildingValue();
     }
     return total;
@@ -108,7 +110,8 @@ int BankruptcyManager::calculateSaleValue(const Property* property) const {
 int BankruptcyManager::calculateMortgageValue(const Property* property) const {
     if (property == nullptr || property->isMortgaged()) return 0;
 
-    if (auto* street = dynamic_cast<const StreetProperty*>(property)) {
+    if (property->isStreet()) {
+        auto* street = static_cast<const StreetProperty*>(property);
         if (street->getBuildingState() != BuildingState::NONE) return 0;
     }
     return property->getMortgageValue();
@@ -142,7 +145,7 @@ std::vector<BankruptcyManager::LiquidationOption>
 BankruptcyManager::buildEstimatePlan(const Player& player) const {
     std::vector<LiquidationOption> plan;
     for (Property* property : player.getOwnedProperties()) {
-        auto* street = dynamic_cast<StreetProperty*>(property);
+        auto* street = property->isStreet() ? static_cast<StreetProperty*>(property) : nullptr;
         if (street != nullptr && street->getBuildingState() != BuildingState::NONE) {
             int saleValue = calculateSaleValue(property);
             if (saleValue > 0) {
@@ -231,7 +234,8 @@ int BankruptcyManager::sellPropertyToBank(Player& player, Property* property) {
 
     int propertyValue = property->getPurchasePrice();
     int buildingValue = 0;
-    if (auto* street = dynamic_cast<StreetProperty*>(property)) {
+    if (property->isStreet()) {
+        auto* street = static_cast<StreetProperty*>(property);
         buildingValue = street->sellBuildingValue();
         street->clearBuildings();
     }
@@ -303,7 +307,8 @@ bool BankruptcyManager::runLiquidationPanel(Player& player, int targetAmount) {
                                      option.property->getCode() + ") [" +
                                      propertyColorLabel(option.property) + "] Harga Jual: " +
                                      formatMoney(option.value);
-                if (auto* street = dynamic_cast<StreetProperty*>(option.property)) {
+                if (option.property->isStreet()) {
+                    auto* street = static_cast<StreetProperty*>(option.property);
                     int buildingValue = street->sellBuildingValue();
                     if (buildingValue > 0) {
                         detail += " (termasuk " + buildingLabel(street) + ": " +
@@ -381,7 +386,8 @@ void BankruptcyManager::returnAssetsToBank(Player& player) {
         player.removeProperty(property);
         property->clearOwner();
         property->setStatus(PropertyStatus::BANK);
-        if (auto* street = dynamic_cast<StreetProperty*>(property)) {
+        if (property->isStreet()) {
+            auto* street = static_cast<StreetProperty*>(property);
             street->clearBuildings();
         }
     }

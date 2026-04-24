@@ -13,6 +13,10 @@ std::string JailFreeCard::getCardName() const {
     return "JailFreeCard";
 }
 
+SkillCardKind JailFreeCard::getKind() const {
+    return SkillCardKind::JAIL_FREE;
+}
+
 Card* JailFreeCard::clone() const {
     return new JailFreeCard();
 }

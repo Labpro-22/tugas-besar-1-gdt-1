@@ -26,6 +26,7 @@ private:
     bool exitRequested;
     std::deque<std::string> pendingCommands;
     bool awaitingInput;
+    bool winnerBannerPrinted;
 
     // ANSI color constants
     static const std::string ANSI_RESET;

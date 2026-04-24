@@ -26,5 +26,6 @@ public:
     virtual void onPassed(Player &player, Game &game);
 
     virtual TileCategory getCategory() const = 0;
+    virtual TileKind getKind() const = 0;
     virtual std::string getDisplayLabel() const;
 };

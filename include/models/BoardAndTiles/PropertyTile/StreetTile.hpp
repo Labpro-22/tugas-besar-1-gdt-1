@@ -9,4 +9,5 @@ public:
     StreetTile(int index, const std::string &code, const std::string &name, TileColor color, StreetProperty *street);
 
     void onLanded(Player &player, Game &game) override;
+    TileKind getKind() const override { return TileKind::STREET; }
 };

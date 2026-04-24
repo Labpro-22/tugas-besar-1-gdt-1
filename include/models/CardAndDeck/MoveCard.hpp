@@ -12,9 +12,11 @@ public:
     ~MoveCard();
 
     std::string getCardName() const override;
+    SkillCardKind getKind() const override;
     Card* clone() const override;
 
     int getSteps() const;
+    int getPrimaryValue() const override;
 };
 
 #endif

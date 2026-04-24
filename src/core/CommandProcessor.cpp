@@ -205,7 +205,8 @@ CommandResult CommandProcessor::handlePrintDeed(const std::string& code) {
         gui->showMessage("Petak \"" + targetCode + "\" tidak ditemukan atau bukan properti.");
         return CommandResult::INVALID;
     }
-    auto* pt = dynamic_cast<PropertyTile*>(tile);
+    auto* pt = tile != nullptr && tile->getCategory() == TileCategory::PROPERTY
+        ? static_cast<PropertyTile*>(tile) : nullptr;
     if (!pt || !pt->getProperty()) {
         gui->showMessage("Petak \"" + targetCode + "\" tidak ditemukan atau bukan properti.");
         return CommandResult::INVALID;
@@ -233,7 +234,8 @@ CommandResult CommandProcessor::handleMortgage(Player* player, const std::string
 
     std::string targetCode = normalize(code);
     Tile* tile = board->getTile(targetCode);
-    auto* pt = dynamic_cast<PropertyTile*>(tile);
+    auto* pt = tile != nullptr && tile->getCategory() == TileCategory::PROPERTY
+        ? static_cast<PropertyTile*>(tile) : nullptr;
     Property* prop = pt ? pt->getProperty() : nullptr;
     if (!prop || prop->getOwner() != player) {
         gui->showMessage("Kamu tidak memiliki properti " + targetCode + ".");
@@ -244,7 +246,8 @@ CommandResult CommandProcessor::handleMortgage(Player* player, const std::string
         return CommandResult::INVALID;
     }
 
-    if (auto* sp = dynamic_cast<StreetProperty*>(prop)) {
+    if (prop->isStreet()) {
+        auto* sp = static_cast<StreetProperty*>(prop);
         std::vector<StreetProperty*> group = board->getStreetGroup(sp->getColorGroup());
         std::vector<StreetProperty*> builtStreets;
 
@@ -336,7 +339,8 @@ CommandResult CommandProcessor::handleMortgage(Player* player, const std::string
 CommandResult CommandProcessor::handleRedeem(Player* player, const std::string& code) {
     std::string targetCode = normalize(code);
     Tile* tile = game->getBoard()->getTile(targetCode);
-    auto* pt = dynamic_cast<PropertyTile*>(tile);
+    auto* pt = tile != nullptr && tile->getCategory() == TileCategory::PROPERTY
+        ? static_cast<PropertyTile*>(tile) : nullptr;
     Property* prop = pt ? pt->getProperty() : nullptr;
     if (!prop || prop->getOwner() != player) {
         gui->showMessage("Kamu tidak memiliki properti " + targetCode + ".");
@@ -368,8 +372,11 @@ CommandResult CommandProcessor::handleRedeem(Player* player, const std::string& 
 
 CommandResult CommandProcessor::handleBuild(Player* player, const std::string& code) {
     Tile* tile = game->getBoard()->getTile(code);
-    auto* pt = dynamic_cast<PropertyTile*>(tile);
-    auto* sp = pt ? dynamic_cast<StreetProperty*>(pt->getProperty()) : nullptr;
+    auto* pt = tile != nullptr && tile->getCategory() == TileCategory::PROPERTY
+        ? static_cast<PropertyTile*>(tile) : nullptr;
+    Property* property = pt ? pt->getProperty() : nullptr;
+    auto* sp = (property != nullptr && property->isStreet())
+        ? static_cast<StreetProperty*>(property) : nullptr;
     if (!sp || sp->getOwner() != player) {
         gui->showMessage("Kamu tidak memiliki properti street " + code + ".");
         return CommandResult::INVALID;
@@ -861,8 +868,9 @@ void CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*car
     for (Player* other : game->getActivePlayers()) {
         if (other == player) continue;
         for (Property* prop : other->getOwnedProperties()) {
-            auto* sp = dynamic_cast<StreetProperty*>(prop);
-            if (sp && sp->getBuildingState() != BuildingState::NONE) {
+            auto* sp = (prop != nullptr && prop->isStreet())
+                ? static_cast<StreetProperty*>(prop) : nullptr;
+            if (sp != nullptr && sp->getBuildingState() != BuildingState::NONE) {
                 targets.push_back({other, prop});
             }
         }
@@ -877,7 +885,7 @@ void CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*car
     }
     gui->showMessage("DemolitionCard: pilih properti lawan yang akan dihancurkan.");
     for (int i = 0; i < static_cast<int>(targets.size()); ++i) {
-        auto* sp = dynamic_cast<StreetProperty*>(targets[i].second);
+        auto* sp = static_cast<StreetProperty*>(targets[i].second);
         std::string bldg;
         switch (sp->getBuildingState()) {
             case BuildingState::HOUSE_1: bldg = "1 rumah"; break;
@@ -898,7 +906,7 @@ void CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*car
         if (choice < 0 || choice >= static_cast<int>(targets.size()))
             gui->showMessage("Nomor properti tidak valid.");
     }
-    auto* sp = dynamic_cast<StreetProperty*>(targets[choice].second);
+    auto* sp = static_cast<StreetProperty*>(targets[choice].second);
     std::string before = sp->getBuildingState() == BuildingState::HOTEL ? "Hotel" :
                          std::to_string(static_cast<int>(sp->getBuildingState())) + " rumah";
     sp->demolishOneLevel();
@@ -924,35 +932,35 @@ CommandResult CommandProcessor::handleUseSkill(Player* player, int index) {
     }
     SkillCard* card = hand[index];
 
-    // Dispatch by card type and apply effect BEFORE removing (some effects need card data)
-    if (auto* mc = dynamic_cast<MoveCard*>(card)) {
-        player->removeCard(card);
-        player->markSkillUsed();
-        applyMoveCard(player, mc);
-    } else if (auto* tc = dynamic_cast<TeleportCard*>(card)) {
-        player->removeCard(card);
-        player->markSkillUsed();
-        applyTeleportCard(player, tc);
-    } else if (auto* dc = dynamic_cast<DiscountCard*>(card)) {
-        player->removeCard(card);
-        player->markSkillUsed();
-        applyDiscountCard(player, dc);
-    } else if (auto* sc = dynamic_cast<ShieldCard*>(card)) {
-        player->removeCard(card);
-        player->markSkillUsed();
-        applyShieldCard(player, sc);
-    } else if (auto* lc = dynamic_cast<LassoCard*>(card)) {
-        player->removeCard(card);
-        player->markSkillUsed();
-        applyLassoCard(player, lc);
-    } else if (auto* demolc = dynamic_cast<DemolitionCard*>(card)) {
-        player->removeCard(card);
-        player->markSkillUsed();
-        applyDemolitionCard(player, demolc);
-    } else {
-        // JailFreeCard — hanya bisa dipakai saat di penjara (ditangani handleJailedPlayerTurn)
+    if (card->getKind() == SkillCardKind::JAIL_FREE) {
         gui->showMessage("Kartu " + card->getCardName() + " hanya bisa dipakai saat di Penjara.");
         return CommandResult::INVALID;
+    }
+
+    player->removeCard(card);
+    player->markSkillUsed();
+
+    switch (card->getKind()) {
+        case SkillCardKind::MOVE:
+            applyMoveCard(player, static_cast<MoveCard*>(card));
+            break;
+        case SkillCardKind::TELEPORT:
+            applyTeleportCard(player, static_cast<TeleportCard*>(card));
+            break;
+        case SkillCardKind::DISCOUNT:
+            applyDiscountCard(player, static_cast<DiscountCard*>(card));
+            break;
+        case SkillCardKind::SHIELD:
+            applyShieldCard(player, static_cast<ShieldCard*>(card));
+            break;
+        case SkillCardKind::LASSO:
+            applyLassoCard(player, static_cast<LassoCard*>(card));
+            break;
+        case SkillCardKind::DEMOLITION:
+            applyDemolitionCard(player, static_cast<DemolitionCard*>(card));
+            break;
+        case SkillCardKind::JAIL_FREE:
+            return CommandResult::INVALID;
     }
 
     if (game->getSkillDeck() != nullptr) game->getSkillDeck()->discard(card);

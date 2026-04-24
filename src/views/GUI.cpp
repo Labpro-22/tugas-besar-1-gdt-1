@@ -2,17 +2,17 @@
 #include "views/viewElement/GameHUDView.hpp"
 #include "core/Game.hpp"
 
-GUI::GUI(float fps, Board& board) : menu(nullptr), board(new BoardView(board)),
-         debuggingEntry(nullptr), dice(nullptr), chancePile(nullptr), communityChestPile(nullptr),
-         fps(fps), camManager(CameraManager()), exitRequested(false) {
-    camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize()*1.1f, 10.0f, 0}, {0,0,0}, 45.0f));
-    View3DCamera* boardCam = camManager.getCurrentCamera();
-    boardCam->addMovement("ROTATE_INDEFINITE", 
-        new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this](){
-            boardCam->rotateAroundTarget(27*(1/this->fps), {0,1,0});
-        }, [](){}));
-    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize()*1.25f, 0}, {0,0,0}, 45.0f));
-    camManager.addCamera("ACTION_CAM", View3DCamera({-this->board->getBoardSize()*0.8f, this->board->getBoardSize()*0.6f, 0}, {0,0,0}, 45.0f));
+GUI::GUI(float fps, Board &board) : menu(nullptr), board(new BoardView(board)),
+                                    debuggingEntry(nullptr), dice(nullptr), chancePile(nullptr), communityChestPile(nullptr),
+                                    fps(fps), camManager(CameraManager()), exitRequested(false)
+{
+    camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize() * 1.1f, 10.0f, 0}, {0, 0, 0}, 45.0f));
+    View3DCamera *boardCam = camManager.getCurrentCamera();
+    boardCam->addMovement("ROTATE_INDEFINITE",
+                          new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this]()
+                                             { boardCam->rotateAroundTarget(27 * (1 / this->fps), {0, 1, 0}); }, []() {}));
+    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize() * 1.25f, 0}, {0, 0, 0}, 45.0f));
+    camManager.addCamera("ACTION_CAM", View3DCamera({-this->board->getBoardSize() * 0.8f, this->board->getBoardSize() * 0.6f, 0}, {0, 0, 0}, 45.0f));
 }
 
 bool GUI::shouldExit() const
@@ -27,7 +27,8 @@ void GUI::requestExit()
 
 void GUI::loadGameView()
 {
-    while (!popupStack.empty()) {
+    while (!popupStack.empty())
+    {
         delete popupStack.top();
         popupStack.pop();
     }
@@ -36,10 +37,12 @@ void GUI::loadGameView()
         delete v;
     views.clear();
 
-    for (auto p : playerProfiles) delete p;
+    for (auto p : playerProfiles)
+        delete p;
     playerProfiles.clear();
 
-    for (auto p : players) delete p;
+    for (auto p : players)
+        delete p;
     players.clear();
 
     menu = nullptr;
@@ -193,17 +196,20 @@ void GUI::loadPlayer(Player &player)
     views.insert(profile);
 }
 
-void GUI::loadDice(PlayerView* player) {
+void GUI::loadDice(PlayerView *player)
+{
     dice = new DiceView(player, &camManager.getCamera("ACTION_CAM"));
     views.insert(dice->getThrowButton());
 }
 
-void GUI::loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile) {
-    Vector2 cardDim = (Vector2){7.6f, 4.275f}*(board->getBoardSize()/30.0f);
-    Vector3 cardPos = {-cardDim.x/2 - board->getBoardSize()*0.015f, 0.015, -cardDim.x/2 - board->getBoardSize()*0.015f};
+void GUI::loadCardPiles(CardDeck<Card> &chancePile, CardDeck<Card> &comChestPile)
+{
+    Vector2 cardDim = (Vector2){7.6f, 4.275f} * (board->getBoardSize() / 30.0f);
+    Vector3 cardPos = {-cardDim.x / 2 - board->getBoardSize() * 0.015f, 0.015, -cardDim.x / 2 - board->getBoardSize() * 0.015f};
     this->chancePile = new CardPileView(chancePile, cardPos, cardDim);
-    this->communityChestPile = new CardPileView(comChestPile, {cardPos.x*-1, cardPos.y, cardPos.z*-1}, cardDim*-1);
+    this->communityChestPile = new CardPileView(comChestPile, {cardPos.x * -1, cardPos.y, cardPos.z * -1}, cardDim * -1);
 }
+
 Command GUI::getCommand()
 {
     if (!pendingCommand.isNull())
@@ -258,6 +264,15 @@ Command GUI::getCommand()
             tokens.push_back(item);
         }
 
+        // DEBUG
+        std::cout << "[VIEW CMD RAW] " << raw << std::endl;
+        std::cout << "[TOKENS] size=" << tokens.size() << " -> ";
+        for (size_t i = 0; i < tokens.size(); ++i)
+        {
+            std::cout << "[" << i << "]='" << tokens[i] << "' ";
+        }
+        std::cout << std::endl;
+
         if (tokens.empty())
             return {"NULL", {}};
 
@@ -288,30 +303,46 @@ Command GUI::getCommand()
         // HANDLE INTERNAL GUI
         if (tokens[0] == "DISPLAY")
         {
-            if (tokens[1] == "TOP_VIEW") {
-                camManager.switchTo("TOP_VIEW", 1, [](){});
-            } else if (tokens[1] == "ACTION_CAM") {
-                camManager.switchTo("ACTION_CAM", 1, [](){});
-            } else if (tokens[1] == "BOARD_CAM") {
-                camManager.switchTo("BOARD_CAM", 1, [](){});
-            } else if (tokens[1] == "ROLL_DICE") {
-                camManager.switchTo("ACTION_CAM", 1, [this, tokens](){ loadDice(players[stoi(tokens[2])]); });
-            } else if (tokens[1] == "THROW") {
-                //call GameEngine buat dapetin angka dadu
+            if (tokens[1] == "TOP_VIEW")
+            {
+                camManager.switchTo("TOP_VIEW", 1, []() {});
+            }
+            else if (tokens[1] == "ACTION_CAM")
+            {
+                camManager.switchTo("ACTION_CAM", 1, []() {});
+            }
+            else if (tokens[1] == "BOARD_CAM")
+            {
+                camManager.switchTo("BOARD_CAM", 1, []() {});
+            }
+            else if (tokens[1] == "ROLL_DICE")
+            {
+                camManager.switchTo("ACTION_CAM", 1, [this, tokens]()
+                                    { loadDice(players[stoi(tokens[2])]); });
+            }
+            else if (tokens[1] == "THROW")
+            {
+                // call GameEngine buat dapetin angka dadu
                 dice->initializeThrowDice(6, 6);
                 dice->getThrowButton()->setActive(false);
-            } else if (tokens[1] == "THROW_DONE") {
+            }
+            else if (tokens[1] == "THROW_DONE")
+            {
                 dice->moveDiceOffScreen();
-                PlayerView* movingPlayer = dice->getPlayer();
+                PlayerView *movingPlayer = dice->getPlayer();
                 int moveVal = dice->getMoveValue();
-                camManager.switchTo(dice->getPlayer()->getPlayerCamKey(), 1, [this, movingPlayer, moveVal](){
-                    movingPlayer->moveSpaces(moveVal);
-                });
-            } else if (tokens[1] == "DRAW") {
-                if (tokens[2] == "CC") {
+                camManager.switchTo(dice->getPlayer()->getPlayerCamKey(), 1, [this, movingPlayer, moveVal]()
+                                    { movingPlayer->moveSpaces(moveVal); });
+            }
+            else if (tokens[1] == "DRAW")
+            {
+                if (tokens[2] == "CC")
+                {
                     // reshuffle deck
                     communityChestPile->drawCard();
-                } else if (tokens[2] == "CH") {
+                }
+                else if (tokens[2] == "CH")
+                {
                     // reshuffle deck
                     chancePile->drawCard();
                 }
@@ -360,16 +391,16 @@ void GUI::updatePlayerProfilesLayout()
         switch (i)
         {
         case 0:
-            pos = { w/2 + margin, h/2 + margin };
+            pos = {w / 2 + margin, h / 2 + margin};
             break;
         case 1:
-            pos = { screenW - w/2 - margin, h/2 + margin };
+            pos = {screenW - w / 2 - margin, h / 2 + margin};
             break;
         case 2:
-            pos = { w/2 + margin, screenH - h/2 - margin };
+            pos = {w / 2 + margin, screenH - h / 2 - margin};
             break;
         case 3:
-            pos = { screenW - w/2 - margin, screenH - h/2 - margin };
+            pos = {screenW - w / 2 - margin, screenH - h / 2 - margin};
             break;
         }
 
@@ -380,18 +411,22 @@ void GUI::updatePlayerProfilesLayout()
 void GUI::update()
 {
     camManager.updateCamMap();
-    if (dice != nullptr) {
+    if (dice != nullptr)
+    {
         dice->update();
-        if (dice->isDone()) {
+        if (dice->isDone())
+        {
             delete dice;
             dice = nullptr;
         }
     }
-    
-  updatePlayerProfilesLayout();
-    set<View2D*> closedViews;
-    for (View2D* view : views) {
-        if (view->closed()) {
+
+    updatePlayerProfilesLayout();
+    set<View2D *> closedViews;
+    for (View2D *view : views)
+    {
+        if (view->closed())
+        {
             closedViews.insert(view);
         }
         else
@@ -436,18 +471,24 @@ void GUI::update()
 void GUI::display()
 {
     BeginMode3D(camManager.mount());
-        DrawGrid(40,1);
-        board->render();
-        for (PlayerView* player : players) {
-            player->render();
-        }
-        if (chancePile != nullptr) chancePile->render();
-        if (communityChestPile != nullptr) communityChestPile->render();
-        if (dice != nullptr) dice->render();
+    DrawGrid(40, 1);
+    board->render();
+    for (PlayerView *player : players)
+    {
+        player->render();
+    }
+    if (chancePile != nullptr)
+        chancePile->render();
+    if (communityChestPile != nullptr)
+        communityChestPile->render();
+    if (dice != nullptr)
+        dice->render();
     EndMode3D();
 
     for (View2D *view : views)
+    {
         view->render();
+    }
 }
 
 void GUI::loadDebuggingEntry()

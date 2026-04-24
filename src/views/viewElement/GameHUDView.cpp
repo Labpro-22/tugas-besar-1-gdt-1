@@ -21,19 +21,16 @@ GameHUDView::GameHUDView()
           {200, 56},
           true,
           false,
-          "DISPLAY ROLL_DICE 1", // default, nanti di-update
+          "NULL",
           []() {},
-          [this]()
-          {
-              rollDiceBtn.setGameCommand(
-                  "DISPLAY ROLL_DICE " + std::to_string(currentPlayerIdx));
-          })
+          []() {})
 {
 }
+
 void GameHUDView::interactionCheck()
 {
-    switchCamBtn.interactionCheck();
     rollDiceBtn.interactionCheck();
+    switchCamBtn.interactionCheck();
 }
 
 std::string GameHUDView::catchCommand()
@@ -41,10 +38,14 @@ std::string GameHUDView::catchCommand()
     std::string cmd;
 
     cmd = switchCamBtn.catchCommand();
-    if (!cmd.empty()) return cmd;
+    if (cmd != "NULL")
+        return cmd;
 
     cmd = rollDiceBtn.catchCommand();
-    return cmd;
+    if (cmd != "NULL")
+        return cmd;
+
+    return "NULL";
 }
 
 void GameHUDView::render()
@@ -69,8 +70,8 @@ void GameHUDView::render()
     DrawRectangleRounded({x + 3, y1 + 4, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
 
     Color camColor = isTopView
-        ? Color{30, 110, 210, 255}
-        : Color{30, 170, 110, 255};
+                         ? Color{30, 110, 210, 255}
+                         : Color{30, 170, 110, 255};
 
     DrawRectangleRounded({x, y1, w, h}, 0.5f, 8, camColor);
 
@@ -107,6 +108,9 @@ void GameHUDView::render()
              y2 + (h - fontSize) / 2,
              fontSize,
              WHITE);
+
+    rollDiceBtn.setGameCommand(
+        "DISPLAY ROLL_DICE " + std::to_string(currentPlayerIdx));
 
     rollDiceBtn.render();
 }

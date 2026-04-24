@@ -26,9 +26,9 @@ private:
     BoardView *board;
     vector<PlayerView *> players;
     vector<PlayerProfileView *> playerProfiles;
-    DiceView* dice;
-        CardPileView* chancePile;
-        CardPileView* communityChestPile;
+    DiceView *dice;
+    CardPileView *chancePile;
+    CardPileView *communityChestPile;
 
     CameraManager camManager;
 
@@ -62,13 +62,6 @@ public:
     void showConfirm(const std::string &question) override;
     void showInputPrompt(const std::string &prompt) override;
 
-        // Utility khusus GUI raylib (bukan bagian IGUI)
-        void loadPopup(Popup* popup);
-        void loadPlayer(Player& player);
-        void loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile);
-        void loadDice(PlayerView* player);
-        void enableAll();
-        void disableAll();
     // Render state game
     void renderBoard(const Game &game) override;
     void renderPlayer(const Player &player) override;
@@ -83,6 +76,8 @@ public:
     // Utility khusus GUI raylib (bukan bagian IGUI)
     void loadPopup(Popup *popup);
     void loadPlayer(Player &player);
+    void loadCardPiles(CardDeck<Card> &chancePile, CardDeck<Card> &comChestPile);
+    void loadDice(PlayerView *player);
     void enableAll();
     void disableAll();
 

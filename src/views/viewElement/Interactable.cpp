@@ -78,27 +78,26 @@ string Interactable::catchCommand() {
 }
 
 void Interactable::interactionCheck() {
-    if (active) {
-        onDefault();
-        if (isInBoundingBox(GetMousePosition())) {
-            
-            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-                onClicked();
-            } 
-            else if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                onPressed();
-            }
-            else {
-                onHover();
-            }
+    if (!active) return;
 
-            
-            
-            if (draggable && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                onDrag(GetMouseDelta());
-            }
+    onDefault();
+
+    Vector2 mouse = GetMousePosition();
+
+    if (isInBoundingBox(mouse)) {
+
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            onClicked();
+        } 
+        else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            onPressed();
+        } 
+        else {
+            onHover();
+        }
+
+        if (draggable && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            onDrag(GetMouseDelta());
         }
     }
 }
-
-

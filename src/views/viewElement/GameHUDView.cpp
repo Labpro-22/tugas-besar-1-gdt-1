@@ -38,11 +38,7 @@ GameHUDView::GameHUDView()
           false,
           "NULL",
           []() {},
-          [this]()
-          {
-              showEndTurnButton = false;
-              diceAnimationFinished = false;
-          }),
+          []() {}),
       endTurnBtn(
           {200, 56},
           true,

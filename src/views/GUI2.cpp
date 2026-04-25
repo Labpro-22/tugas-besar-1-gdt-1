@@ -65,8 +65,7 @@ GUI::GUI(float fps, Board &board)
       pendingCommand("NULL"),
       fps(fps),
       exitRequested(false),
-      isDelayingPopupAfterDice(false),
-      popupDelayEndTime(0.0)
+    isDelayingPopupAfterDice(false)
 {
     const float boardSize = this->board->getBoardSize();
 
@@ -266,7 +265,7 @@ void GUI::renderDice(int d1, int d2)
         delete dice;
 
     isDelayingPopupAfterDice = true;
-    popupDelayEndTime = GetTime() + 12.0;
+    setHudDiceAnimationFinished(false);
 
     int idx = cachedGame->getCurrentTurnIndex();
     dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
@@ -432,11 +431,30 @@ void GUI::updateDice()
 {
     if (dice == nullptr)
         return;
+
+    std::string diceCmd = dice->getThrowButton()->catchCommand();
+    if (diceCmd != "NULL")
+    {
+        auto tokens = tokenize(diceCmd);
+        if (!tokens.empty() && tokens[0] == "DISPLAY")
+            handleDisplayCommand(tokens);
+    }
+
     dice->update();
     if (dice->isDone())
     {
         delete dice;
         dice = nullptr;
+        setHudDiceAnimationFinished(true);
+    }
+}
+
+void GUI::setHudDiceAnimationFinished(bool finished)
+{
+    for (auto &view : views)
+    {
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+            hud->setDiceAnimationFinished(finished);
     }
 }
 
@@ -474,7 +492,7 @@ void GUI::updateDelayedPopups()
     if (!isDelayingPopupAfterDice)
         return;
 
-    if (GetTime() < popupDelayEndTime)
+    if (dice != nullptr)
         return;
 
     isDelayingPopupAfterDice = false;

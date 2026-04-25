@@ -75,8 +75,8 @@ private:
     // ── Popup delay after dice roll ─────────────────────────────────────────
     std::queue<Popup *> delayedPopupQueue;
     bool isDelayingPopupAfterDice;
-    double popupDelayEndTime;
 
+    void setHudDiceAnimationFinished(bool finished);
     void loadPopupNow(Popup *popup);
     void updateDelayedPopups();
 

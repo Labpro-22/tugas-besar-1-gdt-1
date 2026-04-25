@@ -25,10 +25,6 @@ PlayerView::PlayerView(Player& player, BoardView* board, Color color, CameraMana
     }, [](){}));
 }
 
-Player& PlayerView::getPlayer() {
-    return player;
-}
-
 PlayerView::~PlayerView()
 {
 }

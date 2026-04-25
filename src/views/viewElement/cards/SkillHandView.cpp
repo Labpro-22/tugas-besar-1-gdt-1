@@ -1,5 +1,6 @@
 #include "../include/views/viewElement/cards/SkillHandView.hpp"
 #include "../include/views/animation/ViewAnimation.hpp"
+#include "models/Player/Player.hpp"
 
 
 SkillHandView::SkillHandView(Player& player, View3DCamera* cam, Card* incomingCard) : 

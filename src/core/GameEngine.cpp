@@ -32,25 +32,10 @@
 #include "models/BoardAndTiles/SpecialTile/JailTile.hpp"
 #include "models/BoardAndTiles/SpecialTile/GoTile.hpp"
 #include "models/BoardAndTiles/SpecialTile/FreeParkingTile.hpp"
+#include "utils/Formatter.hpp"
 
 namespace {
 constexpr const char* kDefaultConfigDir = "data/config/default";
-
-std::string formatMoney(int amount) {
-    bool negative = amount < 0;
-    long long absAmount = negative ? -static_cast<long long>(amount) : amount;
-    std::string digits = std::to_string(absAmount);
-    std::string grouped;
-    int count = 0;
-    for (int i = static_cast<int>(digits.size()) - 1; i >= 0; --i) {
-        grouped.insert(grouped.begin(), digits[i]);
-        if (++count == 3 && i > 0) {
-            grouped.insert(grouped.begin(), '.');
-            count = 0;
-        }
-    }
-    return std::string(negative ? "-M" : "M") + grouped;
-}
 
 std::string tileLogLabel(const Tile* tile) {
     if (tile == nullptr) return "?";
@@ -419,16 +404,16 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
 
         if (player->getJailAttempts() >= 3) {
             gui->showMessage("Ini adalah giliran ke-4 kamu di Penjara.");
-            gui->showMessage("Kamu wajib membayar denda " + formatMoney(fine) + " sebelum melempar dadu.");
+            gui->showMessage("Kamu wajib membayar denda " + Formatter::money(fine) + " sebelum melempar dadu.");
             bool paid = executePayment(player, nullptr, fine,
-                                       "denda penjara " + formatMoney(fine));
+                                       "denda penjara " + Formatter::money(fine));
             if (paid) {
                 player->setStatus(PlayerStatus::ACTIVE);
                 player->resetJailAttempts();
                 if (logger != nullptr) {
                     logger->log(game->getCurrentTurn(), player->getUsername(),
                                 "PENJARA",
-                                "Bayar denda " + formatMoney(fine) + " dan bebas dari Penjara");
+                                "Bayar denda " + Formatter::money(fine) + " dan bebas dari Penjara");
                 }
                 gui->showMessage("Denda penjara sudah dibayar. Kamu bebas dari Penjara.");
                 gui->showMessage("Sekarang kamu dapat melempar dadu seperti biasa.");
@@ -442,7 +427,7 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
 
         SkillCard* jailCard = player->findJailFreeCard();
         gui->showMessage("Pilih cara untuk keluar dari Penjara:");
-        gui->showMessage("1) Bayar denda " + formatMoney(fine));
+        gui->showMessage("1) Bayar denda " + Formatter::money(fine));
         gui->showMessage("2) Gunakan kartu Bebas dari Penjara" +
                          std::string(jailCard ? "" : " (tidak tersedia)"));
         gui->showMessage("3) Coba lempar dadu dan harus mendapatkan double");
@@ -451,7 +436,7 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player* player) {
 
         if (choice == "1") {
             bool paid = executePayment(player, nullptr, fine,
-                                       "denda penjara " + formatMoney(fine));
+                                       "denda penjara " + Formatter::money(fine));
             if (paid) {
                 player->setStatus(PlayerStatus::ACTIVE);
                 player->resetJailAttempts();
@@ -644,15 +629,15 @@ void GameEngine::handleCommunityChestLanding(Player* player, CommunityChestTile*
                 if (other == player) continue;
                 const int amount = 100;
                 bool paid = executePayment(other, player, amount,
-                                           "biaya ulang tahun " + formatMoney(amount) +
+                                           "biaya ulang tahun " + Formatter::money(amount) +
                                            " kepada " + player->getUsername());
                 if (paid) {
-                    gui->showMessage(other->getUsername() + " memberi " + formatMoney(amount) +
+                    gui->showMessage(other->getUsername() + " memberi " + Formatter::money(amount) +
                                      " kepada " + player->getUsername() + " (ulang tahun).");
                     if (logger != nullptr) {
                         logger->log(game->getCurrentTurn(), other->getUsername(),
                                     "DANA_UMUM",
-                                    "Bayar ulang tahun " + formatMoney(amount) +
+                                    "Bayar ulang tahun " + Formatter::money(amount) +
                                     " ke " + player->getUsername());
                     }
                 }
@@ -661,12 +646,12 @@ void GameEngine::handleCommunityChestLanding(Player* player, CommunityChestTile*
         }
         case CommunityType::DOCTOR_FEE: {
             const int fee = 700;
-            bool paid = executePayment(player, nullptr, fee, "biaya dokter " + formatMoney(fee));
+            bool paid = executePayment(player, nullptr, fee, "biaya dokter " + Formatter::money(fee));
             if (paid) {
-                gui->showMessage(player->getUsername() + " membayar biaya dokter " + formatMoney(fee) + ".");
+                gui->showMessage(player->getUsername() + " membayar biaya dokter " + Formatter::money(fee) + ".");
                 if (logger != nullptr) {
                     logger->log(game->getCurrentTurn(), player->getUsername(),
-                                "DANA_UMUM", "Bayar biaya dokter " + formatMoney(fee));
+                                "DANA_UMUM", "Bayar biaya dokter " + Formatter::money(fee));
                 }
             }
             break;
@@ -676,15 +661,15 @@ void GameEngine::handleCommunityChestLanding(Player* player, CommunityChestTile*
             for (Player* other : game->getActivePlayers()) {
                 if (other == player) continue;
                 bool paid = executePayment(player, other, fee,
-                                           "biaya kampanye " + formatMoney(fee) +
+                                           "biaya kampanye " + Formatter::money(fee) +
                                            " kepada " + other->getUsername());
                 if (!paid) break;
-                gui->showMessage(player->getUsername() + " membayar " + formatMoney(fee) +
+                gui->showMessage(player->getUsername() + " membayar " + Formatter::money(fee) +
                                  " ke " + other->getUsername() + " (biaya kampanye).");
                 if (logger != nullptr) {
                     logger->log(game->getCurrentTurn(), player->getUsername(),
                                 "DANA_UMUM",
-                                "Bayar biaya kampanye " + formatMoney(fee) +
+                                "Bayar biaya kampanye " + Formatter::money(fee) +
                                 " ke " + other->getUsername());
                 }
             }
@@ -955,28 +940,28 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
 
             if (prop->getType() == PropertyType::STREET) {
                 gui->renderProperty(*prop);
-                gui->showMessage("Uang kamu saat ini: " + formatMoney(player->getBalance()));
+                gui->showMessage("Uang kamu saat ini: " + Formatter::money(player->getBalance()));
 
                 int price = prop->getPurchasePrice();
                 if (player->getPendingDiscount() > 0) {
                     price = price * (100 - player->getPendingDiscount()) / 100;
                     gui->showMessage("Diskon " + std::to_string(player->getPendingDiscount()) +
                                      "% diterapkan.");
-                    gui->showMessage("Harga setelah diskon: " + formatMoney(price));
+                    gui->showMessage("Harga setelah diskon: " + Formatter::money(price));
                     player->clearPendingDiscount();
                 }
                 if (player->canAfford(price) &&
-                    askYesNo(gui, "Apakah kamu ingin membeli properti ini seharga " + formatMoney(price) + "? (y/n):")) {
+                    askYesNo(gui, "Apakah kamu ingin membeli properti ini seharga " + Formatter::money(price) + "? (y/n):")) {
                     player->deductMoney(price);
                     prop->setOwner(player);
                     prop->setStatus(PropertyStatus::OWNED);
                     player->addProperty(prop);
                     gui->showMessage(prop->getName() + " kini menjadi milikmu.");
-                    gui->showMessage("Uang tersisa: " + formatMoney(player->getBalance()));
+                    gui->showMessage("Uang tersisa: " + Formatter::money(player->getBalance()));
                     if (logger) {
                         logger->log(game->getCurrentTurn(), player->getUsername(),
                                     "BELI",
-                                    "Beli " + propertyLogLabel(prop) + " seharga " + formatMoney(price));
+                                    "Beli " + propertyLogLabel(prop) + " seharga " + Formatter::money(price));
                     }
                 } else {
                     if (!player->canAfford(price)) {
@@ -1015,7 +1000,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
                 gui->showMessage(prop->getName() + " kini menjadi milikmu.");
             }
             if (price > 0) {
-                gui->showMessage("Uang tersisa: " + formatMoney(player->getBalance()));
+                gui->showMessage("Uang tersisa: " + Formatter::money(player->getBalance()));
             }
             if (logger) {
                 const std::string actionType =
@@ -1023,7 +1008,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
                 logger->log(game->getCurrentTurn(), player->getUsername(),
                             actionType,
                             propertyLogLabel(prop) + " kini milik " + player->getUsername() +
-                            (price > 0 ? " (otomatis, " + formatMoney(price) + ")" : " (otomatis)"));
+                            (price > 0 ? " (otomatis, " + Formatter::money(price) + ")" : " (otomatis)"));
             }
             return;
         }
@@ -1049,20 +1034,20 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         if (!condition.empty()) {
             gui->showMessage("Kondisi      : " + condition);
         }
-        gui->showMessage("Sewa         : " + formatMoney(rent));
+        gui->showMessage("Sewa         : " + Formatter::money(rent));
         int payerBefore = player->getBalance();
         int ownerBefore = owner->getBalance();
         bool paid = executePayment(player, owner, rent,
-                                   "sewa " + formatMoney(rent) +
+                                   "sewa " + Formatter::money(rent) +
                                    " kepada " + owner->getUsername());
         if (paid) {
             if (payerBefore >= rent) {
-                gui->showMessage("Uang kamu     : " + formatMoney(payerBefore) + " -> " + formatMoney(player->getBalance()));
-                gui->showMessage("Uang " + owner->getUsername() + " : " + formatMoney(ownerBefore)
-                                 + " -> " + formatMoney(owner->getBalance()));
+                gui->showMessage("Uang kamu     : " + Formatter::money(payerBefore) + " -> " + Formatter::money(player->getBalance()));
+                gui->showMessage("Uang " + owner->getUsername() + " : " + Formatter::money(ownerBefore)
+                                 + " -> " + Formatter::money(owner->getBalance()));
             }
             if (logger) {
-                std::string detail = "Bayar " + formatMoney(rent) + " ke " +
+                std::string detail = "Bayar " + Formatter::money(rent) + " ke " +
                                      owner->getUsername() + " (" + prop->getCode();
                 if (!condition.empty()) {
                     detail += ", " + condition;
@@ -1078,7 +1063,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
     if (tile->getKind() == TileKind::INCOME_TAX) {
         auto* incomeTax = static_cast<IncomeTaxTile*>(tile);
         gui->showMessage("Kamu mendarat di Pajak Penghasilan (PPH).");
-        gui->showMessage("1. Bayar flat " + formatMoney(incomeTax->getFlatAmount()));
+        gui->showMessage("1. Bayar flat " + Formatter::money(incomeTax->getFlatAmount()));
         gui->showMessage("2. Bayar " + std::to_string(incomeTax->getTaxPercentage()) +
                          "% dari total kekayaan (Pilih sebelum menghitung kekayaan!)");
         int choice = askIncomeTaxChoice(gui);
@@ -1086,7 +1071,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         int before = player->getBalance();
         if (choice == 1) {
             amount = incomeTax->getFlatAmount();
-            gui->showMessage("Kamu memilih membayar flat sebesar " + formatMoney(amount) + ".");
+            gui->showMessage("Kamu memilih membayar flat sebesar " + Formatter::money(amount) + ".");
         } else {
             int cash = player->getBalance();
             int propertyValue = player->calculatePropertyAssetValue();
@@ -1094,24 +1079,24 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
             int wealth = cash + propertyValue + buildingValue;
             amount = (wealth * incomeTax->getTaxPercentage()) / 100;
             gui->showMessage("Total kekayaan kamu:");
-            gui->showMessage("- Uang tunai          : " + formatMoney(cash));
-            gui->showMessage("- Harga beli properti : " + formatMoney(propertyValue));
-            gui->showMessage("- Harga beli bangunan : " + formatMoney(buildingValue));
-            gui->showMessage("Total                 : " + formatMoney(wealth));
+            gui->showMessage("- Uang tunai          : " + Formatter::money(cash));
+            gui->showMessage("- Harga beli properti : " + Formatter::money(propertyValue));
+            gui->showMessage("- Harga beli bangunan : " + Formatter::money(buildingValue));
+            gui->showMessage("Total                 : " + Formatter::money(wealth));
             gui->showMessage("Pajak " + std::to_string(incomeTax->getTaxPercentage()) +
-                             "%             : " + formatMoney(amount));
+                             "%             : " + Formatter::money(amount));
         }
         bool paid = executePayment(player, nullptr, amount,
-                                   "Pajak Penghasilan " + formatMoney(amount));
+                                   "Pajak Penghasilan " + Formatter::money(amount));
         if (paid) {
             if (before >= amount) {
-                gui->showMessage("Uang kamu: " + formatMoney(before) + " -> " + formatMoney(player->getBalance()));
+                gui->showMessage("Uang kamu: " + Formatter::money(before) + " -> " + Formatter::money(player->getBalance()));
             }
             if (logger) {
                 const std::string detail = (choice == 1)
-                    ? "PPH flat " + formatMoney(amount)
+                    ? "PPH flat " + Formatter::money(amount)
                     : "PPH " + std::to_string(incomeTax->getTaxPercentage()) +
-                      "% = " + formatMoney(amount);
+                      "% = " + Formatter::money(amount);
                 logger->log(game->getCurrentTurn(), player->getUsername(),
                             "PAJAK", detail);
             }
@@ -1123,17 +1108,17 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
         auto* luxuryTax = static_cast<LuxuryTaxTile*>(tile);
         int amount = luxuryTax->getFlatAmount();
         gui->showMessage("Kamu mendarat di Pajak Barang Mewah (PBM).");
-        gui->showMessage("Pajak sebesar " + formatMoney(amount) + " langsung dipotong.");
+        gui->showMessage("Pajak sebesar " + Formatter::money(amount) + " langsung dipotong.");
         int before = player->getBalance();
         bool paid = executePayment(player, nullptr, amount,
-                                   "Pajak Barang Mewah " + formatMoney(amount));
+                                   "Pajak Barang Mewah " + Formatter::money(amount));
         if (paid) {
             if (before >= amount) {
-                gui->showMessage("Uang kamu: " + formatMoney(before) + " -> " + formatMoney(player->getBalance()));
+                gui->showMessage("Uang kamu: " + Formatter::money(before) + " -> " + Formatter::money(player->getBalance()));
             }
             if (logger) {
                 logger->log(game->getCurrentTurn(), player->getUsername(),
-                            "PAJAK", "PBM " + formatMoney(amount));
+                            "PAJAK", "PBM " + Formatter::money(amount));
             }
         }
         return;
@@ -1163,7 +1148,7 @@ void GameEngine::handleTileLanding(Player* player, Tile* tile) {
     if (tile->getKind() == TileKind::GO) {
         auto* goTile = static_cast<GoTile*>(tile);
         gui->showMessage(player->getUsername() + " mendarat tepat di petak GO.");
-        gui->showMessage("Kamu menerima " + formatMoney(goTile->getSalary()) + ".");
+        gui->showMessage("Kamu menerima " + Formatter::money(goTile->getSalary()) + ".");
         return;
     }
 

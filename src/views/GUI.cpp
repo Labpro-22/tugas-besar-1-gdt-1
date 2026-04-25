@@ -2,9 +2,13 @@
 #include "views/viewElement/GameHUDView.hpp"
 #include "core/Game.hpp"
 
+#include <iostream>
+#include <sstream>
+#include <vector>
+
 GUI::GUI(float fps, Board &board) : menu(nullptr), board(new BoardView(board)),
                                     debuggingEntry(nullptr), dice(nullptr), chancePile(nullptr), communityChestPile(nullptr),
-                                    fps(fps), camManager(CameraManager()), exitRequested(false)
+                                    pendingCommand("NULL"), fps(fps), camManager(CameraManager()), exitRequested(false)
 {
     camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize() * 1.1f, 10.0f, 0}, {0, 0, 0}, 45.0f));
     View3DCamera *boardCam = camManager.getCurrentCamera();
@@ -215,12 +219,12 @@ void GUI::loadCardPiles(CardDeck<Card> &chancePile, CardDeck<Card> &comChestPile
     this->communityChestPile = new CardPileView(comChestPile, {cardPos.x * -1, cardPos.y, cardPos.z * -1}, cardDim * -1);
 }
 
-Command GUI::getCommand()
+std::string GUI::getCommand()
 {
-    if (!pendingCommand.isNull())
+    if (pendingCommand != "NULL")
     {
-        Command temp = pendingCommand;
-        pendingCommand = Command::Null();
+        std::string temp = pendingCommand;
+        pendingCommand = "NULL";
         return temp;
     }
 
@@ -244,14 +248,10 @@ Command GUI::getCommand()
                 tokens.push_back(item);
             }
 
-            if (tokens.empty())
-                return {"NULL", {}};
-
-            return {tokens[0],
-                    std::vector<std::string>(tokens.begin() + 1, tokens.end())};
+            return tokens.empty() ? "NULL" : raw;
         }
 
-        return {"NULL", {}};
+        return "NULL";
     }
 
     for (View2D *view : views)
@@ -279,7 +279,7 @@ Command GUI::getCommand()
         std::cout << std::endl;
 
         if (tokens.empty())
-            return {"NULL", {}};
+            return "NULL";
 
         // HANDLE NEW GAME
         if (tokens[0] == "NEW_GAME")
@@ -287,10 +287,10 @@ Command GUI::getCommand()
             auto popup = new LoadConfirmPopup("Masukkan path config:", "config/default");
 
             popup->setOnSubmit([this](const std::string &path)
-                               { this->pendingCommand = Command("NEW_GAME", {path}); });
+                               { this->pendingCommand = "NEW_GAME " + path; });
 
             loadPopup(popup);
-            return Command::Null();
+            return "NULL";
         }
 
         // HANDLE LOAD GAME
@@ -299,10 +299,10 @@ Command GUI::getCommand()
             auto popup = new LoadConfirmPopup("Masukkan save file:", "saves/save1");
 
             popup->setOnSubmit([this](const std::string &path)
-                               { this->pendingCommand = Command("LOAD_GAME", {path}); });
+                               { this->pendingCommand = "LOAD_GAME " + path; });
 
             loadPopup(popup);
-            return Command::Null();
+            return "NULL";
         }
 
         // HANDLE INTERNAL GUI
@@ -353,14 +353,14 @@ Command GUI::getCommand()
                 }
             }
 
-            return {"NULL", {}};
+            return "NULL";
         }
 
         // RETURN KE ENGINE
-        return {tokens[0], std::vector<std::string>(tokens.begin() + 1, tokens.end())};
+        return raw;
     }
 
-    return {"NULL", {}};
+    return "NULL";
 }
 
 void GUI::enableAll()

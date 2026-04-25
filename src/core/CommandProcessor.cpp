@@ -1,22 +1,7 @@
 #include "core/CommandProcessor.hpp"
+#include "utils/Formatter.hpp"
 
 namespace {
-std::string formatMoney(int amount) {
-    bool negative = amount < 0;
-    long long absAmount = negative ? -static_cast<long long>(amount) : amount;
-    std::string digits = std::to_string(absAmount);
-    std::string grouped;
-    int count = 0;
-    for (int i = static_cast<int>(digits.size()) - 1; i >= 0; --i) {
-        grouped.insert(grouped.begin(), digits[i]);
-        if (++count == 3 && i > 0) {
-            grouped.insert(grouped.begin(), '.');
-            count = 0;
-        }
-    }
-    return std::string(negative ? "-M" : "M") + grouped;
-}
-
 int buildingLevel(const StreetProperty* property) {
     return static_cast<int>(property->getBuildingState());
 }
@@ -280,7 +265,7 @@ CommandResult CommandProcessor::handleMortgage(Player* player, const std::string
                 gui->showMessage(std::to_string(i + 1) + ". " +
                                  street->getName() + " (" + street->getCode() + ") - " +
                                  buildingStateLabel(street) +
-                                 " -> Nilai jual bangunan: " + formatMoney(saleValue));
+                                 " -> Nilai jual bangunan: " + Formatter::money(saleValue));
             }
 
             std::string answer;
@@ -303,16 +288,16 @@ CommandResult CommandProcessor::handleMortgage(Player* player, const std::string
                 const int saleValue = street->sellBuildingValue();
                 street->clearBuildings();
                 player->addMoney(saleValue);
-                gui->showMessage("Bangunan " + street->getName() + " terjual. Kamu menerima " + formatMoney(saleValue) + ".");
+                gui->showMessage("Bangunan " + street->getName() + " terjual. Kamu menerima " + Formatter::money(saleValue) + ".");
                 if (engine->logger != nullptr) {
                     engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                                         "JUAL_BANGUNAN",
                                         "Jual bangunan di " + street->getName() + " (" +
-                                        street->getCode() + ") senilai " + formatMoney(saleValue));
+                                        street->getCode() + ") senilai " + Formatter::money(saleValue));
                 }
             }
 
-            gui->showMessage("Uang kamu sekarang: " + formatMoney(player->getBalance()));
+            gui->showMessage("Uang kamu sekarang: " + Formatter::money(player->getBalance()));
 
             while (true) {
                 answer = normalize(waitInput("Lanjut menggadaikan " + prop->getName() + "? (y/n):"));
@@ -334,13 +319,13 @@ CommandResult CommandProcessor::handleMortgage(Player* player, const std::string
     prop->setStatus(PropertyStatus::MORTGAGED);
     player->addMoney(value);
     gui->showMessage(prop->getName() + " berhasil digadaikan.");
-    gui->showMessage("Kamu menerima " + formatMoney(value) + " dari Bank.");
-    gui->showMessage("Uang kamu sekarang: " + formatMoney(player->getBalance()));
+    gui->showMessage("Kamu menerima " + Formatter::money(value) + " dari Bank.");
+    gui->showMessage("Uang kamu sekarang: " + Formatter::money(player->getBalance()));
     gui->showMessage("Catatan: Sewa tidak dapat dipungut dari properti yang digadaikan.");
     if (engine->logger != nullptr) {
         engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                             "GADAI",
-                            prop->getName() + " (" + prop->getCode() + ") senilai " + formatMoney(value));
+                            prop->getName() + " (" + prop->getCode() + ") senilai " + Formatter::money(value));
     }
     return CommandResult::CONTINUE;
 }
@@ -362,19 +347,19 @@ CommandResult CommandProcessor::handleRedeem(Player* player, const std::string& 
     int cost = prop->getPurchasePrice();
     if (!player->canAfford(cost)) {
         gui->showMessage("Uang kamu tidak cukup untuk menebus " + prop->getName() + ".");
-        gui->showMessage("Harga tebus: " + formatMoney(cost) +
-                         " | Uang kamu: " + formatMoney(player->getBalance()));
+        gui->showMessage("Harga tebus: " + Formatter::money(cost) +
+                         " | Uang kamu: " + Formatter::money(player->getBalance()));
         return CommandResult::INVALID;
     }
     player->deductMoney(cost);
     prop->setStatus(PropertyStatus::OWNED);
     gui->showMessage(prop->getName() + " berhasil ditebus!");
-    gui->showMessage("Kamu membayar " + formatMoney(cost) + " ke Bank.");
-    gui->showMessage("Uang kamu sekarang: " + formatMoney(player->getBalance()));
+    gui->showMessage("Kamu membayar " + Formatter::money(cost) + " ke Bank.");
+    gui->showMessage("Uang kamu sekarang: " + Formatter::money(player->getBalance()));
     if (engine->logger != nullptr) {
         engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                             "TEBUS",
-                            prop->getName() + " (" + prop->getCode() + ") seharga " + formatMoney(cost));
+                            prop->getName() + " (" + prop->getCode() + ") seharga " + Formatter::money(cost));
     }
     return CommandResult::CONTINUE;
 }
@@ -441,7 +426,7 @@ CommandResult CommandProcessor::handleBuild(Player* player, const std::string& c
 
         const int cost = sp->getHouseBuildCost();
         if (!player->canAfford(cost)) {
-            gui->showMessage("Uang kamu tidak cukup untuk membangun rumah. Biaya: " + formatMoney(cost));
+            gui->showMessage("Uang kamu tidak cukup untuk membangun rumah. Biaya: " + Formatter::money(cost));
             return CommandResult::INVALID;
         }
 
@@ -451,13 +436,13 @@ CommandResult CommandProcessor::handleBuild(Player* player, const std::string& c
         }
 
         player->deductMoney(cost);
-        gui->showMessage("Kamu membangun 1 rumah di " + code + ". Biaya: " + formatMoney(cost));
-        gui->showMessage("Uang tersisa: " + formatMoney(player->getBalance()));
+        gui->showMessage("Kamu membangun 1 rumah di " + code + ". Biaya: " + Formatter::money(cost));
+        gui->showMessage("Uang tersisa: " + Formatter::money(player->getBalance()));
         if (engine->logger != nullptr) {
             engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                                 "BANGUN",
                                 "Bangun rumah di " + sp->getName() + " (" + sp->getCode() +
-                                ") seharga " + formatMoney(cost));
+                                ") seharga " + Formatter::money(cost));
         }
         return CommandResult::CONTINUE;
     }
@@ -477,7 +462,7 @@ CommandResult CommandProcessor::handleBuild(Player* player, const std::string& c
 
     const int cost = sp->getHotelBuildCost();
     if (!player->canAfford(cost)) {
-        gui->showMessage("Uang kamu tidak cukup untuk upgrade ke Hotel. Biaya: " + formatMoney(cost));
+        gui->showMessage("Uang kamu tidak cukup untuk upgrade ke Hotel. Biaya: " + Formatter::money(cost));
         return CommandResult::INVALID;
     }
 
@@ -487,13 +472,13 @@ CommandResult CommandProcessor::handleBuild(Player* player, const std::string& c
     }
 
     player->deductMoney(cost);
-    gui->showMessage("Kamu upgrade " + code + " menjadi Hotel. Biaya: " + formatMoney(cost));
-    gui->showMessage("Uang tersisa: " + formatMoney(player->getBalance()));
+    gui->showMessage("Kamu upgrade " + code + " menjadi Hotel. Biaya: " + Formatter::money(cost));
+    gui->showMessage("Uang tersisa: " + Formatter::money(player->getBalance()));
     if (engine->logger != nullptr) {
         engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                             "BANGUN",
                             "Bangun hotel di " + sp->getName() + " (" + sp->getCode() +
-                            ") seharga " + formatMoney(cost));
+                            ") seharga " + Formatter::money(cost));
     }
     return CommandResult::CONTINUE;
 }
@@ -571,6 +556,12 @@ CommandResult CommandProcessor::handleFestival(Player* player, const std::string
         gui->showMessage("Tidak ada efek Festival yang menunggu pilihan properti.");
         return CommandResult::INVALID;
     }
+    if (!std::all_of(code.begin(), code.end(), [](unsigned char c) {
+            return !std::isalpha(c) || std::isupper(c);
+        })) {
+        gui->showMessage("Kode properti untuk FESTIVAL harus ditulis kapital. Contoh: FESTIVAL BGR.");
+        return CommandResult::INVALID;
+    }
     Property* target = nullptr;
     for (Property* p : player->getOwnedProperties()) {
         if (p->getCode() == code) { target = p; break; }
@@ -594,10 +585,10 @@ CommandResult CommandProcessor::handleFestival(Player* player, const std::string
     if (engine->logger != nullptr) {
         std::string logDetail = target->getName() + " (" + target->getCode() + "): ";
         if (!wasActive) {
-            logDetail += "sewa " + formatMoney(rentBefore) + " -> " + formatMoney(rentAfter) + ", durasi " + std::to_string(dur) + " giliran";
+            logDetail += "sewa " + Formatter::money(rentBefore) + " -> " + Formatter::money(rentAfter) + ", durasi " + std::to_string(dur) + " giliran";
         } else if (multAfter > multBefore) {
-            logDetail += "Efek diperkuat! sewa " + formatMoney(rentBefore) +
-                         " -> " + formatMoney(rentAfter) +
+            logDetail += "Efek diperkuat! sewa " + Formatter::money(rentBefore) +
+                         " -> " + Formatter::money(rentAfter) +
                          ", durasi di-reset " + std::to_string(dur) + " giliran";
         } else {
             logDetail += "Efek sudah maksimum (x" + std::to_string(multAfter) +
@@ -610,7 +601,7 @@ CommandResult CommandProcessor::handleFestival(Player* player, const std::string
         gui->showMessage("Sewa properti ini berlipat selama " + std::to_string(dur) + " giliran.");
     } else if (multAfter > multBefore) {
         gui->showMessage("Efek Festival di " + target->getName() + " diperkuat.");
-        gui->showMessage("Sewa sekarang " + formatMoney(rentAfter) +
+        gui->showMessage("Sewa sekarang " + Formatter::money(rentAfter) +
                          " dan durasi di-reset menjadi " + std::to_string(dur) + " giliran.");
     } else {
         gui->showMessage("Efek Festival di " + target->getName() +
@@ -773,7 +764,7 @@ bool CommandProcessor::applyMoveCard(Player* player, MoveCard* card) {
     if (board == nullptr) return false;
     if (board->passesGo(player->getPosition(), steps)) {
         player->addMoney(game->getGoSalary());
-        gui->showMessage("Melewati GO! Terima " + formatMoney(game->getGoSalary()) + ".");
+        gui->showMessage("Melewati GO! Terima " + Formatter::money(game->getGoSalary()) + ".");
     }
     int newPos = board->getNextIndex(player->getPosition(), steps);
     player->setPosition(newPos);
@@ -798,12 +789,33 @@ bool CommandProcessor::applyTeleportCard(Player* player, TeleportCard* /*card*/)
         std::string code = waitInput("Kode petak tujuan:");
         std::transform(code.begin(), code.end(), code.begin(),
                        [](unsigned char c){ return std::toupper(c); });
-        Tile* target = nullptr;
-        try {
-            target = board->getTile(code);
-        } catch (...) {
+        std::vector<Tile*> matches;
+        for (Tile* tile : board->getAllTiles()) {
+            if (tile != nullptr && tile->getCode() == code) {
+                matches.push_back(tile);
+            }
+        }
+        if (matches.empty()) {
             gui->showMessage("Kode petak tidak ditemukan: " + code + ". Coba lagi.");
             continue;
+        }
+        Tile* target = matches.front();
+        if (matches.size() > 1) {
+            gui->showMessage("Ada lebih dari satu petak dengan kode " + code + ". Pilih tujuan:");
+            for (int i = 0; i < static_cast<int>(matches.size()); ++i) {
+                gui->showMessage("[" + std::to_string(i + 1) + "] Petak " +
+                                 std::to_string(matches[i]->getIndex()) + " - " +
+                                 matches[i]->getName() + " (" + matches[i]->getCode() + ")");
+            }
+            int choice = -1;
+            while (choice < 0 || choice >= static_cast<int>(matches.size())) {
+                std::string in = waitInput("Pilih nomor petak:");
+                try { choice = std::stoi(in) - 1; } catch (...) { choice = -1; }
+                if (choice < 0 || choice >= static_cast<int>(matches.size())) {
+                    gui->showMessage("Nomor petak tidak valid.");
+                }
+            }
+            target = matches[choice];
         }
         if (board->passesGo(player->getPosition(), 0) ||
             target->getIndex() < player->getPosition()) {
@@ -898,13 +910,20 @@ bool CommandProcessor::applyLassoCard(Player* player, LassoCard* /*card*/) {
 bool CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*card*/) {
     // Kumpulkan semua properti lawan yang punya bangunan
     std::vector<std::pair<Player*, Property*>> targets;
-    for (Player* other : game->getActivePlayers()) {
-        if (other == player) continue;
-        for (Property* prop : other->getOwnedProperties()) {
-            auto* sp = (prop != nullptr && prop->isStreet())
-                ? static_cast<StreetProperty*>(prop) : nullptr;
-            if (sp != nullptr && sp->getBuildingState() != BuildingState::NONE) {
-                targets.push_back({other, prop});
+    Board* board = game->getBoard();
+    if (board != nullptr) {
+        for (Tile* tile : board->getAllTiles()) {
+            if (tile == nullptr || tile->getCategory() != TileCategory::PROPERTY) continue;
+            auto* propertyTile = static_cast<PropertyTile*>(tile);
+            Property* prop = propertyTile->getProperty();
+            if (prop == nullptr || !prop->isStreet() || prop->isMortgaged()) continue;
+
+            Player* owner = prop->getOwner();
+            if (owner == nullptr || owner == player || owner->getStatus() == PlayerStatus::BANKRUPT) continue;
+
+            auto* sp = static_cast<StreetProperty*>(prop);
+            if (sp->getBuildingState() != BuildingState::NONE) {
+                targets.push_back({owner, prop});
             }
         }
     }

@@ -5,22 +5,6 @@
 #include "models/Property/UtilityProperty.hpp"
 #include "models/CardAndDeck/SkillCard.hpp"
 
-namespace {
-int requiredStreetCount(const std::string& colorGroup) {
-    if (colorGroup == "COKLAT" || colorGroup == "BIRU_TUA") {
-        return 2;
-    }
-
-    if (colorGroup == "BIRU_MUDA" || colorGroup == "MERAH_MUDA" ||
-        colorGroup == "ORANGE" || colorGroup == "MERAH" ||
-        colorGroup == "KUNING" || colorGroup == "HIJAU") {
-        return 3;
-    }
-
-    return 0;
-}
-}
-
 Player::Player(const std::string &username, int initialBalance)
     : username(username),
       balance(initialBalance),
@@ -125,7 +109,7 @@ int Player::countOwnedUtilities() const {
 }
 
 bool Player::ownsFullColorGroup(const std::string& colorGroup) const {
-    const int required = requiredStreetCount(colorGroup);
+    const int required = StreetProperty::requiredStreetCount(colorGroup);
     if (required <= 0) {
         return false;
     }

@@ -5,6 +5,7 @@
 #include "models/Property/StreetProperty.hpp"
 #include "models/Property/RailroadProperty.hpp"
 #include "models/Property/UtilityProperty.hpp"
+#include "utils/Formatter.hpp"
 
 #include <iostream>
 #include <string>
@@ -33,22 +34,6 @@ enum class MessageTone {
     ERROR,
     ACTION
 };
-
-std::string formatMoney(int amount) {
-    std::string digits = std::to_string(amount);
-    std::string grouped;
-    int count = 0;
-    for (auto it = digits.rbegin(); it != digits.rend(); ++it) {
-        if (count == 3) {
-            grouped.push_back('.');
-            count = 0;
-        }
-        grouped.push_back(*it);
-        ++count;
-    }
-    std::reverse(grouped.begin(), grouped.end());
-    return "M" + grouped;
-}
 
 std::string propertyStatusLabel(const Property& property) {
     std::string label;
@@ -525,6 +510,22 @@ std::vector<std::string> CLIGUI::buildCenterPanel(const Game& game) {
     const int BLOCK_W = 40;
     const std::string titleBar = "====================================";
     const std::string divider = "------------------------------------";
+    std::string playerLine1;
+    std::string playerLine2;
+    const auto& players = game.getPlayers();
+    for (int i = 0; i < static_cast<int>(players.size()); ++i) {
+        if (players[i] == nullptr) continue;
+        std::string token = "(" + std::to_string(i + 1) + ") " + players[i]->getUsername();
+        if (i < 2) {
+            if (!playerLine1.empty()) playerLine1 += "   ";
+            playerLine1 += token;
+        } else {
+            if (!playerLine2.empty()) playerLine2 += "   ";
+            playerLine2 += token;
+        }
+    }
+    if (playerLine1.empty()) playerLine1 = "-";
+    if (playerLine2.empty()) playerLine2 = " ";
 
     std::vector<std::string> lines = {
         std::string(CENTER_W, ' '),
@@ -534,8 +535,9 @@ std::vector<std::string> CLIGUI::buildCenterPanel(const Game& game) {
         centredBlockLine(titleBar, BLOCK_W, CENTER_W),
         centreLine("TURN " + std::to_string(game.getCurrentTurn()) + " / "
                    + std::to_string(game.getMaxTurn()), CENTER_W),
-        std::string(CENTER_W, ' '),
+        centreLine("URUTAN BIDAK: " + playerLine1, CENTER_W),
 
+        centreLine(playerLine2, CENTER_W),
         centredBlockLine(divider, BLOCK_W, CENTER_W),
         centredBlockLine("LEGENDA KEPEMILIKAN & STATUS", BLOCK_W, CENTER_W),
         centredBlockLine("P1-P4 : Properti milik Pemain 1-4", BLOCK_W, CENTER_W),
@@ -543,7 +545,6 @@ std::vector<std::string> CLIGUI::buildCenterPanel(const Game& game) {
         centredBlockLine("^     : Rumah Level 1", BLOCK_W, CENTER_W),
         centredBlockLine("^^    : Rumah Level 2", BLOCK_W, CENTER_W),
         centredBlockLine("^^^   : Rumah Level 3", BLOCK_W, CENTER_W),
-
         centredBlockLine("*     : Hotel (Maksimal)", BLOCK_W, CENTER_W),
         centredBlockLine("(1)-(4): Bidak (IN=Tahanan, V=Mampir)", BLOCK_W, CENTER_W),
         centredBlockLine(divider, BLOCK_W, CENTER_W),
@@ -555,10 +556,6 @@ std::vector<std::string> CLIGUI::buildCenterPanel(const Game& game) {
         centredBlockLine("[PK]=Pink      [HJ]=Hijau", BLOCK_W, CENTER_W),
         centredBlockLine("[OR]=Orange    [BT]=Biru Tua", BLOCK_W, CENTER_W),
         centredBlockLine("[DF]=Aksi      [AB]=Utilitas", BLOCK_W, CENTER_W),
-
-        std::string(CENTER_W, ' '),
-        std::string(CENTER_W, ' '),
-        std::string(CENTER_W, ' '),
 
         std::string(CENTER_W, ' '),
         std::string(CENTER_W, ' '),
@@ -725,7 +722,7 @@ void CLIGUI::renderPlayer(const Player& player) {
     std::cout << "\n"
               << colorize("Giliran " + player.getUsername(), UI_WHITE, true) << "\n"
               << colorize(std::string(24, '-'), UI_WHITE, false, true) << "\n"
-              << "  Saldo    : " << colorize(formatMoney(player.getBalance()), UI_GREEN, true) << "\n"
+              << "  Saldo    : " << colorize(Formatter::money(player.getBalance()), UI_GREEN, true) << "\n"
               << "  Posisi   : petak " << player.getPosition() << "\n"
               << "  Status   : " << colorize(playerStatusLabel(player.getStatus()), statusColor(player.getStatus()), true) << "\n"
               << "  Properti : " << player.getOwnedProperties().size() << "\n"
@@ -737,8 +734,8 @@ void CLIGUI::renderProperty(const Property& property) {
                         property.getName() + " (" + property.getCode() + ")";
 
     std::vector<std::string> mainLines = {
-        kvText("Harga Beli", formatMoney(property.getPurchasePrice())),
-        kvText("Nilai Gadai", formatMoney(property.getMortgageValue()))
+        kvText("Harga Beli", Formatter::money(property.getPurchasePrice())),
+        kvText("Nilai Gadai", Formatter::money(property.getMortgageValue()))
     };
     std::vector<std::string> detailLines;
     std::vector<std::string> buildLines;
@@ -756,16 +753,16 @@ void CLIGUI::renderProperty(const Property& property) {
                 "Sewa (hotel)"
             };
             for (size_t i = 0; i < rents.size() && i < rentLabels.size(); ++i) {
-                detailLines.push_back(kvText(rentLabels[i], formatMoney(rents[i])));
+                detailLines.push_back(kvText(rentLabels[i], Formatter::money(rents[i])));
             }
         }
-        buildLines.push_back(kvText("Harga Rumah", formatMoney(street->getHouseBuildCost())));
-        buildLines.push_back(kvText("Harga Hotel", formatMoney(street->getHotelBuildCost())));
+        buildLines.push_back(kvText("Harga Rumah", Formatter::money(street->getHouseBuildCost())));
+        buildLines.push_back(kvText("Harga Hotel", Formatter::money(street->getHotelBuildCost())));
     } else if (property.isRailroad()) {
         auto* railroad = static_cast<const RailroadProperty*>(&property);
         for (const auto& [count, rent] : railroad->getRentTable()) {
             detailLines.push_back(kvText("Sewa (" + std::to_string(count) + " stasiun)",
-                                         formatMoney(rent)));
+                                         Formatter::money(rent)));
         }
     } else if (property.isUtility()) {
         auto* utility = static_cast<const UtilityProperty*>(&property);
@@ -848,7 +845,7 @@ void CLIGUI::renderOwnedProperties(const Player& player) {
             std::string building = buildingLabel(*property);
             line << "  " << std::left << std::setw(10) << building;
 
-            line << " " << std::left << std::setw(8) << formatMoney(property->getPurchasePrice());
+            line << " " << std::left << std::setw(8) << Formatter::money(property->getPurchasePrice());
             line << " " << shortStatusLabel(*property);
 
             std::cout << line.str() << "\n";
@@ -860,7 +857,7 @@ void CLIGUI::renderOwnedProperties(const Player& player) {
     }
 
     std::cout << "\nTotal kekayaan properti: "
-              << colorize(formatMoney(player.calculatePropertyAssetValue() + player.calculateBuildingAssetValue()),
+              << colorize(Formatter::money(player.calculatePropertyAssetValue() + player.calculateBuildingAssetValue()),
                           UI_GREEN, true)
               << "\n";
 }
@@ -892,7 +889,7 @@ void CLIGUI::renderSkillHand(const std::vector<SkillCard*>& hand) {
 void CLIGUI::renderAuction(const Property& property, int currentBid, const Player* highBidder) {
     std::cout << "\n" << colorize("LELANG", UI_ORANGE, true) << "  "
               << property.getName()
-              << " | bid saat ini: " << colorize(formatMoney(currentBid), UI_GREEN, true);
+              << " | bid saat ini: " << colorize(Formatter::money(currentBid), UI_GREEN, true);
     if (highBidder != nullptr)
         std::cout << " (oleh " << colorize(highBidder->getUsername(), UI_WHITE, true) << ")";
     std::cout << "\n";
@@ -911,7 +908,7 @@ void CLIGUI::renderWinner(const Player& winner) {
     }
     std::cout << colorize(winner.getUsername(), UI_GREEN, true)
               << " dengan total kekayaan "
-              << colorize(formatMoney(winner.calculateTotalWealth()), UI_GREEN, true) << "\n";
+              << colorize(Formatter::money(winner.calculateTotalWealth()), UI_GREEN, true) << "\n";
 }
 
 void CLIGUI::renderMovement(const std::string& playerName, int steps, const std::string& landedTileName) {

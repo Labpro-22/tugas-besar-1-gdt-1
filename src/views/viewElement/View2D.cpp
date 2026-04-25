@@ -43,9 +43,16 @@ void View2D::setBrightness(float brightness) { this->brightness = brightness; }
 void View2D::setOpacity(float opacity) { this->opacity = opacity; }
 void View2D::setVisible(bool visible) { this->visible = visible; }
 void View2D::setRender(function<void()> renderFunc) { this->renderFunc = renderFunc; }
+void View2D::close() { closeView = true; }
 
 void View2D::addAnimation(string animKey, View2DAnimation *anim) { animations[animKey] = anim; }
-View2DAnimation *View2D::getAnimation(string animKey) const { return animations.at(animKey); }
+View2DAnimation *View2D::getAnimation(string animKey) const { 
+    if (animations.find(animKey) != animations.end()) {
+        return animations.at(animKey); 
+    } else {
+        return nullptr;
+    }
+}
 void View2D::animationCheck()
 {
     vector<string> doneAnimations;
@@ -67,9 +74,12 @@ void View2D::animationCheck()
 
 string View2D::catchCommand() { return "NULL"; }
 void View2D::render()
-{
-    animationCheck();
-    renderFunc();
+{   
+    if (visible) {
+        animationCheck();
+        renderFunc();
+    }
+    
 }
 
 void View2D::addFont(string fontKey, string fontFilename)

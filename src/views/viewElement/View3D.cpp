@@ -15,7 +15,10 @@ View3D::View3D(const Vector3& pos, const Model& model, const Color& color) :
     }
 
 View3D::~View3D() {
-    // UnloadModel(model);
+    for (auto anim : animations)
+    {
+        delete anim.second;
+    }
 }
 
 Model View3D::getModel() const {
@@ -30,6 +33,17 @@ const Vector3 View3D::getPos() const {
     return pos;
 }
 
+const BoundingBox View3D::getHitbox() const {
+    BoundingBox baseBB = GetModelBoundingBox(model);
+    return {pos + baseBB.min, pos + baseBB.max};
+}
+
+const bool View3D::isHovered(Camera3D& cam) const {
+    Ray ray = GetScreenToWorldRay(GetMousePosition(), cam);
+    RayCollision collision = GetRayCollisionBox(ray, getHitbox());
+    return collision.hit;
+}
+
 void View3D::movePosition(const Vector3& pos) {
     this->pos = pos;
 }
@@ -38,6 +52,9 @@ void View3D::movePositionDelta(const Vector3& deltaPos) {
     this->pos += deltaPos;
 }
 
+void View3D::setVisible(bool visible) {
+    this->visible = visible;
+}
 
 void View3D::setPosX(float x) {
     pos.x = x;
@@ -51,15 +68,23 @@ void View3D::setPosZ(float z) {
 
 void View3D::setTransform(const Matrix& m) {
     transformation = m;
+    model.transform = transformation;
 }
 
 
 void View3D::transform(const Matrix& m) {
     transformation = m*transformation;
+    model.transform = transformation;
 }
 
 void View3D::addAnimation(string animKey, View3DAnimation* anim) { animations[animKey] = anim; }
-View3DAnimation* View3D::getAnimation(string animKey) const { return animations.at(animKey); }
+View3DAnimation* View3D::getAnimation(string animKey) const {
+    if (animations.find(animKey) != animations.end()) {
+        return animations.at(animKey); 
+    } else {
+        return nullptr;
+    }
+}
 
 void View3D::animationCheck() {
     vector<string> doneAnimations;
@@ -79,7 +104,9 @@ void View3D::animationCheck() {
 void View3D::render() {
     animationCheck();
     model.transform = transformation;
-    if (visible) DrawModel(model, pos, 1, color);
+    if (visible) {
+        DrawModel(model, pos, 1, color);
+    }
 }
 
 Mesh CopyMesh(Mesh original) {

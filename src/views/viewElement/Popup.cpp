@@ -137,7 +137,7 @@ std::string InputPopup::catchCommand()
 
     if (cmd == "SUBMIT_INPUT")
     {
-        return "INPUT " + inputEntry.getEntryText();
+        return inputEntry.getEntryText();
     }
 
     return "NULL";

@@ -5,50 +5,56 @@
 #include <sstream>
 #include <iostream>
 
-namespace {
-
-std::vector<std::string> tokenize(const std::string& raw)
+namespace
 {
-    std::vector<std::string> tokens;
-    std::stringstream ss(raw);
-    std::string word;
-    while (std::getline(ss, word, ' '))
-        if (!word.empty())
-            tokens.push_back(word);
-    return tokens;
-}
 
-std::string join(const std::vector<std::string>& tokens, size_t from = 0)
-{
-    std::string result;
-    for (size_t i = from; i < tokens.size(); ++i)
+    std::vector<std::string> tokenize(const std::string &raw)
     {
-        if (i > from) result += ' ';
-        result += tokens[i];
+        std::vector<std::string> tokens;
+        std::stringstream ss(raw);
+        std::string word;
+        while (std::getline(ss, word, ' '))
+            if (!word.empty())
+                tokens.push_back(word);
+        return tokens;
     }
-    return result;
-}
 
-Color playerColor(size_t index)
-{
-    switch (index)
+    std::string join(const std::vector<std::string> &tokens, size_t from = 0)
     {
-        case 0:  return RED;
-        case 1:  return BLUE;
-        case 2:  return GREEN;
-        case 3:  return YELLOW;
-        default: return LIGHTGRAY;
+        std::string result;
+        for (size_t i = from; i < tokens.size(); ++i)
+        {
+            if (i > from)
+                result += ' ';
+            result += tokens[i];
+        }
+        return result;
     }
-}
+
+    Color playerColor(size_t index)
+    {
+        switch (index)
+        {
+        case 0:
+            return RED;
+        case 1:
+            return BLUE;
+        case 2:
+            return GREEN;
+        case 3:
+            return YELLOW;
+        default:
+            return LIGHTGRAY;
+        }
+    }
 
 } // namespace
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Constructor
 // ═══════════════════════════════════════════════════════════════════════════
 
-GUI::GUI(float fps, Board& board)
+GUI::GUI(float fps, Board &board)
     : menu(nullptr),
       board(new BoardView(board)),
       debuggingEntry(nullptr),
@@ -64,25 +70,21 @@ GUI::GUI(float fps, Board& board)
 
     // Kamera utama — berputar mengelilingi board
     camManager.addCamera("BOARD_CAM",
-        View3DCamera({boardSize * 1.1f, 10.0f, 0.0f}, {0, 0, 0}, 45.0f));
+                         View3DCamera({boardSize * 1.1f, 10.0f, 0.0f}, {0, 0, 0}, 45.0f));
 
-    View3DCamera* boardCam = camManager.getCurrentCamera();
+    View3DCamera *boardCam = camManager.getCurrentCamera();
     boardCam->addMovement("ROTATE_INDEFINITE",
-        new CameraMovement(*boardCam, 120, true,
-            [boardCam, this]() {
-                boardCam->rotateAroundTarget(27.0f * (1.0f / this->fps), {0, 1, 0});
-            },
-            []() {}));
+                          new CameraMovement(*boardCam, 120, true, [boardCam, this]()
+                                             { boardCam->rotateAroundTarget(27.0f * (1.0f / this->fps), {0, 1, 0}); }, []() {}));
 
     // Kamera top-down untuk overview
     camManager.addCamera("TOP_VIEW",
-        View3DCamera({-1.0f, boardSize * 1.25f, 0.0f}, {0, 0, 0}, 45.0f));
+                         View3DCamera({-1.0f, boardSize * 1.25f, 0.0f}, {0, 0, 0}, 45.0f));
 
     // Kamera aksi untuk giliran pemain
     camManager.addCamera("ACTION_CAM",
-        View3DCamera({-boardSize * 0.8f, boardSize * 0.6f, 0.0f}, {0, 0, 0}, 45.0f));
+                         View3DCamera({-boardSize * 0.8f, boardSize * 0.6f, 0.0f}, {0, 0, 0}, 45.0f));
 }
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Lifecycle
@@ -95,6 +97,9 @@ bool GUI::shouldExit() const
 
 void GUI::update()
 {
+    if (WindowShouldClose())
+        exitRequested = true;
+
     camManager.updateCamMap();
 
     updateDice();
@@ -109,20 +114,23 @@ void GUI::display()
     ClearBackground(RAYWHITE);
 
     BeginMode3D(camManager.mount());
-        DrawGrid(40, 1);
-        board->render();
-        for (PlayerView* p : players) p->render();
-        if (chancePile)         chancePile->render();
-        if (communityChestPile) communityChestPile->render();
-        if (dice)               dice->render();
+    DrawGrid(40, 1);
+    board->render();
+    for (PlayerView *p : players)
+        p->render();
+    if (chancePile)
+        chancePile->render();
+    if (communityChestPile)
+        communityChestPile->render();
+    if (dice)
+        dice->render();
     EndMode3D();
 
-    for (View2D* view : views)
+    for (View2D *view : views)
         view->render();
 
     EndDrawing();
 }
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Navigasi view
@@ -155,26 +163,24 @@ void GUI::enterGame()
         menu->getAnimation("START_GAME")->start();
 }
 
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Popup / prompt
 // ═══════════════════════════════════════════════════════════════════════════
 
-void GUI::showMessage(const std::string& message)
+void GUI::showMessage(const std::string &message)
 {
     loadPopup(new MessagePopup(message));
 }
 
-void GUI::showConfirm(const std::string& /*question*/)
+void GUI::showConfirm(const std::string & /*question*/)
 {
     // TODO: popup konfirmasi ya/tidak
 }
 
-void GUI::showInputPrompt(const std::string& prompt)
+void GUI::showInputPrompt(const std::string &prompt)
 {
     loadPopup(new InputPopup(prompt));
 }
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Input — getCommand
@@ -192,59 +198,58 @@ std::string GUI::getCommand()
     return pollViews();
 }
 
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Render — semua stub; diisi saat fitur GUI siap
 // ═══════════════════════════════════════════════════════════════════════════
 
-void GUI::renderBoard(const Game& game)
+void GUI::renderBoard(const Game &game)
 {
     // Board 3D sudah di-render lewat BoardView di display().
     // Fungsi ini dipanggil engine untuk sinkronisasi state tile jika perlu.
     if (board == nullptr)
     {
-        Board* b = game.getBoard();
-        if (b != nullptr) board = new BoardView(*b);
+        Board *b = game.getBoard();
+        if (b != nullptr)
+            board = new BoardView(*b);
     }
 }
 
-void GUI::renderPlayer(const Player& /*player*/)           { /* TODO */ }
-void GUI::renderProperty(const Property& /*property*/)     { /* TODO */ }
-void GUI::renderOwnedProperties(const Player& /*player*/)  { /* TODO */ }
-void GUI::renderDice(int /*die1*/, int /*die2*/)           { /* TODO: tampilkan hasil dadu di HUD */ }
-void GUI::renderSkillHand(const std::vector<SkillCard*>& /*hand*/) { /* TODO */ }
-void GUI::renderBankruptcy(const Player& /*player*/)       { /* TODO */ }
-void GUI::renderWinner(const Player& /*winner*/)           { /* TODO */ }
+void GUI::renderPlayer(const Player & /*player*/) { /* TODO */ }
+void GUI::renderProperty(const Property & /*property*/) { /* TODO */ }
+void GUI::renderOwnedProperties(const Player & /*player*/) { /* TODO */ }
+void GUI::renderDice(int /*die1*/, int /*die2*/) { /* TODO: tampilkan hasil dadu di HUD */ }
+void GUI::renderSkillHand(const std::vector<SkillCard *> & /*hand*/) { /* TODO */ }
+void GUI::renderBankruptcy(const Player & /*player*/) { /* TODO */ }
+void GUI::renderWinner(const Player & /*winner*/) { /* TODO */ }
 
-void GUI::renderLog(const std::vector<LogEntry>& /*entries*/, const std::string& /*title*/)
+void GUI::renderLog(const std::vector<LogEntry> & /*entries*/, const std::string & /*title*/)
 {
     // TODO: tampilkan log di panel HUD
 }
 
-void GUI::renderAuction(const Property& /*property*/, int /*currentBid*/, const Player* /*highBidder*/)
+void GUI::renderAuction(const Property & /*property*/, int /*currentBid*/, const Player * /*highBidder*/)
 {
     // TODO: tampilkan popup lelang
 }
 
-void GUI::renderMovement(const std::string& /*playerName*/, int /*steps*/, const std::string& /*landedTileName*/)
+void GUI::renderMovement(const std::string & /*playerName*/, int /*steps*/, const std::string & /*landedTileName*/)
 {
     // TODO: animasi gerak pemain sudah ditangani PlayerView::moveSpaces();
     //       fungsi ini bisa dipakai untuk overlay teks atau kamera tracking
 }
 
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Setup khusus raylib
 // ═══════════════════════════════════════════════════════════════════════════
 
-void GUI::loadPlayer(Player& player)
+void GUI::loadPlayer(Player &player)
 {
     Color color = playerColor(playerProfiles.size());
 
-    PlayerView* view = new PlayerView(player, board, color, &camManager);
+    PlayerView *view = new PlayerView(player, board, color, &camManager);
     players.push_back(view);
 
-    PlayerProfileView* profile = new PlayerProfileView();
+    PlayerProfileView *profile = new PlayerProfileView();
     profile->setPlayer(&player);
     profile->setColor(color);
     profile->setHitboxDim({250, 80});
@@ -254,28 +259,26 @@ void GUI::loadPlayer(Player& player)
     views.insert(profile);
 }
 
-void GUI::loadDice(PlayerView* player)
+void GUI::loadDice(PlayerView *player)
 {
     dice = new DiceView(player, &camManager.getCamera("ACTION_CAM"));
     views.insert(dice->getThrowButton());
 }
 
-void GUI::loadCardPiles(CardDeck<Card>& chanceDeck, CardDeck<Card>& comChestDeck)
+void GUI::loadCardPiles(CardDeck<Card> &chanceDeck, CardDeck<Card> &comChestDeck)
 {
     const float boardSize = board->getBoardSize();
     const Vector2 cardDim = (Vector2){7.6f, 4.275f} * (boardSize / 30.0f);
     const Vector3 cardPos = {
         -cardDim.x / 2.0f - boardSize * 0.015f,
         0.015f,
-        -cardDim.x / 2.0f - boardSize * 0.015f
-    };
+        -cardDim.x / 2.0f - boardSize * 0.015f};
 
-    chancePile         = new CardPileView(chanceDeck,   cardPos, cardDim);
+    chancePile = new CardPileView(chanceDeck, cardPos, cardDim);
     communityChestPile = new CardPileView(comChestDeck,
-        {-cardPos.x, cardPos.y, -cardPos.z},
-        {-cardDim.x, -cardDim.y});
+                                          {-cardPos.x, cardPos.y, -cardPos.z},
+                                          {-cardDim.x, -cardDim.y});
 }
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Testing
@@ -285,16 +288,14 @@ void GUI::loadDebuggingEntry()
 {
     debuggingEntry = new Entry(
         {800, 50}, "Enter Command", 30, "Orbitron",
-        [this]() {
+        [this]()
+        {
             debuggingEntry->setGameCommand(debuggingEntry->getEntryText());
         });
-    debuggingEntry->movePosition({
-        debuggingEntry->getRenderWidth(),
-        debuggingEntry->getRenderHeight() / 2.0f
-    });
+    debuggingEntry->movePosition({debuggingEntry->getRenderWidth(),
+                                  debuggingEntry->getRenderHeight() / 2.0f});
     views.insert(debuggingEntry);
 }
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Private — helpers internal
@@ -302,14 +303,15 @@ void GUI::loadDebuggingEntry()
 
 // ── View management ────────────────────────────────────────────────────────
 
-void GUI::unloadView(View2D* v)
+void GUI::unloadView(View2D *v)
 {
-    if (v == nullptr) return;
+    if (v == nullptr)
+        return;
     views.erase(v);
     delete v;
 }
 
-void GUI::loadPopup(Popup* popup)
+void GUI::loadPopup(Popup *popup)
 {
     disableAll();
     popupStack.push(popup);
@@ -318,18 +320,21 @@ void GUI::loadPopup(Popup* popup)
 
 void GUI::enableAll()
 {
-    for (View2D* v : views) v->enable();
+    for (View2D *v : views)
+        v->enable();
 }
 
 void GUI::disableAll()
 {
-    for (View2D* v : views)
-        if (v != nullptr) v->disable();
+    for (View2D *v : views)
+        if (v != nullptr)
+            v->disable();
 }
 
 void GUI::clearViews()
 {
-    for (View2D* v : views) delete v;
+    for (View2D *v : views)
+        delete v;
     views.clear();
 }
 
@@ -344,8 +349,10 @@ void GUI::clearPopups()
 
 void GUI::clearPlayers()
 {
-    for (PlayerView* p      : players)        delete p;
-    for (PlayerProfileView* p : playerProfiles) delete p;
+    for (PlayerView *p : players)
+        delete p;
+    for (PlayerProfileView *p : playerProfiles)
+        delete p;
     players.clear();
     playerProfiles.clear();
 }
@@ -354,7 +361,8 @@ void GUI::clearPlayers()
 
 void GUI::updateDice()
 {
-    if (dice == nullptr) return;
+    if (dice == nullptr)
+        return;
     dice->update();
     if (dice->isDone())
     {
@@ -365,17 +373,19 @@ void GUI::updateDice()
 
 void GUI::updateViews()
 {
-    std::set<View2D*> closedViews;
-    for (View2D* v : views)
+    std::set<View2D *> closedViews;
+    for (View2D *v : views)
     {
-        if (v->closed()) closedViews.insert(v);
-        else             v->interactionCheck();
+        if (v->closed())
+            closedViews.insert(v);
+        else
+            v->interactionCheck();
     }
 
     if (menu != nullptr && menu->closed())
         menu = nullptr;
 
-    for (View2D* v : closedViews)
+    for (View2D *v : closedViews)
     {
         views.erase(v);
         delete v;
@@ -387,8 +397,10 @@ void GUI::updatePopupStack()
     while (!popupStack.empty() && popupStack.top()->closed())
     {
         popupStack.pop();
-        if (popupStack.empty()) enableAll();
-        else                    popupStack.top()->enable();
+        if (popupStack.empty())
+            enableAll();
+        else
+            popupStack.top()->enable();
     }
 }
 
@@ -399,9 +411,9 @@ void GUI::updatePlayerProfilesLayout()
     const float w = 250.0f, h = 80.0f, margin = 20.0f;
 
     const Vector2 corners[4] = {
-        {w / 2.0f + margin,          h / 2.0f + margin},
+        {w / 2.0f + margin, h / 2.0f + margin},
         {screenW - w / 2.0f - margin, h / 2.0f + margin},
-        {w / 2.0f + margin,          screenH - h / 2.0f - margin},
+        {w / 2.0f + margin, screenH - h / 2.0f - margin},
         {screenW - w / 2.0f - margin, screenH - h / 2.0f - margin},
     };
 
@@ -426,37 +438,41 @@ std::string GUI::consumePendingCommand()
 std::string GUI::pollPopup()
 {
     std::string raw = popupStack.top()->catchCommand();
-    if (raw == "NULL") return "NULL";
+    if (raw == "NULL")
+        return "NULL";
 
-    Popup* p = popupStack.top();
+    Popup *p = popupStack.top();
     views.erase(p);
     popupStack.pop();
     delete p;
 
-    if (popupStack.empty()) enableAll();
-    else                    popupStack.top()->enable();
+    if (popupStack.empty())
+        enableAll();
+    else
+        popupStack.top()->enable();
 
     return raw;
 }
 
 std::string GUI::pollViews()
 {
-    for (View2D* view : views)
+    for (View2D *view : views)
     {
         std::string raw = view->catchCommand();
-        if (raw == "NULL") continue;
+        if (raw == "NULL")
+            continue;
 
         auto tokens = tokenize(raw);
-        if (tokens.empty()) continue;
+        if (tokens.empty())
+            continue;
 
-        const std::string& cmd = tokens[0];
+        const std::string &cmd = tokens[0];
 
         if (cmd == "NEW_GAME")
         {
             auto popup = new LoadConfirmPopup("Masukkan path config:", "config/default");
-            popup->setOnSubmit([this](const std::string& path) {
-                pendingCommand = "NEW_GAME " + path;
-            });
+            popup->setOnSubmit([this](const std::string &path)
+                               { pendingCommand = "NEW_GAME " + path; });
             loadPopup(popup);
             return "NULL";
         }
@@ -464,9 +480,8 @@ std::string GUI::pollViews()
         if (cmd == "LOAD_GAME")
         {
             auto popup = new LoadConfirmPopup("Masukkan save file:", "saves/save1");
-            popup->setOnSubmit([this](const std::string& path) {
-                pendingCommand = "LOAD_GAME " + path;
-            });
+            popup->setOnSubmit([this](const std::string &path)
+                               { pendingCommand = "LOAD_GAME " + path; });
             loadPopup(popup);
             return "NULL";
         }
@@ -484,21 +499,24 @@ std::string GUI::pollViews()
     return "NULL";
 }
 
-void GUI::handleDisplayCommand(const std::vector<std::string>& tokens)
+void GUI::handleDisplayCommand(const std::vector<std::string> &tokens)
 {
-    if (tokens.size() < 2) return;
-    const std::string& sub = tokens[1];
+    if (tokens.size() < 2)
+        return;
+    const std::string &sub = tokens[1];
 
-    if      (sub == "TOP_VIEW")   camManager.switchTo("TOP_VIEW",   1, []() {});
-    else if (sub == "ACTION_CAM") camManager.switchTo("ACTION_CAM", 1, []() {});
-    else if (sub == "BOARD_CAM")  camManager.switchTo("BOARD_CAM",  1, []() {});
+    if (sub == "TOP_VIEW")
+        camManager.switchTo("TOP_VIEW", 1, []() {});
+    else if (sub == "ACTION_CAM")
+        camManager.switchTo("ACTION_CAM", 1, []() {});
+    else if (sub == "BOARD_CAM")
+        camManager.switchTo("BOARD_CAM", 1, []() {});
 
     else if (sub == "ROLL_DICE" && tokens.size() >= 3)
     {
         int idx = std::stoi(tokens[2]);
-        camManager.switchTo("ACTION_CAM", 1, [this, idx]() {
-            loadDice(players[idx]);
-        });
+        camManager.switchTo("ACTION_CAM", 1, [this, idx]()
+                            { loadDice(players[idx]); });
     }
     else if (sub == "THROW" && dice != nullptr)
     {
@@ -508,17 +526,18 @@ void GUI::handleDisplayCommand(const std::vector<std::string>& tokens)
     else if (sub == "THROW_DONE" && dice != nullptr)
     {
         dice->moveDiceOffScreen();
-        PlayerView* movingPlayer = dice->getPlayer();
-        int moveVal              = dice->getMoveValue();
-        std::string camKey       = movingPlayer->getPlayerCamKey();
+        PlayerView *movingPlayer = dice->getPlayer();
+        int moveVal = dice->getMoveValue();
+        std::string camKey = movingPlayer->getPlayerCamKey();
 
-        camManager.switchTo(camKey, 1, [movingPlayer, moveVal]() {
-            movingPlayer->moveSpaces(moveVal);
-        });
+        camManager.switchTo(camKey, 1, [movingPlayer, moveVal]()
+                            { movingPlayer->moveSpaces(moveVal); });
     }
     else if (sub == "DRAW" && tokens.size() >= 3)
     {
-        if      (tokens[2] == "CC") communityChestPile->drawCard();
-        else if (tokens[2] == "CH") chancePile->drawCard();
+        if (tokens[2] == "CC")
+            communityChestPile->drawCard();
+        else if (tokens[2] == "CH")
+            chancePile->drawCard();
     }
 }

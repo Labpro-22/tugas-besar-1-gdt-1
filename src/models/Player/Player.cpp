@@ -24,7 +24,7 @@ int requiredStreetCount(const std::string& colorGroup) {
 Player::Player(const std::string &username, int initialBalance)
     : username(username),
       balance(initialBalance),
-      position(1),
+      position(0),
       status(PlayerStatus::ACTIVE),
       ownedProperties(),
       consecutiveDoubles(0),
@@ -46,7 +46,7 @@ int Player::getJailAttempts() const { return jailAttempts; }
 
 // Movement
 int Player::move(int steps, int boardSize) {
-    position = (position + steps) % boardSize + 1;
+    position = (position + steps) % boardSize;
     return position;
 }
 

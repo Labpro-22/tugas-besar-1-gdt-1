@@ -229,7 +229,7 @@ TileColor ConfigLoader::colorGroupToTileColor(const std::string& group) {
 Tile* ConfigLoader::createTileForIndex(int index,
         std::vector<Property*> properties, const GameConfig& config) {
     // Action/special tiles take priority (from aksi.txt)
-    int id = index + 1;
+    int id = index; // 0-based
     const auto& actionTiles = config.getActionTiles();
     if (actionTiles.find(id) != actionTiles.end()) {
         std::string kode = actionTiles.at(id).getKode();
@@ -323,7 +323,7 @@ std::map<int, ActionTileConfig> ConfigLoader::loadActionTiles(std::string filena
         std::string kode, nama, jenis, warna;
         
         if (ss >> id >> kode >> nama >> jenis >> warna) {
-            actionTiles[id] = ActionTileConfig(id, kode, nama, jenis, warna);
+           actionTiles[id - 1] = ActionTileConfig(id, kode, nama, jenis, warna);
         }
     }
     return actionTiles;

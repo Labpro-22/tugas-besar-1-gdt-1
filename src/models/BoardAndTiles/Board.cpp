@@ -31,10 +31,10 @@ void Board::addTile(Tile *tile)
 
 Tile *Board::getTile(int index) const
 {
-    if (index < 1 || index > boardSize)
+    if (index < 0 || index >= boardSize)
         throw InvalidTileException(std::to_string(index));
 
-    return tiles[index - 1];
+    return tiles[index];
 }
 
 Tile *Board::getTile(const std::string &code) const
@@ -49,24 +49,26 @@ Tile *Board::getTile(const std::string &code) const
 
 int Board::getNextIndex(int currentIndex, int steps) const
 {
-    return (currentIndex - 1 + steps) % boardSize + 1;
+    return (currentIndex + steps) % boardSize;
 }
 
 bool Board::passesGo(int fromIndex, int steps) const
 {
     if (goTile == nullptr) return false;
-    if (steps <= 0)        return false;
+    if (steps <= 0) return false;
 
+    int boardSize = this->boardSize;
     int goIndex = goTile->getIndex();
-    int toIndex = getNextIndex(fromIndex, steps);
+    int toIndex = (fromIndex + steps) % boardSize;
 
-    if (fromIndex == goIndex) return false;
-    if (toIndex == goIndex)   return true;
-
-    if (toIndex > fromIndex) {
-        return goIndex > fromIndex && goIndex < toIndex;
+    if (fromIndex < toIndex)
+    {
+        return goIndex > fromIndex && goIndex <= toIndex;
     }
-    return goIndex > fromIndex || goIndex < toIndex;
+    else
+    {
+        return goIndex > fromIndex || goIndex <= toIndex;
+    }
 }
 
 GoTile *Board::getGoTile() const

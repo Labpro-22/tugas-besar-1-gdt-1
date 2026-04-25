@@ -1007,6 +1007,7 @@ void GameEngine::initNewGame()
 
     Board *b = game->getBoard();
     int goIndex = (b && b->getGoTile()) ? b->getGoTile()->getIndex() : 1;
+
     for (Player *p : game->getPlayers())
     {
         p->setPosition(goIndex);
@@ -1014,6 +1015,11 @@ void GameEngine::initNewGame()
 
     gui->renderBoard(*game);
     gui->loadGameView();
+
+    for (Player *p : game->getPlayers())
+    {
+        gui->renderPlayer(*p);
+    }
 }
 
 bool GameEngine::initLoadGame(const std::string &requestedPath)

@@ -235,7 +235,24 @@ void GUI::renderBoard(const Game &game)
     }
 }
 
-void GUI::renderPlayer(const Player & /*player*/) { /* TODO */ }
+void GUI::renderPlayer(const Player &player)
+{
+    for (auto* pv : players)
+    {
+        if (&(pv->getPlayer()) == &player)
+            return;
+    }
+
+    PlayerView* view = new PlayerView(
+        const_cast<Player&>(player),
+        board,
+        playerColor(players.size()),
+        &camManager
+    );
+
+    players.push_back(view);
+}
+
 void GUI::renderProperty(const Property & /*property*/) { /* TODO */ }
 void GUI::renderOwnedProperties(const Player & /*player*/) { /* TODO */ }
 void GUI::renderDice(int /*die1*/, int /*die2*/) { /* TODO: tampilkan hasil dadu di HUD */ }
@@ -266,9 +283,6 @@ void GUI::renderMovement(const std::string & /*playerName*/, int /*steps*/, cons
 void GUI::loadPlayer(Player &player)
 {
     Color color = playerColor(playerProfiles.size());
-
-    PlayerView *view = new PlayerView(player, board, color, &camManager);
-    players.push_back(view);
 
     PlayerProfileView *profile = new PlayerProfileView();
     profile->setPlayer(&player);

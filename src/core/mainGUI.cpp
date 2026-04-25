@@ -16,6 +16,12 @@ static void initLoad()
     View2D::addFont("Orbitron", "data/GUIAssets/Orbitron-VariableFont_wght.ttf");
 }
 
+static void unLoad()
+{
+    PlayerView::unloadGlobalPlayerModel();
+    View2D::unloadFonts();
+}
+
 int main()
 {
     InitWindow(SCREEN_W, SCREEN_H, WINDOW_TITLE);
@@ -31,7 +37,6 @@ int main()
     GameEngine engine(gui);
     engine.run();
 
-    View2D::unloadFonts();
     CloseWindow();
 
     delete gui;

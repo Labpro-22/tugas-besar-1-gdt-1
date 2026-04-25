@@ -72,7 +72,7 @@ void GameHUDView::updateProfileData()
         return;
 
     int currentIdx = gameModel->getCurrentTurnIndex();
-    rollDiceBtn.setGameCommand("DISPLAY ROLL_DICE " + std::to_string(currentIdx));
+    rollDiceBtn.setGameCommand("LEMPAR_DADU");
 }
 
 void GameHUDView::interactionCheck()

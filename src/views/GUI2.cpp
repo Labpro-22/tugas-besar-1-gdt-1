@@ -257,7 +257,15 @@ void GUI::renderPlayer(const Player &player)
 
 void GUI::renderProperty(const Property & /*property*/) { /* TODO */ }
 void GUI::renderOwnedProperties(const Player & /*player*/) { /* TODO */ }
-void GUI::renderDice(int /*die1*/, int /*die2*/) { /* TODO: tampilkan hasil dadu di HUD */ }
+void GUI::renderDice(int d1, int d2)
+{
+    if (dice != nullptr)
+        delete dice;
+
+    int idx = cachedGame->getCurrentTurnIndex();
+    dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
+    dice->initializeThrowDice(d1, d2);
+}
 void GUI::renderSkillHand(const std::vector<SkillCard *> & /*hand*/) { /* TODO */ }
 void GUI::renderBankruptcy(const Player & /*player*/) { /* TODO */ }
 void GUI::renderWinner(const Player & /*winner*/) { /* TODO */ }

@@ -73,7 +73,6 @@ MainMenuView::MainMenuView() : MenuView(View2D(getScreenCenter(),
 
 MainMenuView::~MainMenuView()
 {
-    UnloadTexture(logo);
 }
 
 void MainMenuView::movePosition(const Vector2 &v)

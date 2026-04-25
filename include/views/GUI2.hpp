@@ -22,6 +22,7 @@
 #include <stack>
 #include <vector>
 #include <string>
+#include <memory>
 
 class GUI : public IGUI
 {
@@ -29,7 +30,7 @@ private:
     const Game *cachedGame = nullptr;
 
     // ── View layers ────────────────────────────────────────────────────────
-    std::vector<View2D *> views;
+    std::vector<std::unique_ptr<View2D>> views;
     std::stack<Popup *> popupStack;
     MenuView *menu;
     Entry *debuggingEntry;

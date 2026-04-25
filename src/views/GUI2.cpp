@@ -126,7 +126,7 @@ void GUI::display()
         dice->render();
     EndMode3D();
 
-    for (View2D *view : views)
+    for (auto &view : views)
         view->render();
 
     EndDrawing();
@@ -140,8 +140,9 @@ void GUI::loadMainMenu()
 {
     pendingCommand = "NULL";
     unloadView(menu);
-    menu = new MainMenuView();
-    views.push_back(menu);
+
+    views.push_back(std::make_unique<MainMenuView>());
+    menu = static_cast<MainMenuView *>(views.back().get());
 }
 
 void GUI::loadGameView()
@@ -151,13 +152,12 @@ void GUI::loadGameView()
     clearPlayers();
     menu = nullptr;
 
-    GameHUDView* hud = new GameHUDView();
-    
-    if (this->cachedGame != nullptr) {
-        hud->setGameModel(this->cachedGame);
-    }
+    auto hud = std::make_unique<GameHUDView>();
 
-    views.push_back(hud);
+    if (this->cachedGame != nullptr)
+        hud->setGameModel(this->cachedGame);
+
+    views.push_back(std::move(hud));
 }
 
 void GUI::loadFinishMenu()
@@ -190,7 +190,7 @@ void GUI::showInputPrompt(const std::string &prompt)
     loadPopup(new InputPopup(prompt));
 }
 
-void GUI::showException(int code, const std::string& msg)
+void GUI::showException(int code, const std::string &msg)
 {
     loadPopup(new ExceptionPopup(code, msg));
 }
@@ -219,14 +219,12 @@ void GUI::renderBoard(const Game &game)
 {
     this->cachedGame = &game;
 
-    for (View2D *view : views)
+    for (auto &view : views)
     {
-        if (GameHUDView *hud = dynamic_cast<GameHUDView *>(view))
-        {
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
             hud->setGameModel(this->cachedGame);
-        }
     }
-    
+
     if (board == nullptr)
     {
         Board *b = game.getBoard();
@@ -237,18 +235,17 @@ void GUI::renderBoard(const Game &game)
 
 void GUI::renderPlayer(const Player &player)
 {
-    for (auto* pv : players)
+    for (auto *pv : players)
     {
         if (&(pv->getPlayer()) == &player)
             return;
     }
 
-    PlayerView* view = new PlayerView(
-        const_cast<Player&>(player),
+    PlayerView *view = new PlayerView(
+        const_cast<Player &>(player),
         board,
         playerColor(players.size()),
-        &camManager
-    );
+        &camManager);
 
     players.push_back(view);
 }
@@ -284,20 +281,21 @@ void GUI::loadPlayer(Player &player)
 {
     Color color = playerColor(playerProfiles.size());
 
-    PlayerProfileView *profile = new PlayerProfileView();
+    auto profile = std::make_unique<PlayerProfileView>();
     profile->setPlayer(&player);
     profile->setColor(color);
     profile->setHitboxDim({250, 80});
     profile->setActive(true);
 
-    playerProfiles.push_back(profile);
-    views.push_back(profile);
+    views.push_back(std::move(profile));
+    playerProfiles.push_back(static_cast<PlayerProfileView *>(views.back().get()));
 }
 
 void GUI::loadDice(PlayerView *player)
 {
     dice = new DiceView(player, &camManager.getCamera("ACTION_CAM"));
-    views.push_back(dice->getThrowButton());
+    if (dice && dice->getThrowButton())
+        dice->getThrowButton()->render();
 }
 
 void GUI::loadCardPiles(CardDeck<Card> &chanceDeck, CardDeck<Card> &comChestDeck)
@@ -321,15 +319,23 @@ void GUI::loadCardPiles(CardDeck<Card> &chanceDeck, CardDeck<Card> &comChestDeck
 
 void GUI::loadDebuggingEntry()
 {
-    debuggingEntry = new Entry(
-        {800, 50}, "Enter Command", 30, "Orbitron",
-        [this]()
+    Entry *raw = nullptr;
+
+    auto entry = std::make_unique<Entry>(
+        Vector2{800, 50}, "Enter Command", 30, "Orbitron",
+        [&raw]()
         {
-            debuggingEntry->setGameCommand(debuggingEntry->getEntryText());
+            raw->setGameCommand(raw->getEntryText());
         });
-    debuggingEntry->movePosition({debuggingEntry->getRenderWidth(),
-                                  debuggingEntry->getRenderHeight() / 2.0f});
-    views.push_back(debuggingEntry);
+
+    raw = entry.get();
+
+    debuggingEntry = raw;
+
+    raw->movePosition({raw->getRenderWidth(),
+                       raw->getRenderHeight() / 2.0f});
+
+    views.push_back(std::move(entry));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -340,46 +346,44 @@ void GUI::loadDebuggingEntry()
 
 void GUI::unloadView(View2D *v)
 {
-    if (v == nullptr)
-        return;
-    views.erase(std::remove(views.begin(), views.end(), v), views.end());
-    delete v;
+    views.erase(
+        std::remove_if(views.begin(), views.end(),
+                       [v](const std::unique_ptr<View2D> &ptr)
+                       {
+                           return ptr.get() == v;
+                       }),
+        views.end());
 }
 
 void GUI::loadPopup(Popup *popup)
 {
     disableAll();
+    views.push_back(std::unique_ptr<View2D>(popup));
     popupStack.push(popup);
-    views.push_back(popup);
 }
 
 void GUI::enableAll()
 {
-    for (View2D *v : views)
+    for (auto &v : views)
         v->enable();
 }
 
 void GUI::disableAll()
 {
-    for (View2D *v : views)
-        if (v != nullptr)
+    for (auto &v : views)
+        if (v)
             v->disable();
 }
 
 void GUI::clearViews()
 {
-    for (View2D *v : views)
-        delete v;
     views.clear();
 }
 
 void GUI::clearPopups()
 {
     while (!popupStack.empty())
-    {
-        delete popupStack.top();
         popupStack.pop();
-    }
 }
 
 void GUI::clearPlayers()
@@ -408,23 +412,19 @@ void GUI::updateDice()
 
 void GUI::updateViews()
 {
-    std::vector<View2D *> closedViews;
-    for (View2D *v : views)
-    {
-        if (v->closed())
-            closedViews.push_back(v);
-        else
-            v->interactionCheck();
-    }
+    views.erase(
+        std::remove_if(views.begin(), views.end(),
+                       [](const std::unique_ptr<View2D> &v)
+                       {
+                           if (v->closed())
+                               return true;
+                           v->interactionCheck();
+                           return false;
+                       }),
+        views.end());
 
     if (menu != nullptr && menu->closed())
         menu = nullptr;
-
-    for (View2D *v : closedViews)
-    {
-        views.erase(std::remove(views.begin(), views.end(), v), views.end());
-        delete v;
-    }
 }
 
 void GUI::updatePopupStack()
@@ -472,18 +472,17 @@ std::string GUI::consumePendingCommand()
 
 std::string GUI::pollPopup()
 {
-    if (popupStack.empty()) return "NULL";
+    if (popupStack.empty())
+        return "NULL";
 
     std::string raw = popupStack.top()->catchCommand();
     if (raw == "NULL")
         return "NULL";
 
-    std::cout << "[DEBUG] pollPopup returning: " << raw << std::endl;
-
-    Popup *p = popupStack.top();
-    views.erase(std::remove(views.begin(), views.end(), p), views.end());
+    View2D *p = popupStack.top();
     popupStack.pop();
-    delete p;
+
+    unloadView(p);
 
     if (popupStack.empty())
         enableAll();
@@ -495,7 +494,7 @@ std::string GUI::pollPopup()
 
 std::string GUI::pollViews()
 {
-    for (View2D *view : views)
+    for (auto &view : views)
     {
         std::string raw = view->catchCommand();
         if (raw == "NULL")

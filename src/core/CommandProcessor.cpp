@@ -1,22 +1,7 @@
 #include "core/CommandProcessor.hpp"
+#include "utils/Formatter.hpp"
 
 namespace {
-std::string formatMoney(int amount) {
-    bool negative = amount < 0;
-    long long absAmount = negative ? -static_cast<long long>(amount) : amount;
-    std::string digits = std::to_string(absAmount);
-    std::string grouped;
-    int count = 0;
-    for (int i = static_cast<int>(digits.size()) - 1; i >= 0; --i) {
-        grouped.insert(grouped.begin(), digits[i]);
-        if (++count == 3 && i > 0) {
-            grouped.insert(grouped.begin(), '.');
-            count = 0;
-        }
-    }
-    return std::string(negative ? "-M" : "M") + grouped;
-}
-
 int buildingLevel(const StreetProperty* property) {
     return static_cast<int>(property->getBuildingState());
 }
@@ -83,6 +68,7 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
     auto tokens = tokenize(command);
     if (tokens.empty()) return CommandResult::CONTINUE;
 
+    const std::string rawCmd = tokens[0];
     std::string cmd = normalize(tokens[0]);
 
     if (isAwaitingBonusRoll(player) && !isAllowedDuringBonusRoll(cmd)) {
@@ -123,6 +109,14 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
         }
         if (cmd == "BANGUN") {
             if (tokens.size() < 2) { gui->showMessage("Format: BANGUN <kode>"); return CommandResult::INVALID; }
+            return handleBuild(player, tokens[1]);
+        }
+        if (cmd == "BUILD") {
+            if (rawCmd != "BUILD") {
+                gui->showMessage("Perintah BUILD harus ditulis dengan huruf kapital.");
+                return CommandResult::INVALID;
+            }
+            if (tokens.size() < 2) { gui->showMessage("Format: BUILD <kode>"); return CommandResult::INVALID; }
             return handleBuild(player, tokens[1]);
         }
         if (cmd == "GUNAKAN_KEMAMPUAN") {
@@ -271,7 +265,7 @@ CommandResult CommandProcessor::handleMortgage(Player* player, const std::string
                 gui->showMessage(std::to_string(i + 1) + ". " +
                                  street->getName() + " (" + street->getCode() + ") - " +
                                  buildingStateLabel(street) +
-                                 " -> Nilai jual bangunan: " + formatMoney(saleValue));
+                                 " -> Nilai jual bangunan: " + Formatter::money(saleValue));
             }
 
             std::string answer;
@@ -294,16 +288,16 @@ CommandResult CommandProcessor::handleMortgage(Player* player, const std::string
                 const int saleValue = street->sellBuildingValue();
                 street->clearBuildings();
                 player->addMoney(saleValue);
-                gui->showMessage("Bangunan " + street->getName() + " terjual. Kamu menerima " + formatMoney(saleValue) + ".");
+                gui->showMessage("Bangunan " + street->getName() + " terjual. Kamu menerima " + Formatter::money(saleValue) + ".");
                 if (engine->logger != nullptr) {
                     engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                                         "JUAL_BANGUNAN",
                                         "Jual bangunan di " + street->getName() + " (" +
-                                        street->getCode() + ") senilai " + formatMoney(saleValue));
+                                        street->getCode() + ") senilai " + Formatter::money(saleValue));
                 }
             }
 
-            gui->showMessage("Uang kamu sekarang: " + formatMoney(player->getBalance()));
+            gui->showMessage("Uang kamu sekarang: " + Formatter::money(player->getBalance()));
 
             while (true) {
                 answer = normalize(waitInput("Lanjut menggadaikan " + prop->getName() + "? (y/n):"));
@@ -325,13 +319,13 @@ CommandResult CommandProcessor::handleMortgage(Player* player, const std::string
     prop->setStatus(PropertyStatus::MORTGAGED);
     player->addMoney(value);
     gui->showMessage(prop->getName() + " berhasil digadaikan.");
-    gui->showMessage("Kamu menerima " + formatMoney(value) + " dari Bank.");
-    gui->showMessage("Uang kamu sekarang: " + formatMoney(player->getBalance()));
+    gui->showMessage("Kamu menerima " + Formatter::money(value) + " dari Bank.");
+    gui->showMessage("Uang kamu sekarang: " + Formatter::money(player->getBalance()));
     gui->showMessage("Catatan: Sewa tidak dapat dipungut dari properti yang digadaikan.");
     if (engine->logger != nullptr) {
         engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                             "GADAI",
-                            prop->getName() + " (" + prop->getCode() + ") senilai " + formatMoney(value));
+                            prop->getName() + " (" + prop->getCode() + ") senilai " + Formatter::money(value));
     }
     return CommandResult::CONTINUE;
 }
@@ -353,19 +347,19 @@ CommandResult CommandProcessor::handleRedeem(Player* player, const std::string& 
     int cost = prop->getPurchasePrice();
     if (!player->canAfford(cost)) {
         gui->showMessage("Uang kamu tidak cukup untuk menebus " + prop->getName() + ".");
-        gui->showMessage("Harga tebus: " + formatMoney(cost) +
-                         " | Uang kamu: " + formatMoney(player->getBalance()));
+        gui->showMessage("Harga tebus: " + Formatter::money(cost) +
+                         " | Uang kamu: " + Formatter::money(player->getBalance()));
         return CommandResult::INVALID;
     }
     player->deductMoney(cost);
     prop->setStatus(PropertyStatus::OWNED);
     gui->showMessage(prop->getName() + " berhasil ditebus!");
-    gui->showMessage("Kamu membayar " + formatMoney(cost) + " ke Bank.");
-    gui->showMessage("Uang kamu sekarang: " + formatMoney(player->getBalance()));
+    gui->showMessage("Kamu membayar " + Formatter::money(cost) + " ke Bank.");
+    gui->showMessage("Uang kamu sekarang: " + Formatter::money(player->getBalance()));
     if (engine->logger != nullptr) {
         engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                             "TEBUS",
-                            prop->getName() + " (" + prop->getCode() + ") seharga " + formatMoney(cost));
+                            prop->getName() + " (" + prop->getCode() + ") seharga " + Formatter::money(cost));
     }
     return CommandResult::CONTINUE;
 }
@@ -432,7 +426,7 @@ CommandResult CommandProcessor::handleBuild(Player* player, const std::string& c
 
         const int cost = sp->getHouseBuildCost();
         if (!player->canAfford(cost)) {
-            gui->showMessage("Uang kamu tidak cukup untuk membangun rumah. Biaya: " + formatMoney(cost));
+            gui->showMessage("Uang kamu tidak cukup untuk membangun rumah. Biaya: " + Formatter::money(cost));
             return CommandResult::INVALID;
         }
 
@@ -442,13 +436,13 @@ CommandResult CommandProcessor::handleBuild(Player* player, const std::string& c
         }
 
         player->deductMoney(cost);
-        gui->showMessage("Kamu membangun 1 rumah di " + code + ". Biaya: " + formatMoney(cost));
-        gui->showMessage("Uang tersisa: " + formatMoney(player->getBalance()));
+        gui->showMessage("Kamu membangun 1 rumah di " + code + ". Biaya: " + Formatter::money(cost));
+        gui->showMessage("Uang tersisa: " + Formatter::money(player->getBalance()));
         if (engine->logger != nullptr) {
             engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                                 "BANGUN",
                                 "Bangun rumah di " + sp->getName() + " (" + sp->getCode() +
-                                ") seharga " + formatMoney(cost));
+                                ") seharga " + Formatter::money(cost));
         }
         return CommandResult::CONTINUE;
     }
@@ -468,7 +462,7 @@ CommandResult CommandProcessor::handleBuild(Player* player, const std::string& c
 
     const int cost = sp->getHotelBuildCost();
     if (!player->canAfford(cost)) {
-        gui->showMessage("Uang kamu tidak cukup untuk upgrade ke Hotel. Biaya: " + formatMoney(cost));
+        gui->showMessage("Uang kamu tidak cukup untuk upgrade ke Hotel. Biaya: " + Formatter::money(cost));
         return CommandResult::INVALID;
     }
 
@@ -478,13 +472,13 @@ CommandResult CommandProcessor::handleBuild(Player* player, const std::string& c
     }
 
     player->deductMoney(cost);
-    gui->showMessage("Kamu upgrade " + code + " menjadi Hotel. Biaya: " + formatMoney(cost));
-    gui->showMessage("Uang tersisa: " + formatMoney(player->getBalance()));
+    gui->showMessage("Kamu upgrade " + code + " menjadi Hotel. Biaya: " + Formatter::money(cost));
+    gui->showMessage("Uang tersisa: " + Formatter::money(player->getBalance()));
     if (engine->logger != nullptr) {
         engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                             "BANGUN",
                             "Bangun hotel di " + sp->getName() + " (" + sp->getCode() +
-                            ") seharga " + formatMoney(cost));
+                            ") seharga " + Formatter::money(cost));
     }
     return CommandResult::CONTINUE;
 }
@@ -562,6 +556,12 @@ CommandResult CommandProcessor::handleFestival(Player* player, const std::string
         gui->showMessage("Tidak ada efek Festival yang menunggu pilihan properti.");
         return CommandResult::INVALID;
     }
+    if (!std::all_of(code.begin(), code.end(), [](unsigned char c) {
+            return !std::isalpha(c) || std::isupper(c);
+        })) {
+        gui->showMessage("Kode properti untuk FESTIVAL harus ditulis kapital. Contoh: FESTIVAL BGR.");
+        return CommandResult::INVALID;
+    }
     Property* target = nullptr;
     for (Property* p : player->getOwnedProperties()) {
         if (p->getCode() == code) { target = p; break; }
@@ -585,10 +585,10 @@ CommandResult CommandProcessor::handleFestival(Player* player, const std::string
     if (engine->logger != nullptr) {
         std::string logDetail = target->getName() + " (" + target->getCode() + "): ";
         if (!wasActive) {
-            logDetail += "sewa " + formatMoney(rentBefore) + " -> " + formatMoney(rentAfter) + ", durasi " + std::to_string(dur) + " giliran";
+            logDetail += "sewa " + Formatter::money(rentBefore) + " -> " + Formatter::money(rentAfter) + ", durasi " + std::to_string(dur) + " giliran";
         } else if (multAfter > multBefore) {
-            logDetail += "Efek diperkuat! sewa " + formatMoney(rentBefore) +
-                         " -> " + formatMoney(rentAfter) +
+            logDetail += "Efek diperkuat! sewa " + Formatter::money(rentBefore) +
+                         " -> " + Formatter::money(rentAfter) +
                          ", durasi di-reset " + std::to_string(dur) + " giliran";
         } else {
             logDetail += "Efek sudah maksimum (x" + std::to_string(multAfter) +
@@ -601,7 +601,7 @@ CommandResult CommandProcessor::handleFestival(Player* player, const std::string
         gui->showMessage("Sewa properti ini berlipat selama " + std::to_string(dur) + " giliran.");
     } else if (multAfter > multBefore) {
         gui->showMessage("Efek Festival di " + target->getName() + " diperkuat.");
-        gui->showMessage("Sewa sekarang " + formatMoney(rentAfter) +
+        gui->showMessage("Sewa sekarang " + Formatter::money(rentAfter) +
                          " dan durasi di-reset menjadi " + std::to_string(dur) + " giliran.");
     } else {
         gui->showMessage("Efek Festival di " + target->getName() +
@@ -635,61 +635,80 @@ CommandResult CommandProcessor::handleEndTurn(Player* player) {
 }
 
 CommandResult CommandProcessor::handleHelp(Player* player) {
-    gui->showMessage("=== Daftar Perintah ===");
-    gui->showMessage("Selalu tersedia:");
-    gui->showMessage("  CETAK_PAPAN                 - tampilkan papan permainan");
-    gui->showMessage("  CETAK_AKTA <kode>           - tampilkan akta properti");
-    gui->showMessage("  CETAK_PROPERTI              - tampilkan daftar properti milikmu");
-    gui->showMessage("  CETAK_KARTU                 - tampilkan kartu kemampuan di tangan");
-    gui->showMessage("  CETAK_LOG [n]               - tampilkan n log terakhir (tanpa n = semua)");
-    gui->showMessage("  HELP                        - tampilkan bantuan ini");
-    gui->showMessage("  EXIT                        - keluar dari permainan");
+    gui->showMessage("=== PANDUAN COMMAND NIMONSPOLI ===");
 
     if (player == nullptr) {
-        gui->showMessage("");
-        gui->showMessage("Belum ada pemain aktif. Mulai permainan baru lewat menu utama.");
+        gui->showMessage("@HELP:TURN:Fase saat ini: MENU UTAMA");
+        gui->showMessage("@HELP:ACTION:  NEW_GAME                    - mulai permainan baru");
+        gui->showMessage("@HELP:ACTION:  LOAD_GAME <nama_save>       - muat data simpan");
+        gui->showMessage("@HELP:ACTION:  MUAT <nama_save>            - alias LOAD_GAME");
+        gui->showMessage("@HELP:NOTE:  EXIT                        - keluar dari program");
         return CommandResult::CONTINUE;
     }
 
-    gui->showMessage("");
     if (player->isJailed()) {
-        gui->showMessage("Fase saat ini: DI DALAM PENJARA");
-        gui->showMessage("  LEMPAR_DADU                 - coba keluar penjara (butuh double)");
-        gui->showMessage("  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
+        gui->showMessage("@HELP:TURN:Fase saat ini: DI DALAM PENJARA");
+        gui->showMessage("@HELP:TURN:  LEMPAR_DADU                 - coba keluar penjara dengan double");
+        gui->showMessage("@HELP:TURN:  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
         if (player->getJailAttempts() >= 3) {
-            gui->showMessage("  (Ini percobaan ke-4. Denda penjara wajib dibayar otomatis.)");
+            gui->showMessage("@HELP:NOTE:  Percobaan ke-4: denda penjara wajib dibayar otomatis.");
         }
     } else if (player->hasPendingFestival()) {
-        gui->showMessage("Fase saat ini: WAJIB PILIH PROPERTI FESTIVAL");
-        gui->showMessage("  FESTIVAL <kode>             - pilih properti yang dikenai efek festival");
-        if (player->getConsecutiveDoubles() > 0) {
-            gui->showMessage("  (Setelah Festival dipilih, lanjutkan LEMPAR_DADU/ATUR_DADU untuk bonus roll.)");
-        }
+        gui->showMessage("@HELP:TURN:Fase saat ini: WAJIB PILIH PROPERTI FESTIVAL");
+        gui->showMessage("@HELP:ACTION:  FESTIVAL <kode>             - pilih properti untuk efek Festival");
     } else if (isAwaitingBonusRoll(player)) {
-        gui->showMessage("Fase saat ini: MENUNGGU LEMPARAN BONUS (karena double)");
-        gui->showMessage("  LEMPAR_DADU                 - lempar dadu bonus");
-        gui->showMessage("  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
-        gui->showMessage("  SIMPAN <nama_save>          - simpan progres permainan");
+        gui->showMessage("@HELP:TURN:Fase saat ini: MENUNGGU LEMPARAN BONUS");
+        gui->showMessage("@HELP:TURN:  LEMPAR_DADU                 - lempar dadu bonus");
+        gui->showMessage("@HELP:TURN:  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
     } else if (!player->hasRolled()) {
-        gui->showMessage("Fase saat ini: AWAL GILIRAN (belum lempar dadu)");
-        gui->showMessage("  LEMPAR_DADU                 - lempar dadu");
-        gui->showMessage("  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
-        gui->showMessage("  GUNAKAN_KEMAMPUAN <nomor>   - pakai kartu kemampuan (1-based)");
-        gui->showMessage("  BUANG_KARTU <nomor>         - buang kartu di tangan (1-based)");
-        gui->showMessage("  SIMPAN <nama_save>          - simpan progres permainan");
+        gui->showMessage("@HELP:TURN:Fase saat ini: AWAL GILIRAN");
+        gui->showMessage("@HELP:TURN:  LEMPAR_DADU                 - lempar dadu");
+        gui->showMessage("@HELP:TURN:  ATUR_DADU <x> <y>           - set hasil dadu manual (1-6)");
+        gui->showMessage("@HELP:ACTION:  GUNAKAN_KEMAMPUAN <nomor>   - pakai kartu kemampuan");
+        gui->showMessage("@HELP:ACTION:  BUANG_KARTU <nomor>         - buang kartu kemampuan");
+        gui->showMessage("@HELP:PROPERTY:  SIMPAN <nama_save>          - simpan progres permainan");
     } else {
-        gui->showMessage("Fase saat ini: SETELAH LEMPAR DADU");
-        gui->showMessage("  GADAI <kode>                - gadai properti milikmu");
-        gui->showMessage("  TEBUS <kode>                - tebus properti yang digadai");
-        gui->showMessage("  BANGUN <kode>               - bangun rumah/hotel di properti");
-        gui->showMessage("  AKHIRI_GILIRAN              - akhiri giliran");
+        gui->showMessage("@HELP:TURN:Fase saat ini: SETELAH LEMPAR DADU");
+        gui->showMessage("@HELP:PROPERTY:  GADAI <kode>                - gadai properti milikmu");
+        gui->showMessage("@HELP:PROPERTY:  TEBUS <kode>                - tebus properti yang digadai");
+        gui->showMessage("@HELP:PROPERTY:  BANGUN <kode>               - bangun rumah/hotel");
+        gui->showMessage("@HELP:TURN:  AKHIRI_GILIRAN              - akhiri giliran");
     }
 
-    gui->showMessage("");
-    gui->showMessage("Catatan:");
-    gui->showMessage("  - Indeks kartu dan pilihan selalu dimulai dari 1.");
-    gui->showMessage("  - SIMPAN hanya bisa dilakukan sebelum aksi di giliranmu.");
-    gui->showMessage("  - MUAT hanya tersedia dari menu utama (bukan saat giliran berjalan).");
+    gui->showMessage("=== INFORMASI ===");
+    gui->showMessage("@HELP:INFO:  CETAK_PAPAN                 - tampilkan papan permainan");
+    gui->showMessage("@HELP:INFO:  CETAK_AKTA <kode>           - tampilkan akta 1 properti");
+    gui->showMessage("@HELP:INFO:  CETAK_DEED <kode>           - alias CETAK_AKTA");
+    gui->showMessage("@HELP:INFO:  CETAK_PROPERTI              - tampilkan properti milikmu");
+    gui->showMessage("@HELP:INFO:  CETAK_KARTU                 - tampilkan kartu kemampuan");
+    gui->showMessage("@HELP:INFO:  CETAK_LOG [n]               - tampilkan log terakhir");
+
+    gui->showMessage("=== AKSI GILIRAN ===");
+    gui->showMessage("@HELP:TURN:  LEMPAR_DADU                 - lempar dadu acak");
+    gui->showMessage("@HELP:TURN:  ATUR_DADU <x> <y>           - set dadu untuk testing/demo");
+    gui->showMessage("@HELP:ACTION:  GUNAKAN_KEMAMPUAN <nomor>   - pakai 1 kartu sebelum lempar");
+    gui->showMessage("@HELP:ACTION:  BUANG_KARTU <nomor>         - buang kartu di tangan");
+    gui->showMessage("@HELP:ACTION:  FESTIVAL <kode>             - pilih target efek Festival");
+    gui->showMessage("@HELP:TURN:  AKHIRI_GILIRAN              - selesai giliran");
+
+    gui->showMessage("=== PROPERTI DAN UANG ===");
+    gui->showMessage("@HELP:PROPERTY:  BANGUN <kode>               - bangun rumah/hotel jika monopoli");
+    gui->showMessage("@HELP:PROPERTY:  GADAI <kode>                - gadai properti");
+    gui->showMessage("@HELP:PROPERTY:  TEBUS <kode>                - tebus properti tergadai");
+    gui->showMessage("@HELP:PROPERTY:  SIMPAN <nama_save>          - simpan di awal giliran");
+    gui->showMessage("@HELP:PROPERTY:  MUAT <nama_save>            - hanya dari menu utama");
+
+    gui->showMessage("=== MODE KHUSUS ===");
+    gui->showMessage("@HELP:SPECIAL:  BID <jumlah>                - beri penawaran saat LELANG");
+    gui->showMessage("@HELP:SPECIAL:  PASS                        - lewat saat LELANG");
+    gui->showMessage("@HELP:SPECIAL:  LEWAT                       - alias PASS saat LELANG");
+    gui->showMessage("@HELP:SPECIAL:  Pilihan angka               - dipakai pada Penjara, PPH, dan likuidasi");
+    gui->showMessage("@HELP:SPECIAL:  y / n                       - konfirmasi beli, save overwrite, atau jual bangunan");
+
+    gui->showMessage("=== CATATAN ===");
+    gui->showMessage("@HELP:NOTE:  Indeks kartu dan pilihan dimulai dari 1.");
+    gui->showMessage("@HELP:NOTE:  SIMPAN hanya bisa sebelum aksi di giliranmu.");
+    gui->showMessage("@HELP:NOTE:  EXIT                        - keluar dari permainan");
     return CommandResult::CONTINUE;
 }
 
@@ -739,13 +758,13 @@ CommandResult CommandProcessor::handleDropCard(Player* player, int index) {
 
 // ── Apply effects per card type ───────────────────────────────────────────────
 
-void CommandProcessor::applyMoveCard(Player* player, MoveCard* card) {
+bool CommandProcessor::applyMoveCard(Player* player, MoveCard* card) {
     int steps = card->getSteps();
     Board* board = game->getBoard();
-    if (board == nullptr) return;
+    if (board == nullptr) return false;
     if (board->passesGo(player->getPosition(), steps)) {
         player->addMoney(game->getGoSalary());
-        gui->showMessage("Melewati GO! Terima " + formatMoney(game->getGoSalary()) + ".");
+        gui->showMessage("Melewati GO! Terima " + Formatter::money(game->getGoSalary()) + ".");
     }
     int newPos = board->getNextIndex(player->getPosition(), steps);
     player->setPosition(newPos);
@@ -758,23 +777,45 @@ void CommandProcessor::applyMoveCard(Player* player, MoveCard* card) {
                             " petak -> " + tileName);
     }
     if (landed) engine->handleTileLandingPublic(player, landed);
+    return true;
 }
 
-void CommandProcessor::applyTeleportCard(Player* player, TeleportCard* /*card*/) {
+bool CommandProcessor::applyTeleportCard(Player* player, TeleportCard* /*card*/) {
     Board* board = game->getBoard();
-    if (board == nullptr) return;
+    if (board == nullptr) return false;
     gui->showMessage("TeleportCard: kamu dapat berpindah ke petak manapun.");
     gui->showMessage("Masukkan kode petak tujuan.");
     while (true) {
         std::string code = waitInput("Kode petak tujuan:");
         std::transform(code.begin(), code.end(), code.begin(),
                        [](unsigned char c){ return std::toupper(c); });
-        Tile* target = nullptr;
-        try {
-            target = board->getTile(code);
-        } catch (...) {
+        std::vector<Tile*> matches;
+        for (Tile* tile : board->getAllTiles()) {
+            if (tile != nullptr && tile->getCode() == code) {
+                matches.push_back(tile);
+            }
+        }
+        if (matches.empty()) {
             gui->showMessage("Kode petak tidak ditemukan: " + code + ". Coba lagi.");
             continue;
+        }
+        Tile* target = matches.front();
+        if (matches.size() > 1) {
+            gui->showMessage("Ada lebih dari satu petak dengan kode " + code + ". Pilih tujuan:");
+            for (int i = 0; i < static_cast<int>(matches.size()); ++i) {
+                gui->showMessage("[" + std::to_string(i + 1) + "] Petak " +
+                                 std::to_string(matches[i]->getIndex()) + " - " +
+                                 matches[i]->getName() + " (" + matches[i]->getCode() + ")");
+            }
+            int choice = -1;
+            while (choice < 0 || choice >= static_cast<int>(matches.size())) {
+                std::string in = waitInput("Pilih nomor petak:");
+                try { choice = std::stoi(in) - 1; } catch (...) { choice = -1; }
+                if (choice < 0 || choice >= static_cast<int>(matches.size())) {
+                    gui->showMessage("Nomor petak tidak valid.");
+                }
+            }
+            target = matches[choice];
         }
         if (board->passesGo(player->getPosition(), 0) ||
             target->getIndex() < player->getPosition()) {
@@ -790,9 +831,10 @@ void CommandProcessor::applyTeleportCard(Player* player, TeleportCard* /*card*/)
         engine->handleTileLandingPublic(player, target);
         break;
     }
+    return true;
 }
 
-void CommandProcessor::applyDiscountCard(Player* player, DiscountCard* card) {
+bool CommandProcessor::applyDiscountCard(Player* player, DiscountCard* card) {
     // Efek DiscountCard: diskon pembelian properti selama 1 giliran.
     // Diskon disimpan di player sebagai pending discount yang dicek saat beli properti.
     player->setPendingDiscount(card->getDiscount());
@@ -803,18 +845,20 @@ void CommandProcessor::applyDiscountCard(Player* player, DiscountCard* card) {
                             "KARTU", "Pakai DiscountCard diskon " +
                             std::to_string(card->getDiscount()) + "%");
     }
+    return true;
 }
 
-void CommandProcessor::applyShieldCard(Player* player, ShieldCard* /*card*/) {
+bool CommandProcessor::applyShieldCard(Player* player, ShieldCard* /*card*/) {
     turn->setShieldActive(true);
     gui->showMessage("ShieldCard aktif: kamu kebal dari tagihan sewa dan sanksi giliran ini.");
     if (engine->logger != nullptr) {
         engine->logger->log(game->getCurrentTurn(), player->getUsername(),
                             "KARTU", "Pakai ShieldCard -> kebal sewa & sanksi");
     }
+    return true;
 }
 
-void CommandProcessor::applyLassoCard(Player* player, LassoCard* /*card*/) {
+bool CommandProcessor::applyLassoCard(Player* player, LassoCard* /*card*/) {
     const auto& activePlayers = game->getActivePlayers();
     // Cari pemain lawan yang berada DI DEPAN posisi player
     std::vector<Player*> candidates;
@@ -829,9 +873,9 @@ void CommandProcessor::applyLassoCard(Player* player, LassoCard* /*card*/) {
         gui->showMessage("LassoCard: tidak ada pemain lawan yang berada di depanmu.");
         if (engine->logger != nullptr) {
             engine->logger->log(game->getCurrentTurn(), player->getUsername(),
-                                "KARTU", "Pakai LassoCard -> tidak ada target");
+                                "KARTU", "Coba LassoCard -> tidak ada target");
         }
-        return;
+        return false;
     }
     // Sort by smallest distance (paling dekat di depan)
     std::sort(candidates.begin(), candidates.end(), [&](Player* a, Player* b){
@@ -860,18 +904,26 @@ void CommandProcessor::applyLassoCard(Player* player, LassoCard* /*card*/) {
                             "KARTU", "Pakai LassoCard -> tarik " + target->getUsername() +
                             " ke petak " + std::to_string(myPos));
     }
+    return true;
 }
 
-void CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*card*/) {
+bool CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*card*/) {
     // Kumpulkan semua properti lawan yang punya bangunan
     std::vector<std::pair<Player*, Property*>> targets;
-    for (Player* other : game->getActivePlayers()) {
-        if (other == player) continue;
-        for (Property* prop : other->getOwnedProperties()) {
-            auto* sp = (prop != nullptr && prop->isStreet())
-                ? static_cast<StreetProperty*>(prop) : nullptr;
-            if (sp != nullptr && sp->getBuildingState() != BuildingState::NONE) {
-                targets.push_back({other, prop});
+    Board* board = game->getBoard();
+    if (board != nullptr) {
+        for (Tile* tile : board->getAllTiles()) {
+            if (tile == nullptr || tile->getCategory() != TileCategory::PROPERTY) continue;
+            auto* propertyTile = static_cast<PropertyTile*>(tile);
+            Property* prop = propertyTile->getProperty();
+            if (prop == nullptr || !prop->isStreet() || prop->isMortgaged()) continue;
+
+            Player* owner = prop->getOwner();
+            if (owner == nullptr || owner == player || owner->getStatus() == PlayerStatus::BANKRUPT) continue;
+
+            auto* sp = static_cast<StreetProperty*>(prop);
+            if (sp->getBuildingState() != BuildingState::NONE) {
+                targets.push_back({owner, prop});
             }
         }
     }
@@ -879,9 +931,9 @@ void CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*car
         gui->showMessage("DemolitionCard: tidak ada bangunan milik lawan yang bisa dihancurkan.");
         if (engine->logger != nullptr) {
             engine->logger->log(game->getCurrentTurn(), player->getUsername(),
-                                "KARTU", "Pakai DemolitionCard -> tidak ada target");
+                                "KARTU", "Coba DemolitionCard -> tidak ada target");
         }
-        return;
+        return false;
     }
     gui->showMessage("DemolitionCard: pilih properti lawan yang akan dihancurkan.");
     for (int i = 0; i < static_cast<int>(targets.size()); ++i) {
@@ -918,6 +970,7 @@ void CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*car
                             sp->getName() + " (" + sp->getCode() + ") milik " +
                             targets[choice].first->getUsername());
     }
+    return true;
 }
 
 CommandResult CommandProcessor::handleUseSkill(Player* player, int index) {
@@ -937,32 +990,38 @@ CommandResult CommandProcessor::handleUseSkill(Player* player, int index) {
         return CommandResult::INVALID;
     }
 
-    player->removeCard(card);
-    player->markSkillUsed();
-
+    bool applied = false;
     switch (card->getKind()) {
         case SkillCardKind::MOVE:
-            applyMoveCard(player, static_cast<MoveCard*>(card));
+            applied = applyMoveCard(player, static_cast<MoveCard*>(card));
             break;
         case SkillCardKind::TELEPORT:
-            applyTeleportCard(player, static_cast<TeleportCard*>(card));
+            applied = applyTeleportCard(player, static_cast<TeleportCard*>(card));
             break;
         case SkillCardKind::DISCOUNT:
-            applyDiscountCard(player, static_cast<DiscountCard*>(card));
+            applied = applyDiscountCard(player, static_cast<DiscountCard*>(card));
             break;
         case SkillCardKind::SHIELD:
-            applyShieldCard(player, static_cast<ShieldCard*>(card));
+            applied = applyShieldCard(player, static_cast<ShieldCard*>(card));
             break;
         case SkillCardKind::LASSO:
-            applyLassoCard(player, static_cast<LassoCard*>(card));
+            applied = applyLassoCard(player, static_cast<LassoCard*>(card));
             break;
         case SkillCardKind::DEMOLITION:
-            applyDemolitionCard(player, static_cast<DemolitionCard*>(card));
+            applied = applyDemolitionCard(player, static_cast<DemolitionCard*>(card));
             break;
         case SkillCardKind::JAIL_FREE:
             return CommandResult::INVALID;
     }
 
+    if (!applied) {
+        gui->showMessage("Kartu tidak digunakan karena efeknya tidak berhasil.");
+        gui->showMessage("Kamu masih boleh memakai kartu kemampuan lain pada giliran ini.");
+        return CommandResult::INVALID;
+    }
+
+    player->removeCard(card);
+    player->markSkillUsed();
     if (game->getSkillDeck() != nullptr) game->getSkillDeck()->discard(card);
     return CommandResult::CONTINUE;
 }

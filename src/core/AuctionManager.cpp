@@ -1,24 +1,8 @@
 #include "core/AuctionManager.hpp"
+#include "utils/Formatter.hpp"
+
 #include <algorithm>
 #include <sstream>
-
-namespace {
-std::string formatMoney(int amount) {
-    bool negative = amount < 0;
-    long long absAmount = negative ? -static_cast<long long>(amount) : amount;
-    std::string digits = std::to_string(absAmount);
-    std::string grouped;
-    int count = 0;
-    for (int i = static_cast<int>(digits.size()) - 1; i >= 0; --i) {
-        grouped.insert(grouped.begin(), digits[i]);
-        if (++count == 3 && i > 0) {
-            grouped.insert(grouped.begin(), '.');
-            count = 0;
-        }
-    }
-    return std::string(negative ? "-M" : "M") + grouped;
-}
-}
 
 AuctionManager::AuctionManager(Game* game, TransactionLogger* logger, IGUI* gui)
     : game(game), logger(logger), gui(gui) {}
@@ -82,8 +66,8 @@ std::pair<AuctionAction, int> AuctionManager::collectBidOrPass(Player& player, i
                                                                bool hasHighBidder, bool forceBid) {
     gui->showMessage("Giliran lelang: " + player.getUsername());
 
-    std::string minimumLabel = hasHighBidder ? ("> " + formatMoney(currentHighBid))
-                                             : (">= " + formatMoney(currentHighBid));
+    std::string minimumLabel = hasHighBidder ? ("> " + Formatter::money(currentHighBid))
+                                             : (">= " + Formatter::money(currentHighBid));
     if (forceBid) {
         gui->showInputPrompt("Masukkan BID <jumlah> (minimal " + minimumLabel + "). Kamu wajib menawar.");
     } else {
@@ -144,10 +128,10 @@ void AuctionManager::finalizeAuction(Player* winner, Property* property, int bid
     if (logger) logger->log(game->getCurrentTurn(), winner->getUsername(),
                             "LELANG",
                             "Menang " + property->getName() + " (" + property->getCode() +
-                            ") seharga " + formatMoney(bidAmount));
+                            ") seharga " + Formatter::money(bidAmount));
     gui->showMessage("Lelang selesai.");
     gui->showMessage("Pemenang lelang: " + winner->getUsername());
-    gui->showMessage("Harga akhir: " + formatMoney(bidAmount));
+    gui->showMessage("Harga akhir: " + Formatter::money(bidAmount));
     gui->showMessage("Properti " + property->getName() + " (" + property->getCode() +
                      ") kini dimiliki " + winner->getUsername() + ".");
 }
@@ -199,19 +183,19 @@ Player* AuctionManager::runAuction(Property* property, Player* triggeringPlayer)
             if (logger) {
                 logger->log(game->getCurrentTurn(), p->getUsername(),
                             "LELANG",
-                            property->getCode() + " BID " + formatMoney(currentBid));
+                            property->getCode() + " BID " + Formatter::money(currentBid));
             }
-            gui->showMessage("Penawaran tertinggi: " + formatMoney(currentBid) +
+            gui->showMessage("Penawaran tertinggi: " + Formatter::money(currentBid) +
                              " (" + highBidder->getUsername() + ")");
             gui->renderAuction(*property, currentBid, highBidder);
         } else {
             if (hasHighBidder) {
                 gui->showMessage("Bid ditolak.");
-                gui->showMessage("Bid harus lebih tinggi dari " + formatMoney(currentBid) +
+                gui->showMessage("Bid harus lebih tinggi dari " + Formatter::money(currentBid) +
                                  " dan tidak boleh melebihi saldomu.");
             } else {
                 gui->showMessage("Bid ditolak.");
-                gui->showMessage("Penawaran awal minimal " + formatMoney(currentBid) +
+                gui->showMessage("Penawaran awal minimal " + Formatter::money(currentBid) +
                                  " dan tidak boleh melebihi saldomu.");
             }
             continue;

@@ -1,5 +1,4 @@
 #pragma once
-#include "utils/Command.hpp"
 #include "views/IGUI.hpp"
 #include "views/viewElement/Entry.hpp"
 #include "views/viewElement/MenuView.hpp"
@@ -15,6 +14,7 @@
 #include "views/animation/camera/CameraMovement.hpp"
 #include <set>
 #include <stack>
+#include <string>
 
 class GUI : public IGUI {
     private:
@@ -32,7 +32,7 @@ class GUI : public IGUI {
 
     CameraManager camManager;
 
-    Command pendingCommand;
+    std::string pendingCommand;
     float fps;
     bool exitRequested;
     void unloadView(View2D *p);
@@ -49,7 +49,7 @@ public:
     void requestExit() override;
 
     // Input
-    Command getCommand() override;
+    std::string getCommand() override;
 
     // Navigasi view
     void loadMainMenu() override;

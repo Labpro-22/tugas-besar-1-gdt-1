@@ -1,22 +1,6 @@
 #include "models/Property/StreetProperty.hpp"
 #include "models/Player/Player.hpp"
 
-namespace {
-int requiredStreetCount(const std::string& colorGroup) {
-    if (colorGroup == "COKLAT" || colorGroup == "BIRU_TUA") {
-        return 2;
-    }
-
-    if (colorGroup == "BIRU_MUDA" || colorGroup == "MERAH_MUDA" ||
-        colorGroup == "ORANGE" || colorGroup == "MERAH" ||
-        colorGroup == "KUNING" || colorGroup == "HIJAU") {
-        return 3;
-    }
-
-    return 0;
-}
-}
-
 StreetProperty::StreetProperty(const std::string &code,
                                const std::string &name,
                                int purchasePrice,
@@ -39,6 +23,20 @@ BuildingState StreetProperty::getBuildingState() const { return buildingState; }
 int StreetProperty::getHouseBuildCost() const { return houseBuildCost; }
 int StreetProperty::getHotelBuildCost() const { return hotelBuildCost; }
 const std::vector<int>& StreetProperty::getRentLevels() const { return rentLevels; }
+
+int StreetProperty::requiredStreetCount(const std::string& colorGroup) {
+    if (colorGroup == "COKLAT" || colorGroup == "BIRU_TUA") {
+        return 2;
+    }
+
+    if (colorGroup == "BIRU_MUDA" || colorGroup == "MERAH_MUDA" ||
+        colorGroup == "ORANGE" || colorGroup == "MERAH" ||
+        colorGroup == "KUNING" || colorGroup == "HIJAU") {
+        return 3;
+    }
+
+    return 0;
+}
 
 bool StreetProperty::hasHotel() const {
     return buildingState == BuildingState::HOTEL;
@@ -99,7 +97,7 @@ int StreetProperty::calculateRent(int /*diceValue*/) const {
     }
 
     if (buildingState == BuildingState::NONE && owner != nullptr) {
-        const int required = requiredStreetCount(colorGroup);
+        const int required = StreetProperty::requiredStreetCount(colorGroup);
         int ownedCount = 0;
         for (Property *property : owner->getOwnedProperties()) {
             if (!property->isStreet()) continue;

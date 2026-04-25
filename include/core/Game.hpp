@@ -5,6 +5,7 @@
 #include <map>
 #include <cstddef>
 #include <utility>
+#include <random>
 #include "models/Player/Player.hpp"
 #include "models/BoardAndTiles/Board.hpp"
 #include "models/CardAndDeck/CardDeck.hpp"
@@ -16,6 +17,8 @@ class DiceManager{
     private :
         int die1;
         int die2;
+        std::mt19937 rng;
+        std::uniform_int_distribution<int> dieDistribution;
     public :
         DiceManager();
         std::pair<int, int> rollRandom();

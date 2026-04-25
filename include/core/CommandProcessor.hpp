@@ -65,12 +65,12 @@ private:
     CommandResult handlePrintLog(int nLast);
 
     std::string waitInput(const std::string& prompt) const;
-    void applyMoveCard(Player* player, MoveCard* card);
-    void applyTeleportCard(Player* player, TeleportCard* card);
-    void applyDiscountCard(Player* player, DiscountCard* card);
-    void applyShieldCard(Player* player, ShieldCard* card);
-    void applyLassoCard(Player* player, LassoCard* card);
-    void applyDemolitionCard(Player* player, DemolitionCard* card);
+    bool applyMoveCard(Player* player, MoveCard* card);
+    bool applyTeleportCard(Player* player, TeleportCard* card);
+    bool applyDiscountCard(Player* player, DiscountCard* card);
+    bool applyShieldCard(Player* player, ShieldCard* card);
+    bool applyLassoCard(Player* player, LassoCard* card);
+    bool applyDemolitionCard(Player* player, DemolitionCard* card);
     CommandResult handleSave(Player* player, const std::string& file);
     CommandResult handleLoad(const std::string& file);
     CommandResult handleFestival(Player* player, const std::string& code);

@@ -34,10 +34,13 @@ void TurnManager::startTurn(Player* player) {
     shieldActive = false;
 
     player->startTurn();
-    distributeSkillCard(player);
     decrementFestivalDurations();
 
     phase = TurnPhase::AWAITING_ROLL;
+}
+
+void TurnManager::drawSkillCardForTurn(Player* player) {
+    distributeSkillCard(player);
 }
 
 void TurnManager::endTurn(Player* player) {
@@ -85,8 +88,8 @@ void TurnManager::distributeSkillCard(Player* player) {
     SkillCard* card = deck->draw();
     if (card == nullptr) return;
 
-    gui->showMessage("Kamu mendapatkan 1 kartu acak baru!");
-    gui->showMessage("Kartu yang didapat: " + card->getCardName() + ".");
+    gui->showMessage("Giliran " + player->getUsername() + ": mendapatkan 1 kartu acak baru.");
+    gui->showMessage(player->getUsername() + " mendapatkan kartu: " + card->getCardName() + ".");
 
     if (player->getCardCount() >= 3) {
         handleDropCard(player, card);
@@ -94,7 +97,7 @@ void TurnManager::distributeSkillCard(Player* player) {
     }
 
     player->addCard(card);
-    gui->showMessage("Kartu " + card->getCardName() + " masuk ke tanganmu.");
+    gui->showMessage("Kartu " + card->getCardName() + " masuk ke tangan " + player->getUsername() + ".");
     if (logger != nullptr) {
         logger->log(game->getCurrentTurn(), player->getUsername(),
                     "KARTU", "Mendapat kartu skill: " + card->getCardName());

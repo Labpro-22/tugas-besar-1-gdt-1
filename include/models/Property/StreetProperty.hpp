@@ -36,6 +36,7 @@ public:
     int getHouseBuildCost() const;
     int getHotelBuildCost() const;
     const std::vector<int>& getRentLevels() const;
+    static int requiredStreetCount(const std::string& colorGroup);
 
     bool hasHotel() const;
     bool canBuildHouse() const;

@@ -38,6 +38,7 @@ public:
     TurnManager(Game* game, DiceManager* dice, IGUI* gui, TransactionLogger* logger = nullptr);
 
     void startTurn(Player* player);
+    void drawSkillCardForTurn(Player* player);
     void endTurn(Player* player);
 
     bool canRoll(Player* player) const;

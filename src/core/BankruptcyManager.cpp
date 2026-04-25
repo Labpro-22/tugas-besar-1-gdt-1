@@ -1,27 +1,12 @@
 #include "core/BankruptcyManager.hpp"
 
 #include "models/Property/StreetProperty.hpp"
+#include "utils/Formatter.hpp"
 
 #include <algorithm>
 #include <sstream>
 
 namespace {
-std::string formatMoney(int amount) {
-    bool negative = amount < 0;
-    long long absAmount = negative ? -static_cast<long long>(amount) : amount;
-    std::string digits = std::to_string(absAmount);
-    std::string grouped;
-    int count = 0;
-    for (int i = static_cast<int>(digits.size()) - 1; i >= 0; --i) {
-        grouped.insert(grouped.begin(), digits[i]);
-        if (++count == 3 && i > 0) {
-            grouped.insert(grouped.begin(), '.');
-            count = 0;
-        }
-    }
-    return std::string(negative ? "-M" : "M") + grouped;
-}
-
 std::string propertyColorLabel(const Property* property) {
     if (property == nullptr || !property->isStreet()) {
         if (property != nullptr && property->getType() == PropertyType::RAILROAD) return "STASIUN";
@@ -183,17 +168,17 @@ bool BankruptcyManager::canCoverDebt(const Player& player, int amount) const {
 void BankruptcyManager::showLiquidationEstimate(const Player& debtor, int amount, Player* /*creditor*/,
                                                 const std::string& obligationLabel) const {
     std::string label = obligationLabel.empty()
-        ? "kewajiban " + formatMoney(amount)
+        ? "kewajiban " + Formatter::money(amount)
         : obligationLabel;
 
     gui->showMessage("Kamu tidak dapat membayar " + label + ".");
     gui->showMessage("");
-    gui->showMessage("Uang kamu       : " + formatMoney(debtor.getBalance()));
-    gui->showMessage("Total kewajiban : " + formatMoney(amount));
+    gui->showMessage("Uang kamu       : " + Formatter::money(debtor.getBalance()));
+    gui->showMessage("Total kewajiban : " + Formatter::money(amount));
 
     int shortage = std::max(0, amount - debtor.getBalance());
     if (shortage > 0) {
-        gui->showMessage("Kekurangan      : " + formatMoney(shortage));
+        gui->showMessage("Kekurangan      : " + Formatter::money(shortage));
     }
     gui->showMessage("");
 
@@ -204,23 +189,23 @@ void BankruptcyManager::showLiquidationEstimate(const Player& debtor, int amount
     if (plan.empty()) {
         gui->showMessage("  Tidak ada aset yang dapat dilikuidasi.");
     } else if (potential + debtor.getBalance() < amount) {
-        gui->showMessage("  Jual semua properti + bangunan -> " + formatMoney(potential));
+        gui->showMessage("  Jual semua properti + bangunan -> " + Formatter::money(potential));
     } else {
         for (const auto& option : plan) {
             std::string action = option.kind == LiquidationOption::Kind::SELL ? "Jual " : "Gadai ";
             gui->showMessage("  " + action + option.property->getName() + " (" +
                              option.property->getCode() + ") [" +
                              propertyColorLabel(option.property) + "] -> " +
-                             formatMoney(option.value));
+                             Formatter::money(option.value));
         }
-        gui->showMessage("  Total potensi        -> " + formatMoney(potential));
+        gui->showMessage("  Total potensi        -> " + Formatter::money(potential));
     }
 
     if (potential + debtor.getBalance() < amount) {
         gui->showMessage("Total aset + uang tunai          : " +
-                         formatMoney(debtor.getBalance() + potential));
+                         Formatter::money(debtor.getBalance() + potential));
         gui->showMessage("Tidak cukup untuk menutup kewajiban " +
-                         formatMoney(amount) + ".");
+                         Formatter::money(amount) + ".");
     } else {
         gui->showMessage("");
         gui->showMessage("Dana dari likuidasi cukup untuk menutup kewajiban.");
@@ -254,8 +239,8 @@ int BankruptcyManager::sellPropertyToBank(Player& player, Property* property) {
 
     gui->showMessage(property->getName() + " terjual ke Bank.");
     gui->showMessage("Kamu menerima " +
-                     formatMoney(total) + ".");
-    gui->showMessage("Uang kamu sekarang: " + formatMoney(player.getBalance()));
+                     Formatter::money(total) + ".");
+    gui->showMessage("Uang kamu sekarang: " + Formatter::money(player.getBalance()));
     return total;
 }
 
@@ -273,8 +258,8 @@ int BankruptcyManager::mortgageProperty(Player& player, Property* property) {
     }
 
     gui->showMessage(property->getName() + " berhasil digadaikan.");
-    gui->showMessage("Kamu menerima " + formatMoney(value) + " dari Bank.");
-    gui->showMessage("Uang kamu sekarang: " + formatMoney(player.getBalance()));
+    gui->showMessage("Kamu menerima " + Formatter::money(value) + " dari Bank.");
+    gui->showMessage("Uang kamu sekarang: " + Formatter::money(player.getBalance()));
     return value;
 }
 
@@ -292,8 +277,8 @@ bool BankruptcyManager::runLiquidationPanel(Player& player, int targetAmount) {
 
         gui->showMessage("");
         gui->showMessage("Panel likuidasi:");
-        gui->showMessage("Uang kamu saat ini: " + formatMoney(player.getBalance()) +
-                         "  |  Kewajiban: " + formatMoney(targetAmount));
+        gui->showMessage("Uang kamu saat ini: " + Formatter::money(player.getBalance()) +
+                         "  |  Kewajiban: " + Formatter::money(targetAmount));
 
         int index = 1;
         std::vector<LiquidationOption> numbered;
@@ -306,13 +291,13 @@ bool BankruptcyManager::runLiquidationPanel(Player& player, int targetAmount) {
                                      option.property->getName() + " (" +
                                      option.property->getCode() + ") [" +
                                      propertyColorLabel(option.property) + "] Harga Jual: " +
-                                     formatMoney(option.value);
+                                     Formatter::money(option.value);
                 if (option.property->isStreet()) {
                     auto* street = static_cast<StreetProperty*>(option.property);
                     int buildingValue = street->sellBuildingValue();
                     if (buildingValue > 0) {
                         detail += " (termasuk " + buildingLabel(street) + ": " +
-                                  formatMoney(buildingValue) + ")";
+                                  Formatter::money(buildingValue) + ")";
                     }
                 }
                 gui->showMessage(detail);
@@ -329,7 +314,7 @@ bool BankruptcyManager::runLiquidationPanel(Player& player, int targetAmount) {
                                  option.property->getName() + " (" +
                                  option.property->getCode() + ") [" +
                                  propertyColorLabel(option.property) + "] Nilai Gadai: " +
-                                 formatMoney(option.value));
+                                 Formatter::money(option.value));
                 numbered.push_back(option);
                 ++index;
             }
@@ -395,7 +380,7 @@ void BankruptcyManager::returnAssetsToBank(Player& player) {
     int remaining = player.getBalance();
     if (remaining > 0) {
         player.deductMoney(remaining);
-        gui->showMessage("Sisa uang " + formatMoney(remaining) + " diserahkan ke Bank.");
+        gui->showMessage("Sisa uang " + Formatter::money(remaining) + " diserahkan ke Bank.");
     }
 
     gui->showMessage("Semua properti dikembalikan ke Bank.");
@@ -424,7 +409,7 @@ void BankruptcyManager::declareBankruptcy(Player& debtor, Player* creditor) {
         gui->showMessage("");
         gui->showMessage("Aset dialihkan ke " + creditor->getUsername() + ":");
         if (debtor.getBalance() > 0) {
-            gui->showMessage("  - Uang tunai sisa  : " + formatMoney(debtor.getBalance()));
+            gui->showMessage("  - Uang tunai sisa  : " + Formatter::money(debtor.getBalance()));
         }
         for (Property* property : debtor.getOwnedProperties()) {
             gui->showMessage("  - " + property->getName() + " (" + property->getCode() + ") [" +
@@ -464,7 +449,7 @@ bool BankruptcyManager::handleInsufficientFunds(Player& debtor, int amount, Play
         if (logger != nullptr) {
             logger->log(game->getCurrentTurn(), debtor.getUsername(),
                         "GAGAL_BAYAR",
-                        (obligationLabel.empty() ? formatMoney(amount) : obligationLabel) +
+                        (obligationLabel.empty() ? Formatter::money(amount) : obligationLabel) +
                         " -> bangkrut");
         }
         declareBankruptcy(debtor, creditor);
@@ -475,7 +460,7 @@ bool BankruptcyManager::handleInsufficientFunds(Player& debtor, int amount, Play
         if (logger != nullptr) {
             logger->log(game->getCurrentTurn(), debtor.getUsername(),
                         "GAGAL_BAYAR",
-                        (obligationLabel.empty() ? formatMoney(amount) : obligationLabel) +
+                        (obligationLabel.empty() ? Formatter::money(amount) : obligationLabel) +
                         " -> bangkrut");
         }
         declareBankruptcy(debtor, creditor);
@@ -492,12 +477,12 @@ bool BankruptcyManager::handleInsufficientFunds(Player& debtor, int amount, Play
     debtor.deductMoney(amount);
     if (creditor != nullptr) creditor->addMoney(amount);
 
-    gui->showMessage("Uang kamu : " + formatMoney(debtorBefore) + " -> " +
-                     formatMoney(debtor.getBalance()));
+    gui->showMessage("Uang kamu : " + Formatter::money(debtorBefore) + " -> " +
+                     Formatter::money(debtor.getBalance()));
     if (creditor != nullptr) {
         gui->showMessage("Uang " + creditor->getUsername() + ": " +
-                         formatMoney(creditorBefore) + " -> " +
-                         formatMoney(creditor->getBalance()));
+                         Formatter::money(creditorBefore) + " -> " +
+                         Formatter::money(creditor->getBalance()));
     }
     return true;
 }

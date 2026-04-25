@@ -20,12 +20,15 @@ class View3D {
     public:
         View3D();
         View3D(const Vector3& pos, const Model& model, const Color& color);
-        ~View3D();
+        virtual ~View3D();
         const Vector3 getPos() const;
         Model getModel() const;
         Matrix getTransformation() const;
+        const BoundingBox getHitbox() const;
+        const bool isHovered(Camera3D& cam) const;
         void movePosition(const Vector3& pos);
         void movePositionDelta(const Vector3& deltaPos);
+        void setVisible(bool visible);
         void setPosX(float x);
         void setPosY(float y);
         void setPosZ(float z);

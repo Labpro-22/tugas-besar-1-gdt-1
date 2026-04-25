@@ -1,6 +1,7 @@
 #include "views/GUI.hpp"
 #include "views/viewElement/GameHUDView.hpp"
 #include "core/Game.hpp"
+#include "models/CardAndDeck/LassoCard.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -183,6 +184,7 @@ void GUI::loadPlayer(Player &player)
 
     PlayerView *playerView = new PlayerView(player, board, color, &camManager);
     players.push_back(playerView);
+    players.back()->setVisible(false);
 
     PlayerProfileView *profile = new PlayerProfileView();
     profile->setPlayer(&player);
@@ -211,13 +213,18 @@ void GUI::loadDice(PlayerView *player)
     views.insert(dice->getThrowButton());
 }
 
-void GUI::loadCardPiles(CardDeck<Card> &chancePile, CardDeck<Card> &comChestPile)
-{
-    Vector2 cardDim = (Vector2){7.6f, 4.275f} * (board->getBoardSize() / 30.0f);
-    Vector3 cardPos = {-cardDim.x / 2 - board->getBoardSize() * 0.015f, 0.015, -cardDim.x / 2 - board->getBoardSize() * 0.015f};
+void GUI::loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile) {
+    Vector2 cardDim = (Vector2){7.6f, 4.275f}*(board->getBoardSize()/30.0f);
+    Vector3 cardPos = {-cardDim.x/2 - board->getBoardSize()*0.015f, 0.015, -cardDim.x/2 - board->getBoardSize()*0.015f};
     this->chancePile = new CardPileView(chancePile, cardPos, cardDim);
-    this->communityChestPile = new CardPileView(comChestPile, {cardPos.x * -1, cardPos.y, cardPos.z * -1}, cardDim * -1);
+    this->communityChestPile = new CardPileView(comChestPile, {cardPos.x*-1, cardPos.y, cardPos.z*-1}, cardDim*-1);
 }
+
+void GUI::loadSkillHand(Player& player, Card* incomingCard) {
+    skillCard = new SkillHandView(player, camManager.getCurrentCamera(), incomingCard);
+    views.insert(skillCard);
+}
+
 
 std::string GUI::getCommand()
 {
@@ -336,21 +343,24 @@ std::string GUI::getCommand()
                 dice->moveDiceOffScreen();
                 PlayerView *movingPlayer = dice->getPlayer();
                 int moveVal = dice->getMoveValue();
-                camManager.switchTo(dice->getPlayer()->getPlayerCamKey(), 1, [this, movingPlayer, moveVal]()
-                                    { movingPlayer->moveSpaces(moveVal); });
-            }
-            else if (tokens[1] == "DRAW")
-            {
-                if (tokens[2] == "CC")
-                {
-                    // reshuffle deck
-                    communityChestPile->drawCard();
-                }
-                else if (tokens[2] == "CH")
-                {
-                    // reshuffle deck
-                    chancePile->drawCard();
-                }
+                camManager.switchTo(dice->getPlayer()->getPlayerCamKey(), 1, [this, movingPlayer, moveVal](){
+                    movingPlayer->moveSpaces(moveVal);
+                });
+            } else if (tokens[1] == "DRAW") {
+                camManager.switchTo("ACTION_CAM", 1, [this, tokens](){
+                    if (tokens[2] == "CC") {
+                        // reshuffle deck
+                        communityChestPile->drawCard();
+                    } else if (tokens[2] == "CH") {
+                        // reshuffle deck
+                        chancePile->drawCard();
+                    }
+                });
+            } else if (tokens[1] == "HAND") {
+                camManager.switchTo("ACTION_CAM", 1, [this, tokens](){
+                    loadSkillHand(players[stoi(tokens[2])]->getPlayer(), new LassoCard);
+                });
+                
             }
 
             return "NULL";
@@ -454,6 +464,12 @@ void GUI::update()
         }
     }
 
+    if (skillCard != nullptr) {
+        if (skillCard->closed()) {
+            skillCard = nullptr;
+        }
+    }
+
     if (!popupStack.empty())
     {
         while (popupStack.top()->closed())
@@ -495,7 +511,6 @@ void GUI::display()
     if (dice != nullptr)
         dice->render();
     EndMode3D();
-
     for (View2D *view : views)
     {
         view->render();

@@ -7,7 +7,7 @@ CardPileView::CardPileView(CardDeck<Card>& cardPile, const Vector3& pos, const V
     category(cardPile.getDrawPile().at(0)->getCategory()) {
     int i = 0;
     for (Card* card : cardPile.getDrawPile()) {
-        cards.push_back(new CardView(card, this, cardSize, {pos.x, pos.y + i*0.1f, pos.z}));
+        cards.push_back(new ActionCardView(card, this, {pos.x, pos.y + i*0.1f, pos.z}));
         i++;
     }
 }
@@ -24,11 +24,15 @@ Vector3 CardPileView::getPos() {
     return pos;
 }
 
+Vector2 CardPileView::getCardSize() {
+    return cardSize;
+}
+
 void CardPileView::updatePile() {
     int i = 0;
-    vector<CardView*> newPile;
+    vector<ActionCardView*> newPile;
     for(Card* card : cardPile.getDrawPile()) {
-        auto it = find_if(cards.begin(), cards.end(), [card](const CardView* cv) {
+        auto it = find_if(cards.begin(), cards.end(), [card](const ActionCardView* cv) {
             return cv->getCard() == card;
         });
         if (it != cards.end()) {
@@ -63,7 +67,7 @@ void CardPileView::drawCard() {
                     int neg = cardSize.x > 0 ? 1 : -1;
                     drawnCard->setTransform(original);
                     drawnCard->movePosition(pos + (Vector3){-15, 0.1, (float) -15*neg});
-                    for (CardView* cardInPile : cards) {
+                    for (ActionCardView* cardInPile : cards) {
                         View3DAnimation* drawAnim8 = new View3DAnimation(*cardInPile, 120, false, [](){}, [](){});
                         drawAnim8->setMoveAnimation(cardInPile->getPos() + (Vector3){0,2,0}, 0.2);
                         drawAnim8->start();
@@ -72,7 +76,7 @@ void CardPileView::drawCard() {
                     View3DAnimation* drawAnim9 = new View3DAnimation(*drawnCard, 120, false, [](){}, [](){});
                     drawAnim9->setWait(0.2, [this](){
                         View3DAnimation* drawAnim7 = new View3DAnimation(*drawnCard, 120, false, [](){}, [this](){
-                            for (CardView* cardInPile : cards) {
+                            for (ActionCardView* cardInPile : cards) {
                                 View3DAnimation* drawAnim10 = new View3DAnimation(*cardInPile, 120, false, [](){}, [this](){});
                                 drawAnim10->setMoveAnimation(cardInPile->getPos() - (Vector3){0,1.9f,0}, 0.2);
                                 drawAnim10->start();
@@ -113,7 +117,7 @@ void CardPileView::drawCard() {
 }
 
 void CardPileView::render() {
-    for (CardView* card : cards) {
+    for (ActionCardView* card : cards) {
         card->render();
     }
     if (drawnCard != nullptr) drawnCard->render();

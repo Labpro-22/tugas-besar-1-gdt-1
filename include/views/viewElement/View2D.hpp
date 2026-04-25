@@ -58,6 +58,7 @@ class View2D {
         void setBrightness(float brightness);
         void setOpacity(float opacity);
         void setVisible(bool visible);
+        virtual void close();
         void setRender(function<void()> renderFunc);
         void addAnimation(std::string animKey, View2DAnimation* anim);
         View2DAnimation* getAnimation(std::string animKey) const;

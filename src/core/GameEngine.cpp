@@ -899,7 +899,7 @@ void GameEngine::run()
         {
             if (action == "NEW_GAME")
             {
-                initNewGame();
+                initNewGame(argument);
                 gameLoop();
                 break;
             }
@@ -931,12 +931,16 @@ void GameEngine::run()
     }
 }
 
-void GameEngine::initNewGame()
+void GameEngine::initNewGame(const std::string &configPath)
 {
     resetRuntimeState();
     this->game = new Game();
 
-    ConfigLoader loader(kDefaultConfigDir);
+    std::string base = "data/config/";
+    std::string name = configPath.empty() ? "default" : configPath;
+    std::string path = base + name;
+
+    ConfigLoader loader(path);
     GameConfig config = loader.loadGameConfig();
 
     game->setConfigValues(

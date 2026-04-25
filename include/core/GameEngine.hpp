@@ -43,7 +43,7 @@ private:
     bool skipAdvanceAfterLoad;
     std::string pendingLoadPath;
 
-    void initNewGame();
+    void initNewGame(const std::string& configPath);
     bool initLoadGame(const std::string& filepath = "");
     bool loadFromPath(const std::string& filepath);
     void resetRuntimeState();

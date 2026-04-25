@@ -9,11 +9,11 @@ static constexpr int SCREEN_H = 720;
 static constexpr int TARGET_FPS = 60;
 static const char *WINDOW_TITLE = "Monopoly";
 
-static void loadFonts()
+static void initLoad()
 {
+    PlayerView::loadPlayerModel("data/GUIAssets/playerpawn.obj");
     View2D::addFont("Kabel", "data/GUIAssets/kabel.ttf");
     View2D::addFont("Orbitron", "data/GUIAssets/Orbitron-VariableFont_wght.ttf");
-    // tambah font lain di sini jika ada
 }
 
 int main()
@@ -21,7 +21,7 @@ int main()
     InitWindow(SCREEN_W, SCREEN_H, WINDOW_TITLE);
     SetTargetFPS(TARGET_FPS);
 
-    loadFonts();
+    initLoad();
 
     ConfigLoader *CL = new ConfigLoader("data/config/default");
     GameConfig GC = CL->loadGameConfig();

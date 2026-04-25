@@ -150,7 +150,14 @@ void GUI::loadGameView()
     clearViews();
     clearPlayers();
     menu = nullptr;
-    views.push_back(new GameHUDView());
+
+    GameHUDView* hud = new GameHUDView();
+    
+    if (this->cachedGame != nullptr) {
+        hud->setGameModel(this->cachedGame);
+    }
+
+    views.push_back(hud);
 }
 
 void GUI::loadFinishMenu()
@@ -210,8 +217,16 @@ std::string GUI::getCommand()
 
 void GUI::renderBoard(const Game &game)
 {
-    // Board 3D sudah di-render lewat BoardView di display().
-    // Fungsi ini dipanggil engine untuk sinkronisasi state tile jika perlu.
+    this->cachedGame = &game;
+
+    for (View2D *view : views)
+    {
+        if (GameHUDView *hud = dynamic_cast<GameHUDView *>(view))
+        {
+            hud->setGameModel(this->cachedGame);
+        }
+    }
+    
     if (board == nullptr)
     {
         Board *b = game.getBoard();

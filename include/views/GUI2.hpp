@@ -23,31 +23,34 @@
 #include <vector>
 #include <string>
 
-class GUI : public IGUI {
+class GUI : public IGUI
+{
 private:
+    const Game *cachedGame = nullptr;
+
     // ── View layers ────────────────────────────────────────────────────────
-    std::vector<View2D*>             views;
-    std::stack<Popup*>            popupStack;
-    MenuView*                     menu;
-    Entry*                        debuggingEntry;
+    std::vector<View2D *> views;
+    std::stack<Popup *> popupStack;
+    MenuView *menu;
+    Entry *debuggingEntry;
 
     // ── 3D scene objects ───────────────────────────────────────────────────
-    BoardView*                    board;
-    DiceView*                     dice;
-    std::vector<PlayerView*>      players;
-    std::vector<PlayerProfileView*> playerProfiles;
-    CardPileView*                 chancePile;
-    CardPileView*                 communityChestPile;
+    BoardView *board;
+    DiceView *dice;
+    std::vector<PlayerView *> players;
+    std::vector<PlayerProfileView *> playerProfiles;
+    CardPileView *chancePile;
+    CardPileView *communityChestPile;
 
     // ── Camera & runtime ───────────────────────────────────────────────────
-    CameraManager                 camManager;
-    std::string                   pendingCommand;
-    float                         fps;
-    bool                          exitRequested;
+    CameraManager camManager;
+    std::string pendingCommand;
+    float fps;
+    bool exitRequested;
 
     // ── View management ────────────────────────────────────────────────────
-    void unloadView(View2D* v);
-    void loadPopup(Popup* popup);
+    void unloadView(View2D *v);
+    void loadPopup(Popup *popup);
     void enableAll();
     void disableAll();
     void clearViews();
@@ -61,18 +64,18 @@ private:
     void updatePlayerProfilesLayout();
 
     // ── getCommand helpers ─────────────────────────────────────────────────
-    bool        hasPendingCommand() const;
+    bool hasPendingCommand() const;
     std::string consumePendingCommand();
     std::string pollPopup();
     std::string pollViews();
-    void        handleDisplayCommand(const std::vector<std::string>& tokens);
+    void handleDisplayCommand(const std::vector<std::string> &tokens);
 
 public:
-    GUI(float fps, Board& board);
+    GUI(float fps, Board &board);
     ~GUI() override = default;
 
     // ── Lifecycle ──────────────────────────────────────────────────────────
-    void update()  override;
+    void update() override;
     void display() override;
     bool shouldExit() const override;
 
@@ -80,35 +83,35 @@ public:
     std::string getCommand() override;
 
     // ── Navigasi view ──────────────────────────────────────────────────────
-    void loadMainMenu()   override;
-    void loadGameView()   override;
+    void loadMainMenu() override;
+    void loadGameView() override;
     void loadFinishMenu() override;
 
     // ── Popup / prompt ─────────────────────────────────────────────────────
-    void showMessage(const std::string& message)    override;
-    void showConfirm(const std::string& question)   override;
-    void showInputPrompt(const std::string& prompt) override;
-    void showException(int code, const std::string& msg) override;
+    void showMessage(const std::string &message) override;
+    void showConfirm(const std::string &question) override;
+    void showInputPrompt(const std::string &prompt) override;
+    void showException(int code, const std::string &msg) override;
 
     // ── Render state game (kontrak sama persis dengan CLIGUI) ──────────────
-    void renderBoard(const Game& game)                                             override;
-    void renderPlayer(const Player& player)                                        override;
-    void renderProperty(const Property& property)                                  override;
-    void renderOwnedProperties(const Player& player)                               override;
-    void renderDice(int die1, int die2)                                            override;
-    void renderLog(const std::vector<LogEntry>& entries, const std::string& title) override;
-    void renderSkillHand(const std::vector<SkillCard*>& hand)                      override;
-    void renderAuction(const Property& property, int currentBid,
-                       const Player* highBidder)                                   override;
-    void renderBankruptcy(const Player& player)                                    override;
-    void renderWinner(const Player& winner)                                        override;
-    void renderMovement(const std::string& playerName, int steps,
-                        const std::string& landedTileName)                         override;
+    void renderBoard(const Game &game) override;
+    void renderPlayer(const Player &player) override;
+    void renderProperty(const Property &property) override;
+    void renderOwnedProperties(const Player &player) override;
+    void renderDice(int die1, int die2) override;
+    void renderLog(const std::vector<LogEntry> &entries, const std::string &title) override;
+    void renderSkillHand(const std::vector<SkillCard *> &hand) override;
+    void renderAuction(const Property &property, int currentBid,
+                       const Player *highBidder) override;
+    void renderBankruptcy(const Player &player) override;
+    void renderWinner(const Player &winner) override;
+    void renderMovement(const std::string &playerName, int steps,
+                        const std::string &landedTileName) override;
 
     // ── Setup khusus raylib (dipanggil engine saat inisialisasi game) ──────
-    void loadPlayer(Player& player);
-    void loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile);
-    void loadDice(PlayerView* player);
+    void loadPlayer(Player &player);
+    void loadCardPiles(CardDeck<Card> &chancePile, CardDeck<Card> &comChestPile);
+    void loadDice(PlayerView *player);
     void enterGame();
 
     // ── Testing ────────────────────────────────────────────────────────────

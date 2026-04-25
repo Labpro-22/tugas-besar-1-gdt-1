@@ -26,5 +26,3 @@ class PlayerView : public View3D {
         void moveSpaces(int moveVal);
         static void loadPlayerModel(string filePath);
 };
-
-

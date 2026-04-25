@@ -266,6 +266,7 @@ bool GameEngine::loadFromPath(const std::string &filepath)
                     "MUAT", "Game dimuat dari " + filepath);
     }
     gui->showMessage("Permainan berhasil dimuat dari " + filepath + ".");
+    gui->renderBoard(*game);
     gui->loadGameView();
     resumeLoadedTurn = true;
     return true;
@@ -279,7 +280,8 @@ std::string GameEngine::waitForInput(IGUI *gui, const std::string &prompt)
         gui->update();
         gui->display();
         std::string c = gui->getCommand();
-        if (c != "NULL") return c;
+        if (c != "NULL")
+            return c;
     }
     return "";
 }
@@ -980,6 +982,17 @@ void GameEngine::initNewGame()
     {
         std::string uname = waitForInput(gui,
                                          "Username pemain ke-" + std::to_string(i + 1) + ":");
+
+        auto isBlank = [](const std::string &s)
+        {
+            return std::all_of(s.begin(), s.end(), ::isspace);
+        };
+
+        if (uname.empty() || isBlank(uname))
+        {
+            uname = "Player" + std::to_string(i + 1);
+        }
+
         game->addPlayer(new Player(uname, initBalance));
     }
 
@@ -992,7 +1005,6 @@ void GameEngine::initNewGame()
     game->setCurrentTurnIndex(0);
     game->setCurrentTurn(1);
 
-    // Set all players to start on GO (tile index 1)
     Board *b = game->getBoard();
     int goIndex = (b && b->getGoTile()) ? b->getGoTile()->getIndex() : 1;
     for (Player *p : game->getPlayers())
@@ -1000,6 +1012,7 @@ void GameEngine::initNewGame()
         p->setPosition(goIndex);
     }
 
+    gui->renderBoard(*game);
     gui->loadGameView();
 }
 

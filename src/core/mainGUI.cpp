@@ -11,8 +11,8 @@ static const char *WINDOW_TITLE = "Monopoly";
 
 static void loadFonts()
 {
-    View2D::addFont("Orbitron", "data/GUIAssets/fonts/Orbitron.ttf");
     View2D::addFont("Kabel", "data/GUIAssets/kabel.ttf");
+    View2D::addFont("Orbitron", "data/GUIAssets/Orbitron-VariableFont_wght.ttf");
     // tambah font lain di sini jika ada
 }
 
@@ -31,7 +31,7 @@ int main()
     GameEngine engine(gui);
     engine.run();
 
-    View2D::unloadFonts(); 
+    View2D::unloadFonts();
     CloseWindow();
 
     delete gui;

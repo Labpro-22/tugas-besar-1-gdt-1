@@ -1,4 +1,19 @@
 #include "views/viewElement/GameHUDView.hpp"
+#include "core/Game.hpp"
+
+namespace {
+    Color playerColor(size_t index)
+    {
+        switch (index)
+        {
+            case 0: return RED;
+            case 1: return BLUE;
+            case 2: return GREEN;
+            case 3: return YELLOW;
+            default: return LIGHTGRAY;
+        }
+    }
+}
 
 GameHUDView::GameHUDView()
     : View2D({0, 0}, {0, 0}, []() {}),
@@ -27,10 +42,49 @@ GameHUDView::GameHUDView()
 {
 }
 
+void GameHUDView::setGameModel(const Game *game)
+{
+    this->gameModel = game;
+
+    playerProfiles.clear();
+
+    if (!gameModel)
+        return;
+
+    const auto &players = gameModel->getPlayers();
+
+    for (size_t i = 0; i < players.size(); ++i)
+    {
+        PlayerProfileView profile;
+        profile.setPlayer(players[i]);
+
+        profile.setHitboxDim({250, 80});
+        profile.setActive(true);
+
+        profile.setColor(playerColor(i));
+        playerProfiles.push_back(profile);
+    }
+}
+
+void GameHUDView::updateProfileData()
+{
+    if (!gameModel)
+        return;
+
+    int currentIdx = gameModel->getCurrentTurnIndex();
+    rollDiceBtn.setGameCommand("DISPLAY ROLL_DICE " + std::to_string(currentIdx));
+}
+
 void GameHUDView::interactionCheck()
 {
     rollDiceBtn.interactionCheck();
     switchCamBtn.interactionCheck();
+
+    for (auto &p : playerProfiles)
+    {
+        p.onHover();
+        p.onClicked();
+    }
 }
 
 std::string GameHUDView::catchCommand()
@@ -45,28 +99,48 @@ std::string GameHUDView::catchCommand()
     if (cmd != "NULL")
         return cmd;
 
+    for (auto &p : playerProfiles)
+    {
+        cmd = p.catchCommand();
+        if (cmd != "NULL")
+            return cmd;
+    }
+
     return "NULL";
 }
 
 void GameHUDView::render()
 {
+    updateProfileData();
+    float wProfile = 250.0f;
+    float hProfile = 80.0f;
     float margin = 20.0f;
+
+    Vector2 corners[4] = {
+        {wProfile / 2 + margin, hProfile / 2 + margin},                                       // TL
+        {GetScreenWidth() - wProfile / 2 - margin, hProfile / 2 + margin},                    // TR
+        {wProfile / 2 + margin, GetScreenHeight() - hProfile / 2 - margin},                   // BL
+        {GetScreenWidth() - wProfile / 2 - margin, GetScreenHeight() - hProfile / 2 - margin} // BR
+    };
+
+    for (size_t i = 0; i < playerProfiles.size() && i < 4; ++i)
+    {
+        playerProfiles[i].movePosition(corners[i]);
+        playerProfiles[i].render();
+    }
+
     float spacing = 16.0f;
 
     float w = 200.0f;
     float h = 56.0f;
 
     float x = GetScreenWidth() - w - margin;
-
     float totalH = h * 2 + spacing;
-
     float startY = (GetScreenHeight() - totalH) / 2.0f;
 
     // SWITCH CAM (atas)
     float y1 = startY;
-
     switchCamBtn.movePosition({x + w / 2, y1 + h / 2});
-
     DrawRectangleRounded({x + 3, y1 + 4, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
 
     Color camColor = isTopView
@@ -76,7 +150,6 @@ void GameHUDView::render()
     DrawRectangleRounded({x, y1, w, h}, 0.5f, 8, camColor);
 
     const char *camText = isTopView ? "BOARD VIEW" : "TOP VIEW";
-
     int fontSize = 20;
     int textWidth = MeasureText(camText, fontSize);
 
@@ -90,17 +163,13 @@ void GameHUDView::render()
 
     // ROLL DICE (bawah)
     float y2 = y1 + h + spacing;
-
     rollDiceBtn.movePosition({x + w / 2, y2 + h / 2});
-
     DrawRectangleRounded({x + 3, y2 + 4, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
 
     Color diceColor = Color{200, 140, 40, 255};
-
     DrawRectangleRounded({x, y2, w, h}, 0.5f, 8, diceColor);
 
     const char *diceText = "ROLL DICE";
-
     textWidth = MeasureText(diceText, fontSize);
 
     DrawText(diceText,
@@ -109,16 +178,5 @@ void GameHUDView::render()
              fontSize,
              WHITE);
 
-    rollDiceBtn.setGameCommand(
-        "DISPLAY ROLL_DICE " + std::to_string(currentPlayerIdx));
-
     rollDiceBtn.render();
-}
-
-void GameHUDView::setCurrentPlayerIdx(int idx)
-{
-    currentPlayerIdx = idx;
-
-    rollDiceBtn.setGameCommand(
-        "DISPLAY ROLL_DICE " + std::to_string(currentPlayerIdx));
 }

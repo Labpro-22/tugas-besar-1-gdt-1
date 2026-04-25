@@ -31,6 +31,7 @@ public:
     virtual void showMessage(const std::string& message) = 0;
     virtual void showConfirm(const std::string& question) = 0;
     virtual void showInputPrompt(const std::string& prompt) = 0;
+    virtual void showException(int code, const std::string& msg) = 0;
 
     // Render state game
     virtual void renderBoard(const Game& game) = 0;

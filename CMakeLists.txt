@@ -7,9 +7,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(raylib REQUIRED)
 
 add_executable(${PROJECT_NAME} src/core/Game.cpp
-                               src/core/main.cpp
+                               src/core/mainGUI.cpp
                                src/core/GameEngine.cpp
-                               src/views/GUI.cpp
+                               src/core/AuctionManager.cpp
+                               src/core/BankruptcyManager.cpp
+                               src/core/CommandProcessor.cpp
+                               src/core/SaveLoadManager.cpp
+                               src/core/TurnManager.cpp
+                               src/views/GUI2.cpp
                                src/views/viewElement/View2D.cpp
                                src/views/viewElement/View3D.cpp
                                src/views/viewElement/Popup.cpp
@@ -60,6 +65,7 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/models/CardAndDeck/CommunityChestCard.cpp
                                src/models/CardAndDeck/DemolitionCard.cpp
                                src/models/CardAndDeck/DiscountCard.cpp
+                               src/models/CardAndDeck/JailFreeCard.cpp
                                src/models/CardAndDeck/LassoCard.cpp
                                src/models/CardAndDeck/MoveCard.cpp
                                src/models/CardAndDeck/ShieldCard.cpp

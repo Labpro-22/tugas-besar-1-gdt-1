@@ -1,13 +1,15 @@
 #include "utils/data/ConfigLoader.hpp"
 #include "models/BoardAndTiles/TileTypes.hpp"
+#include "exception/InvalidFile/FileNotFoundException.hpp"
+#include "exception/InvalidFile/UnreadableFileException.hpp"
+#include "exception/InvalidFile/InvalidConfigException.hpp"
 
 // Constructor
 ConfigLoader::ConfigLoader(std::string configDir) : configDir(configDir) {}
 
-// API untuk Game
 GameConfig ConfigLoader::loadGameConfig() {
     GameConfig config;
-    
+
     config.setRailroadRents(loadRailroadRents(configDir + "/railroad.txt"));
     config.setUtilityMultipliers(loadUtilityMultipliers(configDir + "/utility.txt"));
     config.setTax(loadTaxConfig(configDir + "/tax.txt"));
@@ -22,125 +24,213 @@ GameConfig ConfigLoader::loadGameConfig() {
 // load file untuk ke Objek Property (Property.txt, Railroad.txt, Utility.txt)
 std::vector<Property*> ConfigLoader::loadProperties(std::string filename) {
     std::vector<Property*> properties(40, nullptr);
+
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cerr << "Warning: Could not open " << filename << std::endl;
-        return properties;
+        throw FileNotFoundException(filename);
     }
+
     std::map<int, int> rTable = loadRailroadRents(configDir + "/railroad.txt");
     std::map<int, int> uTable = loadUtilityMultipliers(configDir + "/utility.txt");
 
     std::string line;
-    std::getline(file, line); // Skip header line
-    
+    if (!std::getline(file, line))
+        throw InvalidConfigException(filename, "Header property.txt tidak valid");
+
     while (std::getline(file, line)) {
         if (line.empty()) continue;
-        
+
         std::stringstream ss(line);
         std::vector<std::string> tokens;
         std::string token;
-        while (ss >> token) {
+
+        while (ss >> token)
             tokens.push_back(token);
+
+        if (tokens.size() < 7)
+            throw InvalidConfigException(filename, "Format property tidak valid");
+
+        int id;
+        try {
+            id = std::stoi(tokens[0]);
+        } catch (...) {
+            throw InvalidConfigException(filename, "ID property bukan angka");
         }
-        
-        if (tokens.size() < 5) continue;
-        
-        int id = std::stoi(tokens[0]);
-        if (id < 1 || id > 40) continue;
+
+        if (id < 1 || id > 40)
+            throw InvalidConfigException(filename, "ID property out of range");
+
         int idx = id - 1;
 
         std::string jenis = tokens[3];
+
         if (jenis == "STREET") {
             properties[idx] = createStreetProperty(tokens);
         } else if (jenis == "RAILROAD") {
             properties[idx] = createRailroadProperty(tokens, rTable);
         } else if (jenis == "UTILITY") {
             properties[idx] = createUtilityProperty(tokens, uTable);
+        } else {
+            throw InvalidConfigException(filename, "Jenis property tidak dikenal");
         }
     }
+
     return properties;
 }
 
 // Load file railroad.txt  
 std::map<int, int> ConfigLoader::loadRailroadRents(std::string filename) {
     std::map<int, int> rentTable;
+
     std::ifstream file(filename);
-    if (!file.is_open()) return rentTable;
-    
+    if (!file.is_open())
+        throw FileNotFoundException(filename);
+
     std::string line;
-    std::getline(file, line); // skip header
-    
+    if (!std::getline(file, line))
+        throw InvalidConfigException(filename, "Header railroad.txt tidak valid");
+
     while (std::getline(file, line)) {
         if (line.empty()) continue;
+
         std::stringstream ss(line);
         int count, rent;
-        if (ss >> count >> rent) {
-            rentTable[count] = rent;
-        }
+
+        if (!(ss >> count >> rent))
+            throw InvalidConfigException(filename, "Format railroad.txt salah");
+
+        rentTable[count] = rent;
     }
+
     return rentTable;
 }
 
 // Load file utility.txt
 std::map<int, int> ConfigLoader::loadUtilityMultipliers(std::string filename) {
     std::map<int, int> multipliers;
+
     std::ifstream file(filename);
-    if (!file.is_open()) return multipliers;
-    
+    if (!file.is_open())
+        throw FileNotFoundException(filename);
+
     std::string line;
-    std::getline(file, line); // skip header
-    
+    if (!std::getline(file, line))
+        throw InvalidConfigException(filename, "Header utility.txt tidak valid");
+
     while (std::getline(file, line)) {
         if (line.empty()) continue;
+
         std::stringstream ss(line);
         int count, mult;
-        if (ss >> count >> mult) {
-            multipliers[count] = mult;
-        }
+
+        if (!(ss >> count >> mult))
+            throw InvalidConfigException(filename, "Format utility.txt salah");
+
+        multipliers[count] = mult;
     }
+
     return multipliers;
 }
 
 // Load file tax.txt
 TaxConfig ConfigLoader::loadTaxConfig(std::string filename) {
     std::ifstream file(filename);
-    if (!file.is_open()) return TaxConfig();
-    
+    if (!file.is_open())
+        throw FileNotFoundException(filename);
+
     std::string line;
-    std::getline(file, line); // skip header
-    std::getline(file, line); // data row
+    if (!std::getline(file, line))
+        throw InvalidConfigException(filename, "Header tax.txt tidak valid");
+
+    if (!std::getline(file, line))
+        throw InvalidConfigException(filename, "Data tax.txt kosong");
+
     std::stringstream ss(line);
+
     int pphFlat, pphPercent, pbmFlat;
-    ss >> pphFlat >> pphPercent >> pbmFlat;
+
+    if (!(ss >> pphFlat >> pphPercent >> pbmFlat))
+        throw InvalidConfigException(filename, "Format tax.txt salah");
+
     return TaxConfig(pphFlat, pphPercent, pbmFlat);
 }
 
 // Load file special.txt
 SpecialConfig ConfigLoader::loadSpecialConfig(std::string filename) {
     std::ifstream file(filename);
-    if (!file.is_open()) return SpecialConfig();
-    
+    if (!file.is_open())
+        throw FileNotFoundException(filename);
+
     std::string line;
-    std::getline(file, line); // skip header
-    std::getline(file, line); // data row
+    if (!std::getline(file, line))
+        throw InvalidConfigException(filename, "Header special.txt tidak valid");
+
+    if (!std::getline(file, line))
+        throw InvalidConfigException(filename, "Data special.txt kosong");
+
     std::stringstream ss(line);
+
     int goSalary, jailFine;
-    ss >> goSalary >> jailFine;
+
+    if (!(ss >> goSalary >> jailFine))
+        throw InvalidConfigException(filename, "Format special.txt salah");
+
     return SpecialConfig(goSalary, jailFine);
 }
 
 // Load file misc.txt
 MiscConfig ConfigLoader::loadMiscConfig(std::string filename) {
     std::ifstream file(filename);
-    if (!file.is_open()) return MiscConfig();
-    
+    if (!file.is_open())
+        throw FileNotFoundException(filename);
+
     std::string line;
-    std::getline(file, line); // skip header
-    std::getline(file, line); // data row
+    if (!std::getline(file, line))
+        throw InvalidConfigException(filename, "Header misc.txt tidak valid");
+
+    if (!std::getline(file, line))
+        throw InvalidConfigException(filename, "Data misc.txt kosong");
+
     std::stringstream ss(line);
+
     int maxTurn, initialBalance;
-    ss >> maxTurn >> initialBalance;
+
+    if (!(ss >> maxTurn >> initialBalance))
+        throw InvalidConfigException(filename, "Format misc.txt salah");
+
     return MiscConfig(maxTurn, initialBalance);
+}
+
+// Load file aksi.txt
+std::map<int, ActionTileConfig> ConfigLoader::loadActionTiles(std::string filename) {
+    std::map<int, ActionTileConfig> actionTiles;
+
+    std::ifstream file(filename);
+    if (!file.is_open())
+        throw FileNotFoundException(filename);
+
+    std::string line;
+    if (!std::getline(file, line))
+        throw InvalidConfigException(filename, "Header aksi.txt tidak valid");
+
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+
+        std::stringstream ss(line);
+
+        int id;
+        std::string kode, nama, jenis, warna;
+
+        if (!(ss >> id >> kode >> nama >> jenis >> warna))
+            throw InvalidConfigException(filename, "Format aksi.txt salah");
+
+        if (id < 1 || id > 40)
+            throw InvalidConfigException(filename, "ID aksi out of range");
+
+        actionTiles[id - 1] = ActionTileConfig(id, kode, nama, jenis, warna);
+    }
+
+    return actionTiles;
 }
 
 // Convert data into Street Property objects
@@ -229,7 +319,7 @@ TileColor ConfigLoader::colorGroupToTileColor(const std::string& group) {
 Tile* ConfigLoader::createTileForIndex(int index,
         std::vector<Property*> properties, const GameConfig& config) {
     // Action/special tiles take priority (from aksi.txt)
-    int id = index + 1;
+    int id = index; // 0-based
     const auto& actionTiles = config.getActionTiles();
     if (actionTiles.find(id) != actionTiles.end()) {
         std::string kode = actionTiles.at(id).getKode();
@@ -302,29 +392,4 @@ CardDeck<SkillCard>* ConfigLoader::buildSkillDeck() {
     deck->addCard(new DemolitionCard());
     deck->shuffle();
     return deck;
-}
-
-// Load file aksi.txt
-std::map<int, ActionTileConfig> ConfigLoader::loadActionTiles(std::string filename) {
-    std::map<int, ActionTileConfig> actionTiles;
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Warning: Could not open " << filename << std::endl;
-        return actionTiles;
-    }
-    
-    std::string line;
-    std::getline(file, line); // skip header
-    
-    while (std::getline(file, line)) {
-        if (line.empty()) continue;
-        std::stringstream ss(line);
-        int id;
-        std::string kode, nama, jenis, warna;
-        
-        if (ss >> id >> kode >> nama >> jenis >> warna) {
-            actionTiles[id] = ActionTileConfig(id, kode, nama, jenis, warna);
-        }
-    }
-    return actionTiles;
 }

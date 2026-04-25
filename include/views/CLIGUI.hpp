@@ -77,6 +77,7 @@ public:
     void showMessage(const std::string& message) override;
     void showConfirm(const std::string& question) override;
     void showInputPrompt(const std::string& prompt) override;
+    void showException(int code, const std::string& msg) override;
 
     void renderBoard(const Game& game) override;
     void renderPlayer(const Player& player) override;

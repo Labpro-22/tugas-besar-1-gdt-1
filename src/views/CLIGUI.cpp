@@ -718,6 +718,12 @@ void CLIGUI::showInputPrompt(const std::string& prompt) {
     std::cout << colorize(prompt, UI_MAGENTA, true) << "\n";
 }
 
+void CLIGUI::showException(int code, const std::string& msg)
+{
+    std::cerr << colorize("[ERROR " + std::to_string(code) + "]", UI_RED, true) << "  "
+              << colorize(msg, UI_RED, false) << "\n";
+}
+
 void CLIGUI::renderPlayer(const Player& player) {
     std::cout << "\n"
               << colorize("Giliran " + player.getUsername(), UI_WHITE, true) << "\n"

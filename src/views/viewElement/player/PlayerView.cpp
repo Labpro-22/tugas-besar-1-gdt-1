@@ -27,8 +27,19 @@ PlayerView::PlayerView(Player& player, BoardView* board, Color color, CameraMana
 
 PlayerView::~PlayerView()
 {
-    UnloadModel(model);
 }
+
+void PlayerView::unloadGlobalPlayerModel()
+{
+    if (playerModel != nullptr)
+    {
+        UnloadModel(*playerModel);
+        delete playerModel;
+        playerModel = nullptr;
+    }
+}
+
+Player &PlayerView::getPlayer() { return player; }
 
 string PlayerView::getPlayerCamKey() {
     return "CAM" + player.getUsername();

@@ -97,6 +97,11 @@ bool GUI::shouldExit() const
 
 void GUI::update()
 {
+    if (IsKeyPressed(KEY_F11))
+    {
+        ToggleFullscreen();
+    }
+
     if (WindowShouldClose())
         exitRequested = true;
 

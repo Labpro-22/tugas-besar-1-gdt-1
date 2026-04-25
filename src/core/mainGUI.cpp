@@ -24,6 +24,7 @@ static void unLoad()
 
 int main()
 {
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(SCREEN_W, SCREEN_H, WINDOW_TITLE);
     SetTargetFPS(TARGET_FPS);
 

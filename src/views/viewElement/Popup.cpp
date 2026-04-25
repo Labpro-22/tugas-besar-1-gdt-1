@@ -89,18 +89,19 @@ void MessagePopup::render()
     okButton.render();
 }
 
-InputPopup::InputPopup(const std::string& title)
-    : IndefinitePopup(View2D(getScreenCenter(), {500, 300}, [](){})),
+InputPopup::InputPopup(const std::string &title)
+    : IndefinitePopup(View2D(getScreenCenter(), {500, 300}, []() {})),
       title(title),
-      inputEntry(Entry({400, 50}, "", 24, "Orbitron", [](){})),
-      submitButton(Interactable({200, 50}, true, false, "SUBMIT_INPUT", [](){}, [](){}))
+      inputEntry(Entry({400, 50}, "", 24, "Orbitron", []() {})),
+      submitButton(Interactable({200, 50}, true, false, "SUBMIT_INPUT", []() {}, []() {}))
 {
     Vector2 center = getScreenCenter();
 
     inputEntry.movePosition(center + Vector2{0, 0});
     submitButton.movePosition(center + Vector2{0, 80});
 
-    submitButton.setRender([this]() {
+    submitButton.setRender([this]()
+                           {
         DrawRectangle(submitButton.getRenderPos().x, submitButton.getRenderPos().y,
                       submitButton.getRenderWidth(), submitButton.getRenderHeight(),
                       submitButton.getRenderColor(LOGO_RED));
@@ -109,8 +110,7 @@ InputPopup::InputPopup(const std::string& title)
 
         DrawTextEx(fontMap.at("Orbitron"), "OK",
                    {submitButton.getX() - dim.x/2, submitButton.getY() - 14},
-                   28, 0, WHITE);
-    });
+                   28, 0, WHITE); });
 }
 
 void InputPopup::enable()
@@ -137,7 +137,8 @@ std::string InputPopup::catchCommand()
 
     if (cmd == "SUBMIT_INPUT")
     {
-        return inputEntry.getEntryText();
+        std::string text = inputEntry.getEntryText();
+        return text;
     }
 
     return "NULL";
@@ -146,23 +147,22 @@ std::string InputPopup::catchCommand()
 void InputPopup::render()
 {
     Vector2 center = {
-        (float)GetScreenWidth()/2,
-        (float)GetScreenHeight()/2
-    };
+        (float)GetScreenWidth() / 2,
+        (float)GetScreenHeight() / 2};
 
-    DrawRectangle(center.x - 250, center.y - 150, 500, 300, {40,40,40,230});
+    DrawRectangle(center.x - 250, center.y - 150, 500, 300, {40, 40, 40, 230});
 
     Vector2 titleDim = MeasureTextEx(fontMap.at("Orbitron"), title.c_str(), 28, 0);
 
     DrawTextEx(fontMap.at("Orbitron"), title.c_str(),
-               {center.x - titleDim.x/2, center.y - 100},
+               {center.x - titleDim.x / 2, center.y - 100},
                28, 0, WHITE);
 
     inputEntry.render();
     submitButton.render();
 }
 
-LoadConfirmPopup::LoadConfirmPopup(const std::string& title, const std::string& placeholder)
+LoadConfirmPopup::LoadConfirmPopup(const std::string &title, const std::string &placeholder)
     : IndefinitePopup(View2D(getScreenCenter(), {600, 300}, []() {})),
       title(title),
       entry(Entry({400, 50}, placeholder, 24, "Orbitron", []() {})),

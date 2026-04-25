@@ -111,7 +111,7 @@ void GUI::update()
 void GUI::display()
 {
     BeginDrawing();
-    ClearBackground(RAYWHITE);
+    ClearBackground(BLACK);
 
     BeginMode3D(camManager.mount());
     DrawGrid(40, 1);
@@ -138,9 +138,10 @@ void GUI::display()
 
 void GUI::loadMainMenu()
 {
+    pendingCommand = "NULL";
     unloadView(menu);
     menu = new MainMenuView();
-    views.insert(menu);
+    views.push_back(menu);
 }
 
 void GUI::loadGameView()
@@ -149,7 +150,7 @@ void GUI::loadGameView()
     clearViews();
     clearPlayers();
     menu = nullptr;
-    views.insert(new GameHUDView());
+    views.push_back(new GameHUDView());
 }
 
 void GUI::loadFinishMenu()
@@ -180,6 +181,11 @@ void GUI::showConfirm(const std::string & /*question*/)
 void GUI::showInputPrompt(const std::string &prompt)
 {
     loadPopup(new InputPopup(prompt));
+}
+
+void GUI::showException(int code, const std::string& msg)
+{
+    loadPopup(new ExceptionPopup(code, msg));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -256,13 +262,13 @@ void GUI::loadPlayer(Player &player)
     profile->setActive(true);
 
     playerProfiles.push_back(profile);
-    views.insert(profile);
+    views.push_back(profile);
 }
 
 void GUI::loadDice(PlayerView *player)
 {
     dice = new DiceView(player, &camManager.getCamera("ACTION_CAM"));
-    views.insert(dice->getThrowButton());
+    views.push_back(dice->getThrowButton());
 }
 
 void GUI::loadCardPiles(CardDeck<Card> &chanceDeck, CardDeck<Card> &comChestDeck)
@@ -294,7 +300,7 @@ void GUI::loadDebuggingEntry()
         });
     debuggingEntry->movePosition({debuggingEntry->getRenderWidth(),
                                   debuggingEntry->getRenderHeight() / 2.0f});
-    views.insert(debuggingEntry);
+    views.push_back(debuggingEntry);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -307,7 +313,7 @@ void GUI::unloadView(View2D *v)
 {
     if (v == nullptr)
         return;
-    views.erase(v);
+    views.erase(std::remove(views.begin(), views.end(), v), views.end());
     delete v;
 }
 
@@ -315,7 +321,7 @@ void GUI::loadPopup(Popup *popup)
 {
     disableAll();
     popupStack.push(popup);
-    views.insert(popup);
+    views.push_back(popup);
 }
 
 void GUI::enableAll()
@@ -373,11 +379,11 @@ void GUI::updateDice()
 
 void GUI::updateViews()
 {
-    std::set<View2D *> closedViews;
+    std::vector<View2D *> closedViews;
     for (View2D *v : views)
     {
         if (v->closed())
-            closedViews.insert(v);
+            closedViews.push_back(v);
         else
             v->interactionCheck();
     }
@@ -387,7 +393,7 @@ void GUI::updateViews()
 
     for (View2D *v : closedViews)
     {
-        views.erase(v);
+        views.erase(std::remove(views.begin(), views.end(), v), views.end());
         delete v;
     }
 }
@@ -437,12 +443,16 @@ std::string GUI::consumePendingCommand()
 
 std::string GUI::pollPopup()
 {
+    if (popupStack.empty()) return "NULL";
+
     std::string raw = popupStack.top()->catchCommand();
     if (raw == "NULL")
         return "NULL";
 
+    std::cout << "[DEBUG] pollPopup returning: " << raw << std::endl;
+
     Popup *p = popupStack.top();
-    views.erase(p);
+    views.erase(std::remove(views.begin(), views.end(), p), views.end());
     popupStack.pop();
     delete p;
 

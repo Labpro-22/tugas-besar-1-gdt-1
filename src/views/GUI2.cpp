@@ -305,12 +305,32 @@ void GUI::renderDice(int d1, int d2)
         dice->initializeThrowDice(d1, d2); });
 }
 void GUI::renderSkillHand(const std::vector<SkillCard *> & /*hand*/) { /* TODO */ }
-void GUI::renderBankruptcy(const Player & /*player*/) { /* TODO */ }
-void GUI::renderWinner(const Player & /*winner*/) { /* TODO */ }
-
-void GUI::renderLog(const std::vector<LogEntry> & /*entries*/, const std::string & /*title*/)
+void GUI::renderBankruptcy(const Player &player)
 {
-    // TODO: tampilkan log di panel HUD
+    loadPopup(new BankruptcyPopup(player.getUsername()));
+}
+
+void GUI::renderWinner(const Player &player)
+{
+    loadPopup(new WinnerPopup(player.getUsername()));
+}
+
+void GUI::renderLog(const std::vector<LogEntry> &entries, const std::string &)
+{
+    std::vector<std::string> texts;
+
+    for (const auto &e : entries)
+    {
+        texts.push_back(e.toString());
+    }
+
+    for (auto &view : views)
+    {
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+        {
+            hud->setLogs(texts);
+        }
+    }
 }
 
 void GUI::renderAuction(const Property & /*property*/, int /*currentBid*/, const Player * /*highBidder*/)

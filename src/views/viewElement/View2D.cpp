@@ -183,3 +183,49 @@ void drawTextLinesWrapped(Font font, const string text, Vector2 centerPos, float
         DrawTextEx(font, textLines[i].c_str(), textLinePos[i], textLineFontSizes[i], 1, textColor);
     }
 }
+
+void drawTextWrappedBox(
+    Font font,
+    const std::string &text,
+    Vector2 pos,
+    float fontSize,
+    float spacing,
+    Color color,
+    Vector2 boxDim)
+{
+    float lineHeight = fontSize + 4;
+    float x = pos.x;
+    float y = pos.y;
+
+    float maxX = pos.x + boxDim.x;
+    float maxY = pos.y + boxDim.y;
+
+    std::stringstream ss(text);
+    std::string word;
+    std::string line;
+
+    while (ss >> word)
+    {
+        std::string test = line.empty() ? word : line + " " + word;
+
+        Vector2 size = MeasureTextEx(font, test.c_str(), fontSize, spacing);
+
+        if (pos.x + size.x > maxX)
+        {
+            if (y + lineHeight > maxY) break;
+
+            DrawTextEx(font, line.c_str(), {x, y}, fontSize, spacing, color);
+            y += lineHeight;
+            line = word;
+        }
+        else
+        {
+            line = test;
+        }
+    }
+
+    if (!line.empty() && y + lineHeight <= maxY)
+    {
+        DrawTextEx(font, line.c_str(), {x, y}, fontSize, spacing, color);
+    }
+}

@@ -409,3 +409,139 @@ void ExceptionPopup::render()
 
     okButton.render();
 }
+
+BankruptcyPopup::BankruptcyPopup(const std::string &playerName)
+    : IndefinitePopup(View2D(getScreenCenter(), {500, 250}, []() {})),
+      playerName(playerName),
+      okButton(Interactable({200, 50}, true, false, "BANKRUPT_OK", []() {}, []() {}))
+{
+    Vector2 center = getScreenCenter();
+
+    okButton.movePosition(center + Vector2{0, 70});
+
+    okButton.setRender([this]()
+    {
+        DrawRectangle(okButton.getRenderPos().x, okButton.getRenderPos().y,
+                      okButton.getRenderWidth(), okButton.getRenderHeight(),
+                      okButton.getRenderColor(RED));
+
+        Vector2 dim = MeasureTextEx(fontMap.at("Orbitron"), "OK", 28, 0);
+
+        DrawTextEx(fontMap.at("Orbitron"), "OK",
+                   {okButton.getX() - dim.x / 2, okButton.getY() - 14},
+                   28, 0, WHITE);
+    });
+}
+
+void BankruptcyPopup::enable()
+{
+    okButton.enable();
+}
+
+void BankruptcyPopup::disable()
+{
+    okButton.disable();
+}
+
+void BankruptcyPopup::interactionCheck()
+{
+    okButton.interactionCheck();
+
+    if (okButton.catchCommand() == "BANKRUPT_OK")
+    {
+        closeView = true;
+    }
+}
+
+std::string BankruptcyPopup::catchCommand()
+{
+    return "NULL";
+}
+
+void BankruptcyPopup::render()
+{
+    DrawRectangle(getRenderPos().x, getRenderPos().y,
+                  boundingDim.x, boundingDim.y,
+                  {40, 40, 40, 230});
+
+    std::string text = playerName + " BANKRUPT!";
+
+    Vector2 textDim = MeasureTextEx(fontMap.at("Orbitron"),
+                                    text.c_str(), 24, 0);
+
+    DrawTextEx(fontMap.at("Orbitron"), text.c_str(),
+               {pos.x - textDim.x / 2, pos.y - 20},
+               24, 0, RED);
+
+    okButton.render();
+}
+
+WinnerPopup::WinnerPopup(const std::string &playerName)
+    : IndefinitePopup(View2D(getScreenCenter(), {500, 250}, []() {})),
+      playerName(playerName),
+      okButton(Interactable({200, 50}, true, false, "WINNER_OK", []() {}, []() {}))
+{
+    Vector2 center = getScreenCenter();
+
+    okButton.movePosition(center + Vector2{0, 70});
+
+    okButton.setRender([this]()
+    {
+        DrawRectangle(okButton.getRenderPos().x, okButton.getRenderPos().y,
+                      okButton.getRenderWidth(), okButton.getRenderHeight(),
+                      okButton.getRenderColor(GOLD));
+
+        Vector2 dim = MeasureTextEx(fontMap.at("Orbitron"), "OK", 28, 0);
+
+        DrawTextEx(fontMap.at("Orbitron"), "OK",
+                   {okButton.getX() - dim.x / 2, okButton.getY() - 14},
+                   28, 0, BLACK);
+    });
+}
+
+void WinnerPopup::enable()
+{
+    okButton.enable();
+}
+
+void WinnerPopup::disable()
+{
+    okButton.disable();
+}
+
+void WinnerPopup::interactionCheck()
+{
+    okButton.interactionCheck();
+
+    if (okButton.catchCommand() == "WINNER_OK")
+    {
+        closeView = true;
+    }
+}
+
+std::string WinnerPopup::catchCommand()
+{
+    return "NULL";
+}
+
+void WinnerPopup::render()
+{
+    DrawRectangle(getRenderPos().x, getRenderPos().y,
+                  boundingDim.x, boundingDim.y,
+                  {40, 40, 40, 230});
+
+    std::string title = "WINNER!";
+    std::string text = playerName + " MENANG!";
+
+    Vector2 titleDim = MeasureTextEx(fontMap.at("Orbitron"), title.c_str(), 28, 0);
+    DrawTextEx(fontMap.at("Orbitron"), title.c_str(),
+               {pos.x - titleDim.x / 2, pos.y - 80},
+               28, 0, GOLD);
+
+    Vector2 textDim = MeasureTextEx(fontMap.at("Orbitron"), text.c_str(), 24, 0);
+    DrawTextEx(fontMap.at("Orbitron"), text.c_str(),
+               {pos.x - textDim.x / 2, pos.y - 20},
+               24, 0, WHITE);
+
+    okButton.render();
+}

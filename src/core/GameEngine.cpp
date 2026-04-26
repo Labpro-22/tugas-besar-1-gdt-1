@@ -256,6 +256,7 @@ bool GameEngine::loadFromPath(const std::string &filepath)
     {
         logger->log(game->getCurrentTurn(), "SISTEM",
                     "MUAT", "Game dimuat dari " + filepath);
+        gui->renderLog(logger->getFullLog(), "LOG");
     }
     gui->showMessage("Permainan berhasil dimuat dari " + filepath + ".");
     gui->renderBoard(*game);
@@ -326,8 +327,7 @@ int GameEngine::askIncomeTaxChoice(IGUI *gui)
 {
     bool choice = askYesNo(
         gui,
-        "Bayar pajak flat?\n\nYES = Flat\nNO = Persentase"
-    );
+        "Bayar pajak flat?\n\nYES = Flat\nNO = Persentase");
 
     return choice ? 1 : 2;
 }
@@ -384,6 +384,7 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
                                 std::to_string(dice->getDie2()) + "=" + std::to_string(total) +
                                 " -> gagal keluar dari Penjara (" +
                                 std::to_string(player->getJailAttempts()) + "/3)");
+                gui->renderLog(logger->getFullLog(), "LOG");
             }
             gui->showMessage("Kamu belum mendapatkan double.");
             gui->showMessage("Kamu tetap berada di Penjara dan tidak bergerak.");
@@ -396,6 +397,7 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
         {
             logger->log(game->getCurrentTurn(), player->getUsername(),
                         "PENJARA", "Bebas dari Penjara dengan double");
+            gui->renderLog(logger->getFullLog(), "LOG");
         }
         gui->showMessage("Double! Kamu bebas dari Penjara.");
         player->setStatus(PlayerStatus::ACTIVE);
@@ -425,6 +427,7 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
                             "Lempar: " + std::to_string(dice->getDie1()) + "+" +
                                 std::to_string(dice->getDie2()) + "=" + std::to_string(total) +
                                 " (double ketiga) -> masuk Penjara");
+                gui->renderLog(logger->getFullLog(), "LOG");
             }
             gui->showMessage("Kamu mendapatkan double tiga kali berturut-turut.");
             gui->showMessage("Bidak tidak digerakkan dan kamu langsung masuk Penjara.");
@@ -453,6 +456,7 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
         }
         detail += " -> mendarat di " + tileLogLabel(landed);
         logger->log(game->getCurrentTurn(), player->getUsername(), "DADU", detail);
+        gui->renderLog(logger->getFullLog(), "LOG");
     }
 
     if (landed)
@@ -491,6 +495,7 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
                          std::to_string(player->getConsecutiveDoubles());
             }
             logger->log(game->getCurrentTurn(), player->getUsername(), "DOUBLE", detail);
+            gui->renderLog(logger->getFullLog(), "LOG");
         }
         if (fromJailAttempt)
         {
@@ -537,6 +542,7 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player *player)
                     logger->log(game->getCurrentTurn(), player->getUsername(),
                                 "PENJARA",
                                 "Bayar denda " + Formatter::money(fine) + " dan bebas dari Penjara");
+                    gui->renderLog(logger->getFullLog(), "LOG");
                 }
                 gui->showMessage("Denda penjara sudah dibayar. Kamu bebas dari Penjara.");
                 gui->showMessage("Sekarang kamu dapat melempar dadu seperti biasa.");
@@ -596,6 +602,7 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player *player)
                 logger->log(game->getCurrentTurn(), player->getUsername(),
                             "KARTU",
                             "Pakai " + jailCard->getCardName() + " -> bebas dari Penjara");
+                gui->renderLog(logger->getFullLog(), "LOG");
             }
             gui->showMessage("Kartu Bebas dari Penjara digunakan. Kamu bebas dari Penjara.");
             gui->showMessage("Sekarang kamu dapat melempar dadu seperti biasa.");
@@ -708,6 +715,7 @@ void GameEngine::handleChanceLanding(Player *player, ChanceTile * /*tile*/)
                                 "KARTU",
                                 "Kesempatan: " + card->getDescription() +
                                     " -> " + tileLogLabel(nearest));
+                    gui->renderLog(logger->getFullLog(), "LOG");
                 }
                 gui->showMessage(player->getUsername() + " berpindah ke stasiun terdekat.");
                 gui->showMessage("Bidak mendarat di: " + nearest->getName() + ".");
@@ -733,6 +741,7 @@ void GameEngine::handleChanceLanding(Player *player, ChanceTile * /*tile*/)
                                 "KARTU",
                                 "Kesempatan: " + card->getDescription() +
                                     " -> " + tileLogLabel(target));
+                    gui->renderLog(logger->getFullLog(), "LOG");
                 }
                 gui->showMessage("Bidak mendarat di: " + target->getName() + ".");
                 handleTileLanding(player, target);
@@ -753,6 +762,7 @@ void GameEngine::handleChanceLanding(Player *player, ChanceTile * /*tile*/)
             logger->log(game->getCurrentTurn(), player->getUsername(),
                         "KARTU",
                         "Kesempatan: " + card->getDescription() + " -> masuk Penjara");
+            gui->renderLog(logger->getFullLog(), "LOG");
         }
         gui->showMessage(player->getUsername() + " masuk ke Penjara!");
         break;
@@ -779,6 +789,7 @@ void GameEngine::handleCommunityChestLanding(Player *player, CommunityChestTile 
     {
         logger->log(game->getCurrentTurn(), player->getUsername(),
                     "KARTU", "Dana Umum: " + card->getDescription());
+        gui->renderLog(logger->getFullLog(), "LOG");
     }
 
     switch (card->getType())
@@ -803,6 +814,7 @@ void GameEngine::handleCommunityChestLanding(Player *player, CommunityChestTile 
                                 "DANA_UMUM",
                                 "Bayar ulang tahun " + Formatter::money(amount) +
                                     " ke " + player->getUsername());
+                    gui->renderLog(logger->getFullLog(), "LOG");
                 }
             }
         }
@@ -817,6 +829,7 @@ void GameEngine::handleCommunityChestLanding(Player *player, CommunityChestTile 
             {
                 logger->log(game->getCurrentTurn(), player->getUsername(),
                             "DANA_UMUM", "Bayar biaya dokter " + Formatter::money(fee));
+                gui->renderLog(logger->getFullLog(), "LOG");
             }
         }
     }
@@ -840,6 +853,7 @@ void GameEngine::handleCommunityChestLanding(Player *player, CommunityChestTile 
                             "DANA_UMUM",
                             "Bayar biaya kampanye " + Formatter::money(fee) +
                                 " ke " + other->getUsername());
+                gui->renderLog(logger->getFullLog(), "LOG");
             }
         }
         break;
@@ -1079,6 +1093,8 @@ void GameEngine::processPlayerTurn(Player *player)
         turnManager->startTurn(player);
     }
     gui->renderPlayer(*player);
+    gui->renderOwnedProperties(*player);
+    gui->renderSkillHand(player->getHandCards());
     if (!resumedLoadedTurn)
     {
         turnManager->drawSkillCardForTurn(player);
@@ -1106,8 +1122,6 @@ void GameEngine::processPlayerTurn(Player *player)
             return;
         }
         gui->renderPlayer(*player);
-        gui->renderOwnedProperties(*player);
-        gui->renderSkillHand(player->getHandCards());
     }
 
     while (!gui->shouldExit())
@@ -1205,6 +1219,7 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
                         logger->log(game->getCurrentTurn(), player->getUsername(),
                                     "BELI",
                                     "Beli " + propertyLogLabel(prop) + " seharga " + Formatter::money(price));
+                        gui->renderLog(logger->getFullLog(), "LOG");
                     }
                 }
                 else
@@ -1264,6 +1279,7 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
                             actionType,
                             propertyLogLabel(prop) + " kini milik " + player->getUsername() +
                                 (price > 0 ? " (otomatis, " + Formatter::money(price) + ")" : " (otomatis)"));
+                gui->renderLog(logger->getFullLog(), "LOG");
             }
             return;
         }
@@ -1316,6 +1332,7 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
                 detail += ")";
                 logger->log(game->getCurrentTurn(), player->getUsername(),
                             "SEWA", detail);
+                gui->renderLog(logger->getFullLog(), "LOG");
             }
         }
         return;
@@ -1367,6 +1384,7 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
                                                      "% = " + Formatter::money(amount);
                 logger->log(game->getCurrentTurn(), player->getUsername(),
                             "PAJAK", detail);
+                gui->renderLog(logger->getFullLog(), "LOG");
             }
         }
         return;
@@ -1391,6 +1409,7 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
             {
                 logger->log(game->getCurrentTurn(), player->getUsername(),
                             "PAJAK", "PBM " + Formatter::money(amount));
+                gui->renderLog(logger->getFullLog(), "LOG");
             }
         }
         return;
@@ -1404,6 +1423,7 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
             {
                 logger->log(game->getCurrentTurn(), player->getUsername(),
                             "FESTIVAL", "Mendarat di Festival, tetapi tidak punya properti");
+                gui->renderLog(logger->getFullLog(), "LOG");
             }
             gui->showMessage(player->getUsername() +
                              " mendarat di Festival, tetapi tidak memiliki properti.");
@@ -1415,6 +1435,7 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
         {
             logger->log(game->getCurrentTurn(), player->getUsername(),
                         "FESTIVAL", "Mendarat di Festival dan harus memilih properti");
+            gui->renderLog(logger->getFullLog(), "LOG");
         }
         gui->showMessage("Kamu mendarat di Festival.");
         gui->showMessage("Gunakan FESTIVAL <kode_properti> untuk memilih properti yang sewanya akan digandakan.");
@@ -1440,6 +1461,7 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
         {
             logger->log(game->getCurrentTurn(), player->getUsername(),
                         "PENJARA", "Mendarat di Pergi ke Penjara -> masuk Penjara");
+            gui->renderLog(logger->getFullLog(), "LOG");
         }
         gui->showMessage(player->getUsername() + " harus pergi ke Penjara.");
         return;

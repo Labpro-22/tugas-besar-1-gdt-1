@@ -103,3 +103,35 @@ public:
     string catchCommand() override;
     void render() override;
 };
+
+class BankruptcyPopup : public IndefinitePopup
+{
+private:
+    std::string playerName;
+    Interactable okButton;
+
+public:
+    BankruptcyPopup(const std::string &playerName);
+
+    void enable() override;
+    void disable() override;
+    void interactionCheck() override;
+    std::string catchCommand() override;
+    void render() override;
+};
+
+class WinnerPopup : public IndefinitePopup
+{
+private:
+    std::string playerName;
+    Interactable okButton;
+
+public:
+    WinnerPopup(const std::string &playerName);
+
+    void enable() override;
+    void disable() override;
+    void interactionCheck() override;
+    std::string catchCommand() override;
+    void render() override;
+};

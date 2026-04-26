@@ -122,7 +122,6 @@ void GUI::update()
     camManager.updateCamMap();
 
     updateDice();
-    updateDelayedPopups();
     updatePlayerProfilesLayout();
     updateViews();
     updatePopupStack();
@@ -298,8 +297,11 @@ void GUI::renderDice(int d1, int d2)
     if (dice != nullptr)
         delete dice;
 
-    isDelayingPopupAfterDice = true;
-    setHudDiceAnimationFinished(false);
+    for (auto &view : views)
+    {
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+            hud->setDiceAnimationFinished(false);
+    }
 
     int idx = cachedGame->getCurrentTurnIndex();
     camManager.switchTo("ACTION_CAM", 1, [this, idx, d1, d2]()
@@ -427,22 +429,20 @@ void GUI::unloadView(View2D *v)
         views.end());
 }
 
-void GUI::loadPopupNow(Popup *popup)
-{
-    disableAll();
-    views.push_back(std::unique_ptr<View2D>(popup));
-    popupStack.push(popup);
-}
-
 void GUI::loadPopup(Popup *popup)
 {
-    if (isDelayingPopupAfterDice)
+    if (popup == nullptr)
+        return;
+
+    if (!popupStack.empty() || dice != nullptr || !delayedPopupQueue.empty())
     {
         delayedPopupQueue.push(popup);
         return;
     }
 
-    loadPopupNow(popup);
+    disableAll();
+    views.push_back(std::unique_ptr<View2D>(popup));
+    popupStack.push(popup);
 }
 
 void GUI::enableAll()
@@ -467,6 +467,11 @@ void GUI::clearPopups()
 {
     while (!popupStack.empty())
         popupStack.pop();
+    while (!delayedPopupQueue.empty())
+    {
+        delete delayedPopupQueue.front();
+        delayedPopupQueue.pop();
+    }
 }
 
 void GUI::clearPlayers()
@@ -505,16 +510,12 @@ void GUI::updateDice()
     {
         delete dice;
         dice = nullptr;
-        setHudDiceAnimationFinished(true);
-    }
-}
 
-void GUI::setHudDiceAnimationFinished(bool finished)
-{
-    for (auto &view : views)
-    {
-        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
-            hud->setDiceAnimationFinished(finished);
+        for (auto &view : views)
+        {
+            if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+                hud->setDiceAnimationFinished(true);
+        }
     }
 }
 
@@ -545,23 +546,14 @@ void GUI::updatePopupStack()
         else
             popupStack.top()->enable();
     }
-}
 
-void GUI::updateDelayedPopups()
-{
-    if (!isDelayingPopupAfterDice)
-        return;
-
-    if (dice != nullptr)
-        return;
-
-    isDelayingPopupAfterDice = false;
-
-    while (!delayedPopupQueue.empty())
+    if (dice == nullptr && popupStack.empty() && !delayedPopupQueue.empty())
     {
         Popup *popup = delayedPopupQueue.front();
         delayedPopupQueue.pop();
-        loadPopupNow(popup);
+        disableAll();
+        views.push_back(std::unique_ptr<View2D>(popup));
+        popupStack.push(popup);
     }
 }
 

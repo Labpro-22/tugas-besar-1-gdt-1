@@ -14,6 +14,8 @@ GUI::GUI(float fps, Board& board) : menu(nullptr), board(new BoardView(board)),
         }, [](){}));
     camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize()*1.25f, 0}, {0,0,0}, 45.0f));
     camManager.addCamera("ACTION_CAM", View3DCamera({-this->board->getBoardSize()*0.8f, this->board->getBoardSize()*0.6f, 0}, {0,0,0}, 45.0f));
+    camManager.addCamera("TILE_CAM_1", View3DCamera({0,0,0}, {0,0,0}, 45.0f));
+    camManager.addCamera("TILE_CAM_2", View3DCamera({0,0,0}, {0,0,0}, 45.0f));
 }
 
 bool GUI::shouldExit() const
@@ -330,6 +332,18 @@ Command GUI::getCommand()
                     loadSkillHand(players[stoi(tokens[2])]->getPlayer(), new LassoCard);
                 });
                 
+            } else if (tokens[1] == "BUILD") {
+                board->getTileFromIdx(stoi(tokens[2]))->buildHouse();
+            } else if (tokens[1] == "FOCUS_TILE") {
+                if (camManager.getCurrentCamera() != &camManager.getCamera("TILE_CAM_1")) {
+                    board->getTileFromIdx(stoi(tokens[2]))->setCamToTile(&camManager.getCamera("TILE_CAM_1"));
+                    camManager.switchTo("TILE_CAM_1", 0.2, [](){});
+                } else {
+                    board->getTileFromIdx(stoi(tokens[2]))->setCamToTile(&camManager.getCamera("TILE_CAM_2"));
+                    camManager.switchTo("TILE_CAM_2", 0.2, [](){});
+                }
+            } else if (tokens[1] == "SELL") {
+                board->getTileFromIdx(stoi(tokens[2]))->sellHouse();
             }
 
             return {"NULL", {}};

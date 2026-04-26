@@ -6,6 +6,7 @@
 #include <ranges>
 
 Vector2 TileView::tileDim = {2.5, 3.75};
+Model* StreetTileView::houseModel = nullptr;
 
 string getSpacedString(const string s) {
     string newS = "";
@@ -177,6 +178,11 @@ bool TileView::isCornerTile() const {
     return cornerTile;
 }
 
+void TileView::setCamToTile(View3DCamera* cam) {
+    cam->moveTargetPos(pos + (Vector3){0,1.0f,0});
+    cam->movePosition(pos + Vector3Transform({0,2.0f,-5.0f}, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2)));
+}
+
 void TileView::render() {
     if (!isTextureLoaded) {
         model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tileTexture.texture;
@@ -184,6 +190,27 @@ void TileView::render() {
     }
     model.transform = transformation;
     DrawModel(model, pos, 1, color);
+}
+
+void StreetTileView::render() {
+    animationCheck();
+    if (!isTextureLoaded) {
+        model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = tileTexture.texture;
+        isTextureLoaded = true;
+    }
+    model.transform = transformation;
+    DrawModel(model, pos, 1, color);
+    if (houses.size() <= 4) {
+        for (View3D* house : houses) {
+            house->render();
+        }
+    } else {
+        houses.at(4)->render();
+    }
+}
+
+void StreetTileView::loadHouseModel(string filepath) {
+    houseModel = new Model (LoadModel(filepath.c_str()));
 }
 
 
@@ -312,7 +339,7 @@ const Vector2 TileView::getTileDim() {
 }
 
 PropertyTileView::PropertyTileView(PropertyTile& tile, const bool cornerTile,const int cardinality) : 
-    TileView(tile, tile.getProperty()->getName(), "M" + to_string(tile.getProperty()->getPurchasePrice()), 
+    TileView(tile, tile.getProperty()->getName(), "M" + to_string(tile.getProperty()->getPurchasePrice()),
              cornerTile, cardinality, ""), property(*tile.getProperty()) {
     if (tile.getProperty()->getType() == PropertyType::RAILROAD) {
         drawImageOnTexture(&tileTexture, "data/GUIAssets/railroad_icon.png", cornerTile);
@@ -324,6 +351,48 @@ PropertyTileView::PropertyTileView(PropertyTile& tile, const bool cornerTile,con
 StreetTileView::StreetTileView(PropertyTile& tile, StreetProperty& street, const bool cornerTile,const int cardinality) : 
     PropertyTileView(tile, cornerTile, cardinality), street(street) {}
 
+
+void StreetTileView::buildHouse() {
+    Color buildingColor = DARKGREEN;
+    if (houses.size() >= 4) {
+        buildingColor = RED;
+    }
+    houses.push_back(new View3D(pos, LoadModel("data/GUIAssets/house_model.obj"), buildingColor));
+    BoundingBox modelBB = GetModelBoundingBox(houses.back()->getModel());
+    float scale = (tileDim.y*0.2f)/(modelBB.max.x - modelBB.min.x);
+    float scaleHotel = 1;
+    if (houses.size() >= 5) {
+        scaleHotel = 1.5f;
+    }
+    houses.back()->setTransform(MatrixScale(scale, scale*scaleHotel, scale*scaleHotel)*MatrixRotate({0,1,0}, (cardinality)*M_PI/2));
+    houses.back()->setPosY(((modelBB.max.y - modelBB.min.y)/2 + 0.2)*scale*scaleHotel);
+    float xTrans = 0;
+    if (houses.size() < 5) {
+        xTrans = -tileDim.x*0.375 + (houses.size() - 1)*tileDim.x*0.25;
+    }
+    Vector3 moveTranslation = Vector3Transform({-xTrans, 0, tileDim.y/2 - (modelBB.max.x - modelBB.min.x)*scale*0.5f}, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
+    houses.back()->movePositionDelta(moveTranslation);
+
+
+    Vector3 originalPos = houses.back()->getPos();
+    houses.back()->setPosY(-originalPos.y);
+    View3DAnimation* riseAnim = new View3DAnimation(*houses.back(), 120, false, [](){}, [](){});
+    riseAnim->setMoveAnimation(originalPos, 0.4);
+    riseAnim->start();
+    houses.back()->addAnimation("RISE", riseAnim);
+}
+
+void StreetTileView::sellHouse() {
+    View3D* soldHouse = houses.back();
+    Vector3 destPos = {soldHouse->getPos().x, -soldHouse->getPos().y, soldHouse->getPos().z};
+    View3DAnimation* fallAnim = new View3DAnimation(*soldHouse, 120, false, [](){}, [soldHouse, this](){
+        houses.pop_back();
+        delete soldHouse;
+    });
+    fallAnim->setMoveAnimation(destPos, 0.4);
+    fallAnim->start();
+    addAnimation("FALL", fallAnim);
+}
 
 GoTileView::GoTileView(GoTile& tile, const bool cornerTile, const int cardinality) : 
     TileView(tile, "COLLECT M" + to_string(tile.getSalary()) + " SALARY", "", cornerTile, cardinality, "data/GUIAssets/go_icon.png") {

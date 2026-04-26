@@ -10,7 +10,6 @@ int main() {
     InitWindow(screenWidth, screenHeight, "Nimonspoli");
     ClearWindowState(FLAG_WINDOW_RESIZABLE);
     PlayerView::loadPlayerModel("data/GUIAssets/playerpawn.obj");
-    ActionCardView::loadCardTextures();
     View2D::addFont("Kabel", "data/GUIAssets/kabel.ttf");
     View2D::addFont("Orbitron", "data/GUIAssets/Orbitron-VariableFont_wght.ttf");
     

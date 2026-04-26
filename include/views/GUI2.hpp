@@ -38,6 +38,7 @@ private:
     std::vector<std::unique_ptr<View2D>> views;
     std::stack<Popup *> popupStack;
     MenuView *menu;
+    AuctionMenuView* auction;
     Entry *debuggingEntry;
 
     // ── 3D scene objects ───────────────────────────────────────────────────
@@ -122,7 +123,9 @@ public:
     void renderLog(const std::vector<LogEntry> &entries, const std::string &title) override;
     void renderSkillHand(const std::vector<SkillCard *> &hand) override;
     void renderAuctionStart(Property* property, Player *auctioner, Game* game) override;
-    void renderAuction(int currentBid, const Player *highBidder) override;
+    void renderAuctionTurn(Player* currentPlayer, bool forceBid) override;
+    void renderAuctionUpdate(int currentBid, Player *highBidder) override;
+    void renderAuctionEnd(Player* winner) override;
     void renderBankruptcy(const Player &player) override;
     void renderWinner(const Player &winner) override;
     void renderMovement(const std::string &playerName, int steps) override;

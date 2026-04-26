@@ -54,7 +54,7 @@ GameHUDView::GameHUDView()
 
 PlayerProfileView* GameHUDView::getPlayerProfile(Player* player) {
     auto it = find_if(playerProfiles.begin(), playerProfiles.end(), [player](const PlayerProfileView p){
-        return p.getPlayer()->getUsername() == player->getUsername();
+        return p.getPlayer() == player;
     });
     if (it == playerProfiles.end()) {
         return nullptr;

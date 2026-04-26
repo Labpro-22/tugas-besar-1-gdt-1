@@ -15,7 +15,14 @@ class AuctionMenuView : public MenuView {
         int bidAmount;
         Entry bidEntry;
         Interactable passButton;
+        Interactable bidButton;
         vector<PlayerProfileView *> playerProfiles;
     public:
         AuctionMenuView(Property* auctionedProperty, Game* game, Player* auctioner,vector<PlayerProfileView *> playerProfiles);
+        void initiateAuctionTurn(Player* currentPlayer, bool forceBid);
+        void updateAuction(Player* highestBidder, int highestBid);
+        void endAuction(Player* winner);
+        string catchCommand() override;
+        void interactionCheck() override;
+        void render() override;
 };

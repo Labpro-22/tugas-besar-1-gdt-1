@@ -45,7 +45,9 @@ public:
     virtual void renderLog(const std::vector<LogEntry>& entries, const std::string& title) = 0;
     virtual void renderSkillHand(const std::vector<SkillCard*>& hand) = 0;
     virtual void renderAuctionStart(Property* property, Player *auctioner, Game* game) = 0;
-    virtual void renderAuction(int currentBid, const Player* highBidder) = 0;
+    virtual void renderAuctionTurn(Player* currentPlayer, bool forceBid) = 0;
+    virtual void renderAuctionUpdate(int currentBid, Player* highBidder) = 0;
+    virtual void renderAuctionEnd(Player* winner) = 0;
     virtual void renderBankruptcy(const Player& player) = 0;
     virtual void renderWinner(const Player& winner) = 0;
     virtual void renderMovement(const std::string& playerName, int steps)= 0;

@@ -82,9 +82,8 @@ void MessagePopup::render()
     // isi pesan
     textDim = MeasureTextEx(fontMap.at("Orbitron"),
                             message.c_str(), 22, 0);
-    DrawTextEx(fontMap.at("Orbitron"), message.c_str(),
-               {pos.x - textDim.x / 2, pos.y - 20},
-               22, 0, WHITE);
+    drawTextLinesWrapped(fontMap.at("Orbitron"), message.c_str(),
+               getPos(),22, 0, WHITE, getBoundingDim());
 
     okButton.render();
 }

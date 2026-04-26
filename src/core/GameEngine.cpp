@@ -1211,7 +1211,7 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
                     {
                         gui->showMessage("Uang kamu tidak cukup untuk membeli properti ini.");
                     }
-                    gui->showMessage("Properti ini akan masuk ke sistem lelang.");
+                    //gui->showMessage("Properti ini akan masuk ke sistem lelang.");
                     if (auctionManager != nullptr)
                     {
                         auctionManager->runAuction(prop, player);

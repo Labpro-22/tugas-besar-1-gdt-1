@@ -56,6 +56,7 @@ namespace
 
 GUI::GUI(float fps, Board &board)
     : menu(nullptr),
+      auction(nullptr),
       board(new BoardView(board)),
       debuggingEntry(nullptr),
       dice(nullptr),
@@ -92,6 +93,9 @@ GUI::GUI(float fps, Board &board)
     // Kamera aksi untuk giliran pemain
     camManager.addCamera("ACTION_CAM",
                          View3DCamera({-boardSize * 0.8f, boardSize * 0.6f, 0.0f}, {0, 0, 0}, 45.0f));
+    camManager.addCamera("TILE_CAM_1", View3DCamera({0,0,0}, {0,0,0}, 45.0f));
+    camManager.addCamera("TILE_CAM_2", View3DCamera({0,0,0}, {0,0,0}, 45.0f));
+    
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -159,7 +163,7 @@ void GUI::display()
 
     for (auto &view : views)
         view->render();
-
+    DrawFPS(10,10);
     EndDrawing();
 }
 
@@ -325,7 +329,6 @@ void GUI::renderLog(const std::vector<LogEntry> & /*entries*/, const std::string
 }
 
 void GUI::renderAuctionStart(Property* property, Player *auctioner, Game* game) {
-    disableAll();
     GameHUDView* g;
     for (auto &view : views)
     {
@@ -337,11 +340,30 @@ void GUI::renderAuctionStart(Property* property, Player *auctioner, Game* game) 
         activePlayerProfiles.push_back(g->getPlayerProfile(player));
     }
     cout<<activePlayerProfiles.size()<<endl;
-    menu = new AuctionMenuView(property, game, auctioner, activePlayerProfiles);
+    camManager.getCamera("TILE_CAM_1").movePosition(board->getTileFromIdx(auctioner->getPosition())->getPos());
+    camManager.getCamera("TILE_CAM_1").moveTargetPos(board->getTileFromIdx(auctioner->getPosition())->getPos());
+    camManager.getCamera("TILE_CAM_1").movePositionDelta(Vector3Transform({0,5.0f,-0.2f}, MatrixRotate({0,1,0}, (-board->getTileFromIdx(auctioner->getPosition())->getCardinality() + 1)*M_PI/2)));
+    camManager.switchTo("TILE_CAM_1", 0.4, [](){});
+    for (PlayerView* player : players) {
+        player->setVisible(false);
+    }
+    views.push_back(std::make_unique<AuctionMenuView>(property, game, auctioner, activePlayerProfiles));
+    auction = static_cast<AuctionMenuView*>(views.back().get());
 }
 
-void GUI::renderAuction(int currentBid, const Player * highBidder) {
-    
+void GUI::renderAuctionTurn(Player* currentPlayer, bool forceBid) {
+    auction->initiateAuctionTurn(currentPlayer, forceBid);
+}
+
+void GUI::renderAuctionUpdate(int currentBid, Player * highBidder) {
+    auction->updateAuction(highBidder, currentBid);
+    waitForAnimToEnd2D(auction);
+}
+
+void GUI::renderAuctionEnd(Player* winner) {
+    auction->endAuction(winner);
+    waitForAnimToEnd2D(auction);
+    auction = nullptr;
 }
 
 void GUI::renderMovement(const std::string & playerName, int steps)

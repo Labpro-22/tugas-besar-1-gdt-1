@@ -69,7 +69,7 @@ public:
     virtual int calculateRent(int diceValue = 0) const = 0;
     virtual int getAssetValue() const = 0;
 
-    std::string to_string(PropertyStatus status)
+    static std::string propertyStatusToString(PropertyStatus status)
     {
         switch (status)
         {

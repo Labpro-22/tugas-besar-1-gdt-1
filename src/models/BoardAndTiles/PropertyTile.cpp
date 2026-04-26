@@ -19,5 +19,5 @@ std::string PropertyTile::getDisplayLabel() const
     if (property == nullptr)
         return "[" + code + "]";
 
-    return "[" + code + "] " + property->to_string(property->getStatus());
+    return "[" + code + "] " + Property::propertyStatusToString(property->getStatus());
 }

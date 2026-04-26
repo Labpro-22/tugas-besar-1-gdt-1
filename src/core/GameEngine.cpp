@@ -324,14 +324,12 @@ bool GameEngine::askYesNo(IGUI *gui, const std::string &prompt)
 
 int GameEngine::askIncomeTaxChoice(IGUI *gui)
 {
-    while (!gui->shouldExit())
-    {
-        std::string ans = waitForInput(gui, "Pilihan (1/2):");
-        if (ans == "1" || ans == "2")
-            return std::stoi(ans);
-        gui->showMessage("Pilihan tidak valid. Masukkan 1 atau 2.");
-    }
-    return 1;
+    bool choice = askYesNo(
+        gui,
+        "Bayar pajak flat?\n\nYES = Flat\nNO = Persentase"
+    );
+
+    return choice ? 1 : 2;
 }
 
 CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d2, bool fromJailAttempt)
@@ -1084,6 +1082,7 @@ void GameEngine::processPlayerTurn(Player *player)
     if (!resumedLoadedTurn)
     {
         turnManager->drawSkillCardForTurn(player);
+        gui->renderSkillHand(player->getHandCards());
     }
 
     if (player->isJailed())
@@ -1107,6 +1106,8 @@ void GameEngine::processPlayerTurn(Player *player)
             return;
         }
         gui->renderPlayer(*player);
+        gui->renderOwnedProperties(*player);
+        gui->renderSkillHand(player->getHandCards());
     }
 
     while (!gui->shouldExit())
@@ -1477,7 +1478,13 @@ bool GameEngine::executePayment(Player *from, Player *to, int amount,
     }
     if (bankruptcyManager != nullptr)
     {
-        return bankruptcyManager->handleInsufficientFunds(*from, amount, to, obligationLabel);
+
+        bool result = bankruptcyManager->handleInsufficientFunds(*from, amount, to, obligationLabel);
+        if (from->getStatus() == PlayerStatus::BANKRUPT)
+        {
+            gui->renderBankruptcy(*from);
+        }
+        return result;
     }
     if (!from->canAfford(amount))
         return false;

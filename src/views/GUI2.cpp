@@ -514,10 +514,20 @@ void GUI::updateViews()
                        {
                            if (v->closed())
                                return true;
-                           v->interactionCheck();
                            return false;
                        }),
         views.end());
+
+    if (!popupStack.empty())
+    {
+        popupStack.top()->interactionCheck();
+        return;
+    }
+
+    for (auto &v : views)
+    {
+        v->interactionCheck();
+    }
 
     if (menu != nullptr && menu->closed())
         menu = nullptr;
@@ -539,6 +549,7 @@ void GUI::updatePopupStack()
         Popup *popup = delayedPopupQueue.front();
         delayedPopupQueue.pop();
         disableAll();
+        popup->enable();
         views.push_back(std::unique_ptr<View2D>(popup));
         popupStack.push(popup);
     }

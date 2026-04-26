@@ -83,21 +83,29 @@ void Interactable::interactionCheck() {
     onDefault();
 
     Vector2 mouse = GetMousePosition();
+    bool hovering = isInBoundingBox(mouse);
 
-    if (isInBoundingBox(mouse)) {
-
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            onClicked();
-        } 
-        else if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if (hovering) {
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
             onPressed();
-        } 
+            wasPressed = true;
+        }
         else {
             onHover();
-        }
 
-        if (draggable && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            onDrag(GetMouseDelta());
+            if (wasPressed && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                onClicked();
+            }
+
+            wasPressed = false;
         }
+    } else {
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            wasPressed = false;
+        }
+    }
+
+    if (draggable && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        onDrag(GetMouseDelta());
     }
 }

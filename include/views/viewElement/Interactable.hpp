@@ -7,6 +7,7 @@ class Interactable : public View2D {
         bool active;
         bool draggable;
         bool releaseCommand;
+        bool wasPressed = false;
         string gameCommand;
         function<void()> onHoverFunc;
         function<void()> onClickedFunc;

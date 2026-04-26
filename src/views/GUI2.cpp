@@ -393,11 +393,30 @@ void GUI::loadPopupNow(Popup *popup)
     popupStack.push(popup);
 }
 
-void GUI::loadPopup(Popup *popup)
+void GUI::pumpPopupQueue()
 {
     if (isDelayingPopupAfterDice)
+        return;
+
+    if (!popupStack.empty())
+        return;
+
+    if (popupQueue.empty())
+        return;
+
+    Popup *popup = popupQueue.front();
+    popupQueue.pop();
+    loadPopupNow(popup);
+}
+
+void GUI::loadPopup(Popup *popup)
+{
+    if (popup == nullptr)
+        return;
+
+    if (!popupStack.empty() || isDelayingPopupAfterDice || !popupQueue.empty())
     {
-        delayedPopupQueue.push(popup);
+        popupQueue.push(popup);
         return;
     }
 
@@ -426,6 +445,11 @@ void GUI::clearPopups()
 {
     while (!popupStack.empty())
         popupStack.pop();
+    while (!popupQueue.empty())
+    {
+        delete popupQueue.front();
+        popupQueue.pop();
+    }
 }
 
 void GUI::clearPlayers()
@@ -498,6 +522,8 @@ void GUI::updatePopupStack()
         else
             popupStack.top()->enable();
     }
+
+    pumpPopupQueue();
 }
 
 void GUI::updateDelayedPopups()
@@ -509,13 +535,7 @@ void GUI::updateDelayedPopups()
         return;
 
     isDelayingPopupAfterDice = false;
-
-    while (!delayedPopupQueue.empty())
-    {
-        Popup *popup = delayedPopupQueue.front();
-        delayedPopupQueue.pop();
-        loadPopupNow(popup);
-    }
+    pumpPopupQueue();
 }
 
 void GUI::updatePlayerProfilesLayout()

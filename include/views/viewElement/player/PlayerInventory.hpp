@@ -12,6 +12,7 @@ class PlayerInventoryPopup : public IndefinitePopup {
 private:
     Player* player;
     std::unique_ptr<PropertyPopup> propertyPopup;
+    std::vector<Interactable> cardUseButtons;
     std::vector<Interactable> propertyInfoButtons;
     std::string selectedPropertyCode;
 

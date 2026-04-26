@@ -67,8 +67,9 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
 
     auto tokens = tokenize(command);
     if (tokens.empty()) return CommandResult::CONTINUE;
-
+    std::cout<<command<<std::endl;
     const std::string rawCmd = tokens[0];
+    
     std::string cmd = normalize(tokens[0]);
 
     if (isAwaitingBonusRoll(player) && !isAllowedDuringBonusRoll(cmd)) {
@@ -979,17 +980,20 @@ bool CommandProcessor::applyDemolitionCard(Player* player, DemolitionCard* /*car
 CommandResult CommandProcessor::handleUseSkill(Player* player, int index) {
     if (!turn->canUseSkill(player)) {
         gui->showMessage("Kartu kemampuan tidak dapat digunakan sekarang.");
+        gui->renderCloseSkillHand();
         return CommandResult::INVALID;
     }
     const auto& hand = player->getHandCards();
     if (index < 0 || index >= static_cast<int>(hand.size())) {
         gui->showMessage("Nomor kartu kemampuan tidak valid.");
+        gui->renderCloseSkillHand();
         return CommandResult::INVALID;
     }
     SkillCard* card = hand[index];
 
     if (card->getKind() == SkillCardKind::JAIL_FREE) {
         gui->showMessage("Kartu " + card->getCardName() + " hanya bisa dipakai saat di Penjara.");
+        gui->renderCloseSkillHand();
         return CommandResult::INVALID;
     }
 
@@ -1020,9 +1024,10 @@ CommandResult CommandProcessor::handleUseSkill(Player* player, int index) {
     if (!applied) {
         gui->showMessage("Kartu tidak digunakan karena efeknya tidak berhasil.");
         gui->showMessage("Kamu masih boleh memakai kartu kemampuan lain pada giliran ini.");
+        gui->renderCloseSkillHand();
         return CommandResult::INVALID;
     }
-
+    gui->renderCloseSkillHand();
     player->removeCard(card);
     player->markSkillUsed();
     if (game->getSkillDeck() != nullptr) game->getSkillDeck()->discard(card);

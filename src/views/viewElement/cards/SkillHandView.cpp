@@ -26,7 +26,7 @@ SkillHandView::SkillHandView(Player& player, View3DCamera* cam, Card* incomingCa
     }
 
     Vector2 buttonSize = MeasureTextEx(fontMap.at("Orbitron"), "Cancel", 36, 1)*1.5f;
-    exitButton = Interactable(buttonSize, true, false, "DISPLAY HUD", [](){}, [this](){ close(); });
+    exitButton = Interactable(buttonSize, true, false, "DISPLAY EXIT_HAND", [](){}, [](){});
     exitButton.movePosition({GetScreenWidth()*0.9f, GetScreenHeight()*0.75f});
     exitButton.setRender([this](){
         DrawRectangle(exitButton.getRenderPos().x, exitButton.getRenderPos().y,
@@ -46,7 +46,13 @@ SkillHandView::SkillHandView(Player& player, View3DCamera* cam, Card* incomingCa
         this->incomingCard->addAnimation("DESCEND_1A", descendAnim);
         View3DAnimation* descendRotateAnim = new View3DAnimation(*this->incomingCard, 120, false, [](){}, [this](){
             View3DAnimation* adjustAnim = new View3DAnimation(*this->incomingCard, 120, false, [](){}, [this](){
-                enable();
+                if (this->hand.size() < 3) {
+                    hand.push_back(this->incomingCard);
+                    this->incomingCard = nullptr;
+                    adjustHand();
+                } else {
+                    enable();
+                }
             });
             adjustAnim->setRotateAnimation(30, {0,0,1}, 0.1);
             adjustAnim->start();
@@ -71,11 +77,23 @@ SkillHandView::~SkillHandView() {
     if (discardedCard != nullptr) delete discardedCard;
 }
 
+const bool SkillHandView::isAnimationActive() const {
+    int found = false;
+    for (SkillCardView* skill : hand) {
+        if (skill != nullptr) found = skill->isAnimationActive();
+    }
+    if (incomingCard != nullptr) found = incomingCard->isAnimationActive();
+    if (discardedCard != nullptr) found = discardedCard->isAnimationActive();
+    if (usedCard != nullptr) found = usedCard->isAnimationActive();
+    return found;
+}
+
 void SkillHandView::adjustHand() {
     disable();
     int i = 0;
     int cardAmount = hand.size();
     Vector3 basePos = viewCam->getPos() + (viewCam->getTarget() - viewCam->getPos())*0.38f - (Vector3){0, 6.0f, 0};
+    if (hand.size() == 0) {close(); return;}
     for (SkillCardView* skills : hand) {
         View3DAnimation* adjustAnim = new View3DAnimation(*skills, 120, false, [](){}, [this](){ 
             enable();
@@ -124,7 +142,6 @@ void SkillHandView::discardCard(SkillCardView* skill) {
 void SkillHandView::useCard(SkillCardView* skill) {
     disable();
     hand.erase(remove(hand.begin(), hand.end(), skill));
-    cout<<hand.size()<<endl;
     usedCard = skill;
     View3DAnimation* moveAnim1 = new View3DAnimation(*skill, 120, false, [](){}, [](){});
     moveAnim1->setMoveAnimation((Vector3){skill->getPos().x, skill->getPos().y, viewCam->getPos().z} + (Vector3){2.0f, 4.0f, 0.0f}, 0.2);
@@ -154,11 +171,17 @@ string SkillHandView::catchCommand() {
     if (discardedCard != nullptr && !discarded) {
         int cardIdx = find(player.getHandCards().begin(), player.getHandCards().end(), discardedCard->getCard()) - player.getHandCards().begin();
         discarded = true;
-        return "DISCARD SKILL_CARD " + to_string(cardIdx);
+        return to_string(cardIdx + 1);
     } else if (usedCard != nullptr && cardUsed) {
-        int cardIdx = find(player.getHandCards().begin(), player.getHandCards().end(), usedCard->getCard()) - player.getHandCards().begin();
-        closeView = true; 
-        return "USE SKILL_CARD " + to_string(cardIdx);
+        int cardIdx = -1;
+        string prefix = "GUNAKAN_KEMAMPUAN ";
+        for (int i = 0; i < player.getHandCards().size(); i++) {
+           if (player.getHandCards()[i] == usedCard->getCard()) {
+            cardIdx = i;
+           }
+        }
+        closeView = true;
+        return prefix + to_string(cardIdx + 1);
     }
     string exitCommand = exitButton.catchCommand();
     if (exitCommand != "NULL") {
@@ -215,6 +238,13 @@ void SkillHandView::enable() { active = true; }
 void SkillHandView::disable() { active = false; }
 
 void SkillHandView::close() {
+    if (hand.size() == 0) {
+        if (usedCard == nullptr) {
+            closeView = true; 
+        } else {
+            cardUsed = true;
+        }
+    }
     for (SkillCardView* skillCard : hand) {
         View3DAnimation* moveBack = new View3DAnimation(*skillCard, 120, false, [](){}, [this](){ 
             if (usedCard == nullptr) {
@@ -230,6 +260,7 @@ void SkillHandView::close() {
 }
 
 void SkillHandView::render() {
+    animationCheck();
     BeginMode3D(viewCam->mount());
         for (SkillCardView* skills : hand) {
             skills->render();

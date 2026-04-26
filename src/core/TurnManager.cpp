@@ -90,8 +90,7 @@ void TurnManager::distributeSkillCard(Player* player) {
     SkillCard* card = deck->draw();
     if (card == nullptr) return;
 
-    gui->showMessage("Giliran " + player->getUsername() + ": mendapatkan 1 kartu acak baru.");
-    gui->showMessage(player->getUsername() + " mendapatkan kartu: " + card->getCardName() + ".");
+    gui->renderSkillDraw(player, card);
 
     if (player->getCardCount() >= 3) {
         handleDropCard(player, card);
@@ -114,29 +113,17 @@ void TurnManager::handleDropCard(Player* player, SkillCard* drawnCard) {
     CardDeck<SkillCard>* deck = game->getSkillDeck();
     const auto& hand = player->getHandCards();
 
-    gui->showMessage("Kamu sudah memiliki 3 kartu di tangan.");
-    gui->showMessage("Kamu diwajibkan membuang 1 kartu.");
-    gui->showMessage("Daftar kartu kemampuanmu:");
-
-    for (size_t i = 0; i < hand.size(); ++i) {
-        gui->showMessage(std::to_string(i + 1) + ". " + hand[i]->getCardName() +
-                         " - " + hand[i]->getDescription());
-    }
-    gui->showMessage(std::to_string(hand.size() + 1) + ". " + drawnCard->getCardName() +
-                     " - " + drawnCard->getDescription());
+    gui->showMessage("Kamu sudah memiliki 3 kartu di tangan. Kamu diwajibkan membuang 1 kartu.");
 
     int choice = -1;
     const int maxChoice = static_cast<int>(hand.size()) + 1;
-    while (choice < 1 || choice > maxChoice) {
-        std::string input = waitForInput("Pilih nomor kartu yang ingin dibuang (1-" +
-                                         std::to_string(maxChoice) + "):");
-        try {
-            choice = std::stoi(input);
-        } catch (...) {
-            choice = -1;
-        }
-        if (choice < 1 || choice > maxChoice) {
-            gui->showMessage("Nomor kartu tidak valid.");
+    while (!gui->shouldExit()) {
+        while (!gui->shouldExit()) {
+            gui->update(); gui->display();
+            std::string c = gui->getCommand();
+            if (!c.empty() && c != "NULL") { 
+                choice = stoi(c); break; 
+            }
         }
     }
 

@@ -23,6 +23,7 @@ class SkillHandView : public IndefinitePopup {
         void discardCard(SkillCardView* skill);
         void adjustHand();
         void useCard(SkillCardView* skill);
+        const bool isAnimationActive() const override;
         string catchCommand() override;
         void close() override;
         void interactionCheck() override;

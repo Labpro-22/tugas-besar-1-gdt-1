@@ -360,7 +360,7 @@ std::string GUI::getCommand()
                 });
             } else if (tokens[1] == "HAND") {
                 camManager.switchTo("ACTION_CAM", 1, [this, tokens](){
-                    loadSkillHand(players[stoi(tokens[2])]->getPlayer(), new LassoCard);
+                    loadSkillHand(players[stoi(tokens[2])]->getPlayer(), nullt;
                 });
                 
             } else if (tokens[1] == "BUILD") {

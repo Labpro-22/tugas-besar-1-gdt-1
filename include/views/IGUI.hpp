@@ -43,7 +43,9 @@ public:
     virtual void renderOwnedProperties(const Player& player) = 0;
     virtual void renderDice(int die1, int die2) = 0;
     virtual void renderLog(const std::vector<LogEntry>& entries, const std::string& title) = 0;
-    virtual void renderSkillHand(const std::vector<SkillCard*>& hand) = 0;
+    virtual void renderUseSkillHand(Player* player) = 0;
+    virtual void renderSkillDraw(Player* player, SkillCard*) = 0;
+    virtual void renderCloseSkillHand() = 0;
     virtual void renderAuctionStart(Property* property, Player *auctioner, Game* game) = 0;
     virtual void renderAuctionTurn(Player* currentPlayer, bool forceBid) = 0;
     virtual void renderAuctionUpdate(int currentBid, Player* highBidder) = 0;

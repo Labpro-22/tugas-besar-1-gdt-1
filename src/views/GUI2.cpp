@@ -66,6 +66,7 @@ GUI::GUI(float fps, Board &board)
       pendingCommand("NULL"),
       fps(fps),
       exitRequested(false),
+      skillCard(nullptr),
       resumeBtn(
           {200, 56},
           true,
@@ -121,7 +122,11 @@ void GUI::update()
 
     if (WindowShouldClose())
         exitRequested = true;
-
+    if (skillCard != nullptr) {
+        if (skillCard->closed()) {
+            skillCard = nullptr;
+        }
+    }
     camManager.updateCamMap();
     updateDice();
     updatePlayerProfilesLayout();
@@ -200,11 +205,16 @@ void GUI::loadGameView()
     menu = nullptr;
 
     auto hud = std::make_unique<GameHUDView>();
-
+    hudView = hud.get();
     if (this->cachedGame != nullptr)
         hud->setGameModel(this->cachedGame);
 
     views.push_back(std::move(hud));
+}
+
+void GUI::loadSkillHand(Player& player, Card* incomingCard) {
+    views.push_back(make_unique<SkillHandView>(player, camManager.getCurrentCamera(), incomingCard));
+    skillCard = static_cast<SkillHandView*>(views.back().get());
 }
 
 void GUI::loadFinishMenu()
@@ -308,6 +318,7 @@ void GUI::renderProperty(const Property & /*property*/) { /* TODO */ }
 void GUI::renderOwnedProperties(const Player & /*player*/) { /* TODO */ }
 void GUI::renderDice(int d1, int d2)
 {
+    hudView->hideButtons();
     int idx = cachedGame->getCurrentTurnIndex();
     camManager.switchTo("ACTION_CAM", 0.2, [this, idx, d1, d2](){
         dice = new DiceView(d1,d2,players[idx], &camManager.getCamera("ACTION_CAM"));
@@ -318,8 +329,26 @@ void GUI::renderDice(int d1, int d2)
     });
     delete dice;
     dice = nullptr;
+    hudView->unhideButtons();
 }
-void GUI::renderSkillHand(const std::vector<SkillCard *> & /*hand*/) { /* TODO */ }
+void GUI::renderUseSkillHand(Player* player) { 
+    camManager.switchTo("ACTION_CAM", 0.2, [this, player](){
+        loadSkillHand(*player, nullptr);
+    });
+}
+
+void GUI::renderSkillDraw(Player* player, SkillCard* card) {
+    camManager.switchTo("ACTION_CAM", 0.2, [this, player,card](){
+        loadSkillHand(*player, card);
+    });
+    waitForCameraMovementToEnd(camManager.getCurrentCamera());
+    waitForAnimToEnd2D(skillCard);
+}
+
+void GUI::renderCloseSkillHand() {
+    if(skillCard != nullptr) skillCard->close();
+    camManager.switchTo("BOARD_CAM", 1, []() {});
+}
 void GUI::renderBankruptcy(const Player & /*player*/) { /* TODO */ }
 void GUI::renderWinner(const Player & /*winner*/) { /* TODO */ }
 
@@ -335,6 +364,7 @@ void GUI::renderAuctionStart(Property* property, Player *auctioner, Game* game) 
         if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
             g = hud;
     }
+    g->hideButtons();
     vector<PlayerProfileView*> activePlayerProfiles;
     for (Player* player : game->getActivePlayers()) {
         activePlayerProfiles.push_back(g->getPlayerProfile(player));
@@ -364,6 +394,11 @@ void GUI::renderAuctionEnd(Player* winner) {
     auction->endAuction(winner);
     waitForAnimToEnd2D(auction);
     auction = nullptr;
+    hudView->unhideButtons();
+    for (PlayerView* player : players) {
+        player->setVisible(true);
+    }
+    camManager.switchTo("BOARD_CAM", 0.2, [](){});
 }
 
 void GUI::renderMovement(const std::string & playerName, int steps)
@@ -758,9 +793,10 @@ void GUI::handleDisplayCommand(const std::vector<std::string> &tokens)
         dice->initializeThrowDice();
         dice->getThrowButton()->setActive(false);
     }
-    else if (sub == "THROW_DONE" && dice != nullptr)
-    {
-        
+    else if (sub == "HAND") {
+        camManager.switchTo("ACTION_CAM", 1, [this, tokens](){
+            loadSkillHand(players[stoi(tokens[2])]->getPlayer(), nullptr);
+        });
     }
     else if (sub == "DRAW" && tokens.size() >= 3)
     {
@@ -768,5 +804,7 @@ void GUI::handleDisplayCommand(const std::vector<std::string> &tokens)
             communityChestPile->drawCard();
         else if (tokens[2] == "CH")
             chancePile->drawCard();
+    } else if (sub == "EXIT_HAND") {
+        renderCloseSkillHand();
     }
 }

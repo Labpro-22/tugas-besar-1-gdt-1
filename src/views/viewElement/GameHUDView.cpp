@@ -39,6 +39,13 @@ GameHUDView::GameHUDView()
           "NULL",
           []() {},
           []() {}),
+      useSkillBtn(
+        {200, 56},
+          true,
+          false,
+          "DISPLAY HAND",
+          []() {},
+          []() {}),
       endTurnBtn(
           {200, 56},
           true,
@@ -62,6 +69,23 @@ PlayerProfileView* GameHUDView::getPlayerProfile(Player* player) {
         return &*it;
     }
 }
+
+void GameHUDView::hideButtons() {
+    hideButton = true;
+    switchCamBtn.disable();
+    rollDiceBtn.disable();
+    endTurnBtn.disable();
+    useSkillBtn.disable();
+}
+
+void GameHUDView::unhideButtons() {
+    hideButton = false;
+    switchCamBtn.enable();
+    rollDiceBtn.enable();
+    endTurnBtn.enable();
+    useSkillBtn.enable();
+}
+
 
 void GameHUDView::setGameModel(const Game *game)
 {
@@ -116,7 +140,7 @@ void GameHUDView::updateProfileData()
                         currentPlayer->getStatus() == PlayerStatus::ACTIVE &&
                         currentPlayer->getConsecutiveDoubles() == 0;
     }
-
+    showUseSkillButton = !currentPlayer->hasRolled() && !currentPlayer->hasUsedSkill();
     showEndTurnButton = canEndTurnNow;
 }
 
@@ -127,6 +151,8 @@ void GameHUDView::interactionCheck()
     if (showEndTurnButton)
     {
         endTurnBtn.interactionCheck();
+    } else {
+        useSkillBtn.interactionCheck();
     }
 
     for (auto &p : playerProfiles)
@@ -147,6 +173,12 @@ std::string GameHUDView::catchCommand()
     cmd = rollDiceBtn.catchCommand();
     if (cmd != "NULL")
         return cmd;
+
+    cmd = useSkillBtn.catchCommand();
+    if (cmd != "NULL") {
+        int curPlayerIdx = find(gameModel->getPlayers().begin(), gameModel->getPlayers().end(), gameModel->getCurrentPlayer()) - gameModel->getPlayers().begin(); 
+        return (string)"DISPLAY HAND " + to_string(curPlayerIdx);
+    }
 
     cmd = endTurnBtn.catchCommand();
     if (cmd != "NULL")
@@ -198,65 +230,86 @@ void GameHUDView::render()
     float startY = (GetScreenHeight() - totalH) / 2.0f;
 
     // SWITCH CAM (atas)
-    float y1 = startY;
-    switchCamBtn.movePosition({x + w / 2, y1 + h / 2});
-    DrawRectangleRounded({x + 3, y1 + 4, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
+    
+    if (!hideButton) {
+        float y1 = startY;
+        switchCamBtn.movePosition({x + w / 2, y1 + h / 2});
+        DrawRectangleRounded({x + 3, y1 + 4, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
 
-    Color camColor = isTopView
-                         ? Color{30, 110, 210, 255}
-                         : Color{30, 170, 110, 255};
+        Color camColor = isTopView
+                            ? Color{30, 110, 210, 255}
+                            : Color{30, 170, 110, 255};
 
-    DrawRectangleRounded({x, y1, w, h}, 0.5f, 8, camColor);
+        DrawRectangleRounded({x, y1, w, h}, 0.5f, 8, camColor);
 
-    const char *camText = isTopView ? "BOARD VIEW" : "TOP VIEW";
-    int fontSize = 20;
-    int textWidth = MeasureText(camText, fontSize);
+        const char *camText = isTopView ? "BOARD VIEW" : "TOP VIEW";
+        int fontSize = 20;
+        int textWidth = MeasureText(camText, fontSize);
 
-    DrawText(camText,
-             x + (w - textWidth) / 2,
-             y1 + (h - fontSize) / 2,
-             fontSize,
-             WHITE);
+        DrawText(camText,
+                x + (w - textWidth) / 2,
+                y1 + (h - fontSize) / 2,
+                fontSize,
+                WHITE);
 
-    switchCamBtn.render();
+        switchCamBtn.render();
 
-    // ROLL DICE (bawah)
-    float y2 = y1 + h + spacing;
-    rollDiceBtn.movePosition({x + w / 2, y2 + h / 2});
-    DrawRectangleRounded({x + 3, y2 + 4, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
+        // ROLL DICE (bawah)
+        float y2 = y1 + h + spacing;
+        rollDiceBtn.movePosition({x + w / 2, y2 + h / 2});
+        DrawRectangleRounded({x + 3, y2 + 4, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
 
-    Color diceColor = Color{200, 140, 40, 255};
-    DrawRectangleRounded({x, y2, w, h}, 0.5f, 8, diceColor);
+        Color diceColor = Color{200, 140, 40, 255};
+        DrawRectangleRounded({x, y2, w, h}, 0.5f, 8, diceColor);
 
-    const char *diceText = "ROLL DICE";
-    textWidth = MeasureText(diceText, fontSize);
+        const char *diceText = "ROLL DICE";
+        textWidth = MeasureText(diceText, fontSize);
 
-    DrawText(diceText,
-             x + (w - textWidth) / 2,
-             y2 + (h - fontSize) / 2,
-             fontSize,
-             WHITE);
+        DrawText(diceText,
+                x + (w - textWidth) / 2,
+                y2 + (h - fontSize) / 2,
+                fontSize,
+                WHITE);
 
-    rollDiceBtn.render();
+        rollDiceBtn.render();
 
-    if (showEndTurnButton)
-    {
-        float y3 = y2 + h + spacing;
-        endTurnBtn.movePosition({x + w / 2, y3 + h / 2});
-        DrawRectangleRounded({x + 3, y3 + 4, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
 
-        Color endTurnColor = Color{160, 55, 55, 255};
-        DrawRectangleRounded({x, y3, w, h}, 0.5f, 8, endTurnColor);
+        if (showEndTurnButton)
+        {
+            float y3 = y2 + h + spacing;
+            endTurnBtn.movePosition({x + w / 2, y3 + h / 2});
+            DrawRectangleRounded({x + 3, y3 + 4, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
 
-        const char *endText = "END TURN";
-        textWidth = MeasureText(endText, fontSize);
+            Color endTurnColor = Color{160, 55, 55, 255};
+            DrawRectangleRounded({x, y3, w, h}, 0.5f, 8, endTurnColor);
 
-        DrawText(endText,
-                 x + (w - textWidth) / 2,
-                 y3 + (h - fontSize) / 2,
-                 fontSize,
-                 WHITE);
+            const char *endText = "END TURN";
+            textWidth = MeasureText(endText, fontSize);
 
-        endTurnBtn.render();
+            DrawText(endText,
+                    x + (w - textWidth) / 2,
+                    y3 + (h - fontSize) / 2,
+                    fontSize,
+                    WHITE);
+
+            endTurnBtn.render();
+        } else if (showUseSkillButton) {
+            float y3 = y2 + h + spacing;
+            useSkillBtn.movePosition({x + w / 2, y3 + h / 2});
+            DrawRectangleRounded({x + 3, y3 + 4, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
+
+            Color useSkillColor = Color{255, 212, 42, 255};
+            DrawRectangleRounded({x, y3, w, h}, 0.5f, 8, useSkillColor);
+
+            const char *endText = "USE SKILL";
+            textWidth = MeasureText(endText, fontSize);
+
+            DrawText(endText,
+                        x + (w - textWidth) / 2,
+                        y3 + (h - fontSize) / 2,
+                        fontSize,
+                        WHITE);
+            useSkillBtn.render();
+        }
     }
 }

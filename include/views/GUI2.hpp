@@ -10,11 +10,13 @@
 #include "views/viewElement/Entry.hpp"
 #include "views/viewElement/MenuView.hpp"
 #include "views/viewElement/AuctionMenuView.hpp"
+#include "views/viewElement/cards/SkillHandView.hpp"
 #include "views/viewElement/cards/CardPileView.hpp"
 #include "views/viewElement/board/BoardView.hpp"
 #include "views/viewElement/player/PlayerView.hpp"
 #include "views/viewElement/player/DiceView.hpp"
 #include "views/viewElement/Popup.hpp"
+#include "views/viewElement/GameHUDView.hpp"
 #include "views/viewElement/player/PlayerProfileView.hpp"
 #include "views/animation/camera/CameraManager.hpp"
 #include "views/animation/camera/CameraMovement.hpp"
@@ -48,6 +50,8 @@ private:
     std::vector<PlayerProfileView *> playerProfiles;
     CardPileView *chancePile;
     CardPileView *communityChestPile;
+    SkillHandView* skillCard;
+    GameHUDView* hudView;
 
     // ── Camera & runtime ───────────────────────────────────────────────────
     CameraManager camManager;
@@ -58,6 +62,7 @@ private:
     // ── View management ────────────────────────────────────────────────────
     void unloadView(View2D *v);
     void loadPopup(Popup *popup);
+    void loadSkillHand(Player& player, Card* incomingCard);
     void enableAll();
     void disableAll();
     void clearViews();
@@ -121,7 +126,9 @@ public:
     void renderOwnedProperties(const Player &player) override;
     void renderDice(int die1, int die2) override;
     void renderLog(const std::vector<LogEntry> &entries, const std::string &title) override;
-    void renderSkillHand(const std::vector<SkillCard *> &hand) override;
+    void renderUseSkillHand(Player* player) override;
+    void renderSkillDraw(Player* player, SkillCard*) override;
+    void renderCloseSkillHand() override;
     void renderAuctionStart(Property* property, Player *auctioner, Game* game) override;
     void renderAuctionTurn(Player* currentPlayer, bool forceBid) override;
     void renderAuctionUpdate(int currentBid, Player *highBidder) override;

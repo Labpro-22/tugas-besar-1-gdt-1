@@ -2,6 +2,9 @@
 #include "views/viewElement/View2D.hpp"
 #include "views/viewElement/Interactable.hpp"
 #include "views/viewElement/player/PlayerProfileView.hpp"
+#include "views/viewElement/player/PlayerInventory.hpp"
+
+#include <memory>
 
 class Game;
 
@@ -12,6 +15,7 @@ private:
     Interactable rollDiceBtn;
     Interactable endTurnBtn;
     std::vector<PlayerProfileView> playerProfiles;
+    std::unique_ptr<PlayerInventoryPopup> inventoryPopup;
 
     bool isTopView = false;
     bool showEndTurnButton = false;

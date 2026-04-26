@@ -55,6 +55,7 @@ GameHUDView::GameHUDView()
 void GameHUDView::setGameModel(const Game *game)
 {
     this->gameModel = game;
+    inventoryPopup.reset();
 
     playerProfiles.clear();
 
@@ -102,6 +103,16 @@ void GameHUDView::updateProfileData()
 
 void GameHUDView::interactionCheck()
 {
+    if (inventoryPopup)
+    {
+        inventoryPopup->interactionCheck();
+        if (inventoryPopup->closed())
+        {
+            inventoryPopup.reset();
+        }
+        return;
+    }
+
     rollDiceBtn.interactionCheck();
     switchCamBtn.interactionCheck();
     if (showEndTurnButton)
@@ -111,8 +122,21 @@ void GameHUDView::interactionCheck()
 
     for (auto &p : playerProfiles)
     {
-        p.onHover();
-        p.onClicked();
+        p.interactionCheck();
+
+        std::string cmd = p.catchCommand();
+        if (cmd != "NULL")
+        {
+            Player *clickedPlayer = p.getPlayer();
+            Player *currentPlayer = gameModel ? gameModel->getCurrentPlayer() : nullptr;
+
+            if (clickedPlayer != nullptr && clickedPlayer == currentPlayer)
+            {
+                inventoryPopup = std::make_unique<PlayerInventoryPopup>(clickedPlayer);
+                inventoryPopup->enable();
+                break;
+            }
+        }
     }
 }
 
@@ -245,5 +269,10 @@ void GameHUDView::render()
                  WHITE);
 
         endTurnBtn.render();
+    }
+
+    if (inventoryPopup)
+    {
+        inventoryPopup->render();
     }
 }

@@ -4,8 +4,8 @@ project(Nimonspoli LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include_directories(C:/Users/mhps-null/Downloads/raylib-6.0_win64_mingw-w64/raylib-6.0_win64_mingw-w64/include)
-link_directories(C:/Users/mhps-null/Downloads/raylib-6.0_win64_mingw-w64/raylib-6.0_win64_mingw-w64/lib)
+include_directories(C:/msys64/ucrt64/include)
+link_directories(C:/msys64/ucrt64/lib)
 
 add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/core/mainGUI.cpp
@@ -31,6 +31,7 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/views/viewElement/player/PlayerView.cpp
                                src/views/viewElement/player/DiceView.cpp
                                src/views/viewElement/player/PlayerProfileView.cpp
+                               src/views/viewElement/player/PlayerInventory.cpp
                                src/views/viewElement/player/DiceView.cpp
                                src/views/animation/ViewAnimation.cpp
                                src/views/animation/physicsEngine/PhysicsObject.cpp

@@ -25,56 +25,59 @@ class CommunityChestTile;
 class FestivalTile;
 class TaxTile;
 
-class GameEngine {
+class GameEngine
+{
     friend class CommandProcessor;
-private:
-    Game* game;
-    TransactionLogger* logger;
-    IGUI* gui;  // non-owning
 
-    DiceManager* dice;
-    TurnManager* turnManager;
-    CommandProcessor* commandProcessor;
-    AuctionManager* auctionManager;
-    BankruptcyManager* bankruptcyManager;
-    SaveLoadManager* saveLoadManager;
+private:
+    Game *game;
+    TransactionLogger *logger;
+    IGUI *gui; // non-owning
+
+    DiceManager *dice;
+    TurnManager *turnManager;
+    CommandProcessor *commandProcessor;
+    AuctionManager *auctionManager;
+    BankruptcyManager *bankruptcyManager;
+    SaveLoadManager *saveLoadManager;
     bool resumeLoadedTurn;
     bool pendingLoadRequested;
     bool skipAdvanceAfterLoad;
     std::string pendingLoadPath;
 
-    void initNewGame(const std::string& configPath);
-    bool initLoadGame(const std::string& filepath = "");
-    bool loadFromPath(const std::string& filepath);
+    void initNewGame(const std::string &configPath);
+    bool initLoadGame(const std::string &filepath = "");
+    bool loadFromPath(const std::string &filepath);
     void resetRuntimeState();
 
     void gameLoop();
-    void processPlayerTurn(Player* player);
-    CommandResult handleJailedPlayerTurn(Player* player);
-    CommandResult resolveRoll(Player* player, bool manual, int d1, int d2, bool fromJailAttempt);
-    void handleChanceLanding(Player* player, ChanceTile* tile);
-    void handleCommunityChestLanding(Player* player, CommunityChestTile* tile);
+    void processPlayerTurn(Player *player);
+    CommandResult handleJailedPlayerTurn(Player *player);
+    CommandResult resolveRoll(Player *player, bool manual, int d1, int d2, bool fromJailAttempt);
+    void handleChanceLanding(Player *player, ChanceTile *tile);
+    void handleCommunityChestLanding(Player *player, CommunityChestTile *tile);
 
-    void handleTileLanding(Player* player, Tile* tile);
+    void handleTileLanding(Player *player, Tile *tile);
 
-    bool executePayment(Player* from, Player* to, int amount,
-                        const std::string& obligationLabel = "");
+    bool executePayment(Player *from, Player *to, int amount,
+                        const std::string &obligationLabel = "");
     bool checkWinCondition();
     void endGame();
 
-    static std::string waitForInput(IGUI* gui, const std::string& prompt);
+    static std::string waitForInput(IGUI *gui, const std::string &prompt);
+    static void waitForResume(IGUI *gui);
     static std::string normalizeInput(std::string s);
-    static bool askYesNo(IGUI* gui, const std::string& prompt);
-    static int askIncomeTaxChoice(IGUI* gui);
+    static bool askYesNo(IGUI *gui, const std::string &prompt);
+    static int askIncomeTaxChoice(IGUI *gui);
 
 public:
-    GameEngine(IGUI* gui);
+    GameEngine(IGUI *gui);
     ~GameEngine();
 
-    void handleTileLandingPublic(Player* player, Tile* tile) { handleTileLanding(player, tile); }
+    void handleTileLandingPublic(Player *player, Tile *tile) { handleTileLanding(player, tile); }
 
     void run();
-    void requestLoad(const std::string& filepath);
+    void requestLoad(const std::string &filepath);
     bool performPendingLoad();
 };
 

@@ -64,7 +64,16 @@ GUI::GUI(float fps, Board &board)
       camManager(CameraManager()),
       pendingCommand("NULL"),
       fps(fps),
-            exitRequested(false)
+      exitRequested(false),
+      isDelayingPopupAfterDice(false),
+      resumeBtn(
+          {200, 56},
+          true,
+          false,
+          "RESUME",
+          []() {},
+          []() {}),
+      showResume(false)
 {
     const float boardSize = this->board->getBoardSize();
 
@@ -102,6 +111,11 @@ void GUI::update()
         ToggleFullscreen();
     }
 
+    if (showResume)
+    {
+        resumeBtn.interactionCheck();
+    }
+
     if (WindowShouldClose())
         exitRequested = true;
 
@@ -130,6 +144,20 @@ void GUI::display()
     if (dice)
         dice->render();
     EndMode3D();
+
+    if (showResume)
+    {
+        float w = 200, h = 56;
+        float x = GetScreenWidth() / 2 - w / 2;
+        float y = GetScreenHeight() - 120;
+
+        resumeBtn.movePosition({x + w / 2, y + h / 2});
+
+        DrawRectangleRounded({x, y, w, h}, 0.5f, 8, Color{100, 180, 255, 255});
+        DrawText("RESUME", x + 50, y + 15, 20, WHITE);
+
+        resumeBtn.render();
+    }
 
     for (auto &view : views)
         view->render();
@@ -185,9 +213,9 @@ void GUI::showMessage(const std::string &message)
     loadPopup(new MessagePopup(message));
 }
 
-void GUI::showConfirm(const std::string & /*question*/)
+void GUI::showConfirm(const std::string &question)
 {
-    // TODO: popup konfirmasi ya/tidak
+    loadPopup(new ConfirmPopup(question));
 }
 
 void GUI::showInputPrompt(const std::string &prompt)
@@ -207,6 +235,13 @@ void GUI::showException(int code, const std::string &msg)
 
 std::string GUI::getCommand()
 {
+    if (showResume)
+    {
+        std::string cmd = resumeBtn.catchCommand();
+        if (cmd != "NULL")
+            return cmd;
+    }
+
     if (hasPendingCommand())
         return consumePendingCommand();
 
@@ -269,8 +304,12 @@ void GUI::renderDice(int d1, int d2)
     }
 
     int idx = cachedGame->getCurrentTurnIndex();
-    dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
-    dice->initializeThrowDice(d1, d2);
+    camManager.switchTo("ACTION_CAM", 1, [this, idx, d1, d2]()
+                        {
+        loadDice(players[idx]);
+
+        dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
+        dice->initializeThrowDice(d1, d2); });
 }
 void GUI::renderSkillHand(const std::vector<SkillCard *> & /*hand*/) { /* TODO */ }
 void GUI::renderBankruptcy(const Player & /*player*/) { /* TODO */ }
@@ -286,10 +325,26 @@ void GUI::renderAuction(const Property & /*property*/, int /*currentBid*/, const
     // TODO: tampilkan popup lelang
 }
 
-void GUI::renderMovement(const std::string & /*playerName*/, int /*steps*/, const std::string & /*landedTileName*/)
+void GUI::renderMovement(const std::string &playerName, int steps, const std::string & /*landedTileName*/)
 {
-    // TODO: animasi gerak pemain sudah ditangani PlayerView::moveSpaces();
-    //       fungsi ini bisa dipakai untuk overlay teks atau kamera tracking
+    PlayerView *pv = nullptr;
+
+    for (auto p : players)
+    {
+        if (p->getPlayer().getUsername() == playerName)
+        {
+            pv = p;
+            break;
+        }
+    }
+
+    if (pv == nullptr)
+        return;
+
+    std::string camKey = pv->getPlayerCamKey();
+
+    camManager.switchTo(camKey, 1, [pv, steps]()
+                        { pv->moveSpaces(steps); });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -430,6 +485,12 @@ void GUI::clearPlayers()
 }
 
 // ── Update helpers ─────────────────────────────────────────────────────────
+
+void GUI::setResumeVisible(bool v)
+{
+    showResume = v;
+    resumeBtn.setActive(v);
+}
 
 void GUI::updateDice()
 {
@@ -615,18 +676,10 @@ void GUI::handleDisplayCommand(const std::vector<std::string> &tokens)
     }
     else if (sub == "THROW" && dice != nullptr)
     {
-        dice->initializeThrowDice(6, 6);
-        dice->getThrowButton()->setActive(false);
     }
     else if (sub == "THROW_DONE" && dice != nullptr)
     {
         dice->moveDiceOffScreen();
-        PlayerView *movingPlayer = dice->getPlayer();
-        int moveVal = dice->getMoveValue();
-        std::string camKey = movingPlayer->getPlayerCamKey();
-
-        camManager.switchTo(camKey, 1, [movingPlayer, moveVal]()
-                            { movingPlayer->moveSpaces(moveVal); });
     }
     else if (sub == "DRAW" && tokens.size() >= 3)
     {

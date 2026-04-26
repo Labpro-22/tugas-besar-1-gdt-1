@@ -29,6 +29,9 @@ class GUI : public IGUI
 {
 private:
     const Game *cachedGame = nullptr;
+    bool showResume = false;
+    Interactable resumeBtn;
+    void setResumeVisible(bool v);
 
     // ── View layers ────────────────────────────────────────────────────────
     std::vector<std::unique_ptr<View2D>> views;

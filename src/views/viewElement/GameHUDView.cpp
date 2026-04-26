@@ -38,7 +38,17 @@ GameHUDView::GameHUDView()
           false,
           "NULL",
           []() {},
-          []() {})
+          []() {}),
+      endTurnBtn(
+          {200, 56},
+          true,
+          false,
+          "AKHIRI_GILIRAN",
+          []() {},
+          [this]()
+          {
+              showEndTurnButton = false;
+          })
 {
 }
 
@@ -66,19 +76,45 @@ void GameHUDView::setGameModel(const Game *game)
     }
 }
 
+void GameHUDView::setDiceAnimationFinished(bool finished)
+{
+    diceAnimationFinished = finished;
+    if (!finished)
+        showEndTurnButton = false;
+}
+
 void GameHUDView::updateProfileData()
 {
     if (!gameModel)
+    {
+        showEndTurnButton = false;
         return;
+    }
 
-    int currentIdx = gameModel->getCurrentTurnIndex();
     rollDiceBtn.setGameCommand("LEMPAR_DADU");
+
+    const Player *currentPlayer = gameModel->getCurrentPlayer();
+    bool canEndTurnNow = false;
+
+    if (currentPlayer != nullptr)
+    {
+        canEndTurnNow = currentPlayer->hasRolled() &&
+                        !currentPlayer->hasPendingFestival() &&
+                        currentPlayer->getStatus() == PlayerStatus::ACTIVE &&
+                        currentPlayer->getConsecutiveDoubles() == 0;
+    }
+
+    showEndTurnButton = canEndTurnNow && diceAnimationFinished;
 }
 
 void GameHUDView::interactionCheck()
 {
     rollDiceBtn.interactionCheck();
     switchCamBtn.interactionCheck();
+    if (showEndTurnButton)
+    {
+        endTurnBtn.interactionCheck();
+    }
 
     for (auto &p : playerProfiles)
     {
@@ -99,6 +135,10 @@ std::string GameHUDView::catchCommand()
     if (cmd != "NULL")
         return cmd;
 
+    cmd = endTurnBtn.catchCommand();
+    if (cmd != "NULL")
+        return cmd;
+
     for (auto &p : playerProfiles)
     {
         cmd = p.catchCommand();
@@ -116,6 +156,9 @@ void GameHUDView::render()
     float hProfile = 80.0f;
     float margin = 20.0f;
 
+    const Player *currentPlayer = gameModel ? gameModel->getCurrentPlayer() : nullptr;
+    const std::vector<Player *> *players = gameModel ? &gameModel->getPlayers() : nullptr;
+
     Vector2 corners[4] = {
         {wProfile / 2 + margin, hProfile / 2 + margin},                                       // TL
         {GetScreenWidth() - wProfile / 2 - margin, hProfile / 2 + margin},                    // TR
@@ -127,6 +170,16 @@ void GameHUDView::render()
     {
         playerProfiles[i].movePosition(corners[i]);
         playerProfiles[i].render();
+
+        if (currentPlayer != nullptr && players != nullptr && i < players->size() && (*players)[i] == currentPlayer)
+        {
+            Rectangle rect = playerProfiles[i].getHitbox();
+
+            DrawRectangleLinesEx(
+                {rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6},
+                4,
+                Color{255, 215, 0, 255});
+        }
     }
 
     float spacing = 16.0f;
@@ -135,7 +188,7 @@ void GameHUDView::render()
     float h = 56.0f;
 
     float x = GetScreenWidth() - w - margin;
-    float totalH = h * 2 + spacing;
+    float totalH = h * (showEndTurnButton ? 3 : 2) + spacing * (showEndTurnButton ? 2 : 1);
     float startY = (GetScreenHeight() - totalH) / 2.0f;
 
     // SWITCH CAM (atas)
@@ -179,4 +232,25 @@ void GameHUDView::render()
              WHITE);
 
     rollDiceBtn.render();
+
+    if (showEndTurnButton)
+    {
+        float y3 = y2 + h + spacing;
+        endTurnBtn.movePosition({x + w / 2, y3 + h / 2});
+        DrawRectangleRounded({x + 3, y3 + 4, w, h}, 0.5f, 8, Fade(BLACK, 0.25f));
+
+        Color endTurnColor = Color{160, 55, 55, 255};
+        DrawRectangleRounded({x, y3, w, h}, 0.5f, 8, endTurnColor);
+
+        const char *endText = "END TURN";
+        textWidth = MeasureText(endText, fontSize);
+
+        DrawText(endText,
+                 x + (w - textWidth) / 2,
+                 y3 + (h - fontSize) / 2,
+                 fontSize,
+                 WHITE);
+
+        endTurnBtn.render();
+    }
 }

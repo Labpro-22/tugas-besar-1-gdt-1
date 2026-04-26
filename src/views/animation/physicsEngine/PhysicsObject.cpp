@@ -196,7 +196,7 @@ void PhysicsObject::doSurfaceRoll(const Vector3& force, const Vector3& rollPoint
     rollTransform = MatrixRotateXYZ(surfaceRollAxis*surfaceRollAngularVelocity*deltaTime)*rollTransform;
     rollTransform = MatrixTranslate(-armLengthCOM.x, -armLengthCOM.y, -armLengthCOM.z)*rollTransform;
     transformation *= rollTransform;
-    pos *= rollTransform;
+    pos = Vector3Transform(pos, rollTransform);
     pos.y -= getMinimumPoint().y;
 }
 

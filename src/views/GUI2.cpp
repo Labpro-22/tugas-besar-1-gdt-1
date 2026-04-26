@@ -64,7 +64,8 @@ GUI::GUI(float fps, Board &board)
       camManager(CameraManager()),
       pendingCommand("NULL"),
       fps(fps),
-      exitRequested(false)
+      exitRequested(false),
+    isDelayingPopupAfterDice(false)
 {
     const float boardSize = this->board->getBoardSize();
 
@@ -108,6 +109,7 @@ void GUI::update()
     camManager.updateCamMap();
 
     updateDice();
+    updateDelayedPopups();
     updatePlayerProfilesLayout();
     updateViews();
     updatePopupStack();
@@ -262,6 +264,9 @@ void GUI::renderDice(int d1, int d2)
     if (dice != nullptr)
         delete dice;
 
+    isDelayingPopupAfterDice = true;
+    setHudDiceAnimationFinished(false);
+
     int idx = cachedGame->getCurrentTurnIndex();
     dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
     dice->initializeThrowDice(d1, d2);
@@ -368,11 +373,22 @@ void GUI::unloadView(View2D *v)
         views.end());
 }
 
-void GUI::loadPopup(Popup *popup)
+void GUI::loadPopupNow(Popup *popup)
 {
     disableAll();
     views.push_back(std::unique_ptr<View2D>(popup));
     popupStack.push(popup);
+}
+
+void GUI::loadPopup(Popup *popup)
+{
+    if (isDelayingPopupAfterDice)
+    {
+        delayedPopupQueue.push(popup);
+        return;
+    }
+
+    loadPopupNow(popup);
 }
 
 void GUI::enableAll()
@@ -415,11 +431,30 @@ void GUI::updateDice()
 {
     if (dice == nullptr)
         return;
+
+    std::string diceCmd = dice->getThrowButton()->catchCommand();
+    if (diceCmd != "NULL")
+    {
+        auto tokens = tokenize(diceCmd);
+        if (!tokens.empty() && tokens[0] == "DISPLAY")
+            handleDisplayCommand(tokens);
+    }
+
     dice->update();
     if (dice->isDone())
     {
         delete dice;
         dice = nullptr;
+        setHudDiceAnimationFinished(true);
+    }
+}
+
+void GUI::setHudDiceAnimationFinished(bool finished)
+{
+    for (auto &view : views)
+    {
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+            hud->setDiceAnimationFinished(finished);
     }
 }
 
@@ -449,6 +484,24 @@ void GUI::updatePopupStack()
             enableAll();
         else
             popupStack.top()->enable();
+    }
+}
+
+void GUI::updateDelayedPopups()
+{
+    if (!isDelayingPopupAfterDice)
+        return;
+
+    if (dice != nullptr)
+        return;
+
+    isDelayingPopupAfterDice = false;
+
+    while (!delayedPopupQueue.empty())
+    {
+        Popup *popup = delayedPopupQueue.front();
+        delayedPopupQueue.pop();
+        loadPopupNow(popup);
     }
 }
 

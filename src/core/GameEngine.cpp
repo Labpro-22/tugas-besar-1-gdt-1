@@ -33,6 +33,8 @@
 #include "models/BoardAndTiles/SpecialTile/GoTile.hpp"
 #include "models/BoardAndTiles/SpecialTile/FreeParkingTile.hpp"
 #include "utils/Formatter.hpp"
+#include "exception/GameException.hpp"
+#include "exception/InvalidEntryInput/InvalidDiceNumberException.hpp"
 
 namespace {
 constexpr const char* kDefaultConfigDir = "data/config/default";
@@ -68,67 +70,37 @@ std::string buildingStateLabel(const StreetProperty* property) {
         case BuildingState::HOTEL:   return "Hotel";
         default:                     return "tanah kosong";
     }
+}
 
-    std::string propertyLogLabel(const Property *property)
+std::string rentConditionLabel(const Property *property)
+{
+    if (property == nullptr)
+        return "";
+
+    std::string label;
+    if (property->isStreet())
     {
-        if (property == nullptr)
-            return "?";
-        return property->getName() + " (" + property->getCode() + ")";
+        auto *street = static_cast<const StreetProperty *>(property);
+        label = buildingStateLabel(street);
+    }
+    else if (property->getType() == PropertyType::RAILROAD)
+    {
+        label = "Railroad";
+    }
+    else if (property->getType() == PropertyType::UTILITY)
+    {
+        label = "Utility";
     }
 
-    std::string buildingStateLabel(const StreetProperty *property)
+    if (property->getFestivalDuration() > 0)
     {
-        if (property == nullptr)
-            return "tanah kosong";
-
-        switch (property->getBuildingState())
-        {
-        case BuildingState::NONE:
-            return "tanah kosong";
-        case BuildingState::HOUSE_1:
-            return "1 rumah";
-        case BuildingState::HOUSE_2:
-            return "2 rumah";
-        case BuildingState::HOUSE_3:
-            return "3 rumah";
-        case BuildingState::HOUSE_4:
-            return "4 rumah";
-        case BuildingState::HOTEL:
-            return "Hotel";
-        default:
-            return "tanah kosong";
-        }
+        if (!label.empty())
+            label += " | ";
+        label += "Festival aktif x" + std::to_string(property->getFestivalMultiplier()) +
+                 " (" + std::to_string(property->getFestivalDuration()) + " giliran)";
     }
-
-    std::string rentConditionLabel(const Property *property)
-    {
-        if (property == nullptr)
-            return "";
-
-        std::string label;
-        if (property->isStreet())
-        {
-            auto *street = static_cast<const StreetProperty *>(property);
-            label = buildingStateLabel(street);
-        }
-        else if (property->getType() == PropertyType::RAILROAD)
-        {
-            label = "Railroad";
-        }
-        else if (property->getType() == PropertyType::UTILITY)
-        {
-            label = "Utility";
-        }
-
-        if (property->getFestivalDuration() > 0)
-        {
-            if (!label.empty())
-                label += " | ";
-            label += "Festival aktif x" + std::to_string(property->getFestivalMultiplier()) +
-                     " (" + std::to_string(property->getFestivalDuration()) + " giliran)";
-        }
-        return label;
-    }
+    return label;
+}
 }
 
 GameEngine::GameEngine(IGUI *gui)
@@ -785,8 +757,10 @@ void GameEngine::handleCommunityChestLanding(Player *player, CommunityChestTile 
                                     "DANA_UMUM",
                                     "Bayar ulang tahun " + Formatter::money(amount) +
                                     " ke " + player->getUsername());
+                    }
                 }
             }
+            break;
         }
         case CommunityType::DOCTOR_FEE: {
             const int fee = 700;
@@ -798,6 +772,7 @@ void GameEngine::handleCommunityChestLanding(Player *player, CommunityChestTile 
                                 "DANA_UMUM", "Bayar biaya dokter " + Formatter::money(fee));
                 }
             }
+            break;
         }
         case CommunityType::CAMPAIGN_FEE: {
             const int fee = 200;
@@ -814,10 +789,10 @@ void GameEngine::handleCommunityChestLanding(Player *player, CommunityChestTile 
                                 "DANA_UMUM",
                                 "Bayar biaya kampanye " + Formatter::money(fee) +
                                 " ke " + other->getUsername());
+                }
             }
+            break;
         }
-        break;
-    }
     }
 
     game->getCommunityDeck()->discard(card);
@@ -974,8 +949,9 @@ void GameEngine::initNewGame(const std::string &configPath)
     game->setCurrentTurn(1);
 
     gui->showMessage("Urutan giliran sudah diacak.");
-    for (int i = 0; i < static_cast<int>(usernames.size()); ++i) {
-        gui->showMessage(std::to_string(i + 1) + ". " + usernames[i]);
+    const auto& players = game->getPlayers();
+    for (int i = 0; i < static_cast<int>(players.size()); ++i) {
+        gui->showMessage(std::to_string(i + 1) + ". " + players[i]->getUsername());
     }
 
     // Set all players to start on GO (tile index 1)

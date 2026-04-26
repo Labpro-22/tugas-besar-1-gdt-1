@@ -4,8 +4,14 @@ project(Nimonspoli LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include_directories(C:/Users/mhps-null/Downloads/raylib-6.0_win64_mingw-w64/raylib-6.0_win64_mingw-w64/include)
-link_directories(C:/Users/mhps-null/Downloads/raylib-6.0_win64_mingw-w64/raylib-6.0_win64_mingw-w64/lib)
+include(FetchContent)
+
+FetchContent_Declare(
+  raylib
+  GIT_REPOSITORY https://github.com/raysan5/raylib.git
+  GIT_TAG 5.0
+)
+FetchContent_MakeAvailable(raylib)
 
 add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/core/mainGUI.cpp
@@ -99,9 +105,6 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
 
 target_link_libraries(${PROJECT_NAME}
     raylib
-    opengl32
-    gdi32
-    winmm
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)

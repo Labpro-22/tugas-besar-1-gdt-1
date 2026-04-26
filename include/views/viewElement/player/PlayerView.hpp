@@ -23,7 +23,9 @@ class PlayerView : public View3D {
         string getPlayerCamKey();
         View3DCamera* getPlayerCamera();
         void setCurrentTile(TileView* currentTile);
-        void moveToTile(TileView& tile);
+        void moveToTile(TileView& tile, bool forward);
+        void teleportToTile(TileView& destTile);
+        void sendPlayerToJail();
         void moveSpaces(int moveVal);
         static void loadPlayerModel(string filePath);
 };

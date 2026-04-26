@@ -36,7 +36,8 @@ class TileView : public View3D {
         virtual Vector3 getPassingPos();
         void adjustPlayersInTile();
         void handlePlayerEnteringTile(PlayerView* player);
-        void setCamToTile(View3DCamera* cam);
+        virtual void handlePlayerLeavingTile(PlayerView* player);
+        void setCamToTile(View3DCamera* cam) const;
         static const Vector2 getTileDim();
         virtual void buildHouse() {}
         virtual void sellHouse() {}
@@ -74,8 +75,11 @@ class GoTileView : public TileView {
 
 class JailTileView : public TileView {
     private:
+        vector<PlayerView*> jailedPlayers;
     public:
         JailTileView(Tile& tile, const bool cornerTile, const int cardinality);
         Vector3 getPlayerPosInTile(int playerIdx) override;
         Vector3 getPassingPos() override;
+        void handlePlayerEnteringJail(PlayerView* player);
+        void handlePlayerLeavingTile(PlayerView* player) override;
 };

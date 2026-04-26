@@ -174,7 +174,6 @@ void GUI::loadPlayer(Player &player)
 
     PlayerView *playerView = new PlayerView(player, board, color, &camManager);
     players.push_back(playerView);
-    players.back()->setVisible(false);
 
     PlayerProfileView *profile = new PlayerProfileView();
     profile->setPlayer(&player);
@@ -344,6 +343,16 @@ Command GUI::getCommand()
                 }
             } else if (tokens[1] == "SELL") {
                 board->getTileFromIdx(stoi(tokens[2]))->sellHouse();
+            } else if (tokens[1] == "MOVE_PLAYER" && tokens.size() >= 4) {
+                players[stoi(tokens[2])]->moveToTile(*board->getTileFromIdx(stoi(tokens[3])), true);
+            } else if (tokens[1] == "TELEPORT" && tokens.size() >= 4) {
+                camManager.switchTo(players[stoi(tokens[2])]->getPlayerCamKey(), 0.2, [this, tokens](){
+                    players[stoi(tokens[2])]->teleportToTile(*board->getTileFromIdx(stoi(tokens[3])));
+                });
+            } else if (tokens[1] == "JAIL" && tokens.size() >= 3) {
+                camManager.switchTo(players[stoi(tokens[2])]->getPlayerCamKey(), 0.2, [this, tokens](){
+                    players[stoi(tokens[2])]->sendPlayerToJail();
+                });
             }
 
             return {"NULL", {}};

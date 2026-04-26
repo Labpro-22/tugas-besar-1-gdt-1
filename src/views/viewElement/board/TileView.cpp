@@ -178,7 +178,7 @@ bool TileView::isCornerTile() const {
     return cornerTile;
 }
 
-void TileView::setCamToTile(View3DCamera* cam) {
+void TileView::setCamToTile(View3DCamera* cam) const {
     cam->moveTargetPos(pos + (Vector3){0,1.0f,0});
     cam->movePosition(pos + Vector3Transform({0,2.0f,-5.0f}, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2)));
 }
@@ -244,18 +244,34 @@ Vector3 StreetTileView::getPlayerPosInTile(int playerIdx) {
         tileSize.x *= 0.85;
     }
     Vector3 relPlayerPos;
-    if (playersInTile.size() == 1) {
-        relPlayerPos =  {0, 0, 0};
-    } else if (playersInTile.size() == 2) {
-        if (playerIdx == 0) relPlayerPos = {0, 0, tileSize.y*0.175f};
-        else relPlayerPos = {0, 0, -tileSize.y*0.325f};
+    if (!cornerTile) {
+        if (playersInTile.size() == 1) {
+            relPlayerPos =  {0, 0, 0};
+        } else if (playersInTile.size() == 2) {
+            if (playerIdx == 0) relPlayerPos = {0, 0, tileSize.y*0.175f};
+            else relPlayerPos = {0, 0, -tileSize.y*0.325f};
+        } else {
+            if (playerIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.175f};
+            else if (playerIdx == 1) relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+            else if (playerIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+            else {relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.175f};}
+            
+        }
+        return pos + Vector3Transform(relPlayerPos, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
     } else {
-        if (playerIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.175f};
-        else if (playerIdx == 1) relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.325f};
-        else if (playerIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
-        else relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.175f};
+        if (playersInTile.size() == 1) {
+            relPlayerPos =  {tileSize.x*0.175f, 0, tileSize.y*0.175f};
+        } else if (playersInTile.size() == 2) {
+            if (playerIdx == 0) relPlayerPos = {0, 0, tileSize.y*0.25f};
+            else relPlayerPos = {tileSize.x*0.25f, 0, 0};
+        } else {
+            if (playerIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.325f};
+            else if (playerIdx == 1) relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.325f};
+            else if (playerIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+            else relPlayerPos = {tileSize.x*0.175f, 0, -tileSize.y*0.175f};            
+        }
+        return pos + Vector3Transform(relPlayerPos, MatrixRotate({0,1,0}, (cardinality + 1)*M_PI/2));
     }
-    return pos + Vector3Transform(relPlayerPos, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
 }
 
 Vector3 JailTileView::getPlayerPosInTile(int playerIdx) {
@@ -265,37 +281,76 @@ Vector3 JailTileView::getPlayerPosInTile(int playerIdx) {
     } else {
         tileSize.x *= 0.85;
     }
+    int jailIdx = find(jailedPlayers.begin(), jailedPlayers.end(), playersInTile[playerIdx]) - jailedPlayers.begin();
+    if (jailIdx < jailedPlayers.size()) {
+        Vector3 relPlayerPos;
+        if (cornerTile) {
+            if (jailedPlayers.size() == 1) {
+                relPlayerPos = {-tileSize.x*0.175f, 0, -tileSize.y*0.175f};
+            } else if (jailedPlayers.size() == 2) {
+                if (jailIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+                else relPlayerPos = {-tileSize.x*0.025f, 0, -tileSize.y*0.025f};
+            } else {
+                if (jailIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+                else if (jailIdx == 1) relPlayerPos = {-tileSize.x*0.025f, 0, -tileSize.y*0.325f};
+                else if (jailIdx == 2) relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.025f};
+                else relPlayerPos = {-tileSize.x*0.025f, 0, -tileSize.y*0.025f};
+            }
+            return pos + Vector3Transform(relPlayerPos, MatrixRotate({0,1,0}, (cardinality + 1)*M_PI/2));
+        }
+        else {
+            if (playersInTile.size() == 1) {
+                relPlayerPos =  {0, 0, tileSize.y*0.175f};
+            } else if (playersInTile.size() == 2) {
+                if (jailIdx == 0) relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.175f};
+                else relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.175f};
+            } else {
+                if (jailIdx == 0) relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.025f};
+                else if (jailIdx == 1) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.025f};
+                else if (jailIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.325f};
+                else relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.325f};
+            }
+            return pos + Vector3Transform(relPlayerPos, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
+        }
+    }
+    int visitingIdx = playerIdx;
+    for (int i = 0; i < playerIdx; i++) {
+        if (find(jailedPlayers.begin(), jailedPlayers.end(), playersInTile[playerIdx]) != jailedPlayers.end()) {
+            visitingIdx--;
+        }
+    }
     Vector3 relPlayerPos;
     if(cornerTile) {
         if (playersInTile.size() == 1) {
             relPlayerPos =  {tileSize.x*0.325f, 0, tileSize.y*0.325f};
         } else if (playersInTile.size() == 2) {
-            if (playerIdx == 0) relPlayerPos = {0, 0, tileSize.y*0.325f};
+            if (visitingIdx == 0) relPlayerPos = {0, 0, tileSize.y*0.325f};
             else relPlayerPos = {tileSize.x*0.325f, 0, 0};
         } else if (playersInTile.size() == 3) {
-            if (playerIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.325f};
-            else if (playerIdx == 1) relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.325f};
+            if (visitingIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.325f};
+            else if (visitingIdx == 1) relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.325f};
             else relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
         } else {
-            if (playerIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.325f};
-            else if (playerIdx == 1) relPlayerPos = {tileSize.x*0.075f, 0, tileSize.y*0.325f};
-            else if (playerIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.075f};
+            if (visitingIdx == 0) relPlayerPos = {-tileSize.x*0.325f, 0, tileSize.y*0.325f};
+            else if (visitingIdx == 1) relPlayerPos = {tileSize.x*0.075f, 0, tileSize.y*0.325f};
+            else if (visitingIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, tileSize.y*0.075f};
             else relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
         }
+        return pos + Vector3Transform(relPlayerPos, MatrixRotate({0,1,0}, (cardinality + 1)*M_PI/2));
     } else {
         if (playersInTile.size() == 1) {
             relPlayerPos =  {0, 0, -tileSize.y*0.125f};
         } else if (playersInTile.size() == 2) {
-            if (playerIdx == 0) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.15f};
+            if (visitingIdx == 0) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.15f};
             else relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.15f};
         } else {
-            if (playerIdx == 0) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.125f};
-            else if (playerIdx == 1) relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.125f};
-            else if (playerIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
+            if (visitingIdx == 0) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.125f};
+            else if (visitingIdx == 1) relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.125f};
+            else if (visitingIdx == 2) relPlayerPos = {tileSize.x*0.325f, 0, -tileSize.y*0.325f};
             else relPlayerPos = {-tileSize.x*0.325f, 0, -tileSize.y*0.325f};
         }
+        return pos + Vector3Transform(relPlayerPos, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
     }
-    return pos + Vector3Transform(relPlayerPos, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
 }
 
 Vector3 TileView::getPassingPos() {
@@ -334,6 +389,11 @@ void TileView::handlePlayerEnteringTile(PlayerView* player) {
     adjustPlayersInTile();
 }
 
+void TileView::handlePlayerLeavingTile(PlayerView* player) {
+    playersInTile.erase(remove(playersInTile.begin(), playersInTile.end(), player));
+    adjustPlayersInTile();
+}
+
 const Vector2 TileView::getTileDim() {
     return tileDim;
 }
@@ -366,11 +426,29 @@ void StreetTileView::buildHouse() {
     }
     houses.back()->setTransform(MatrixScale(scale, scale*scaleHotel, scale*scaleHotel)*MatrixRotate({0,1,0}, (cardinality)*M_PI/2));
     houses.back()->setPosY(((modelBB.max.y - modelBB.min.y)/2 + 0.2)*scale*scaleHotel);
-    float xTrans = 0;
-    if (houses.size() < 5) {
-        xTrans = -tileDim.x*0.375 + (houses.size() - 1)*tileDim.x*0.25;
+    Vector3 moveTranslation;
+    if (!cornerTile) {
+        float xTrans = 0;
+        if (houses.size() < 5) {
+            xTrans = -tileDim.x*0.375 + (houses.size() - 1)*tileDim.x*0.25;
+        }
+        moveTranslation = Vector3Transform({-xTrans, 0, tileDim.y/2 - (modelBB.max.x - modelBB.min.x)*scale*0.5f}, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
     }
-    Vector3 moveTranslation = Vector3Transform({-xTrans, 0, tileDim.y/2 - (modelBB.max.x - modelBB.min.x)*scale*0.5f}, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
+    else {
+        float xTrans = 0;
+        Vector3 baseTranslation = {tileDim.y/2 - (modelBB.max.x - modelBB.min.x)*scale*0.5f, 0,
+                                   tileDim.y/2 - (modelBB.max.x - modelBB.min.x)*scale*0.5f};
+        if (houses.size() == 2) {
+            baseTranslation -= {tileDim.y*0.2f, 0 ,0};
+        } else if (houses.size() == 3) {
+            baseTranslation -= {0, 0 , tileDim.y*0.2f};
+        } else if (houses.size() == 4) {
+            baseTranslation -= {tileDim.y*0.2f, 0 , tileDim.y*0.2f};
+        } else if (houses.size() == 5) {
+            baseTranslation -= {tileDim.y*0.1f, 0 , tileDim.y*0.1f};
+        }
+        moveTranslation = Vector3Transform(baseTranslation, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
+    }
     houses.back()->movePositionDelta(moveTranslation);
 
 
@@ -523,4 +601,15 @@ JailTileView::JailTileView(Tile& tile, const bool cornerTile, const int cardinal
         UnloadTexture(textTexture1b);
         UnloadTexture(textTexture2b);
     }
+}
+
+void JailTileView::handlePlayerEnteringJail(PlayerView* player) {
+    jailedPlayers.push_back(player);
+}
+
+
+void JailTileView::handlePlayerLeavingTile(PlayerView* player) {
+    playersInTile.erase(remove(playersInTile.begin(), playersInTile.end(), player));
+    jailedPlayers.erase(remove(jailedPlayers.begin(), jailedPlayers.end(), player));
+    adjustPlayersInTile();
 }

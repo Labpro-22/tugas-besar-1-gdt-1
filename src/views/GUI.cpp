@@ -1,4 +1,4 @@
-#include "views/GUI2.hpp"
+#include "views/GUI.hpp"
 #include "views/viewElement/GameHUDView.hpp"
 #include "core/Game.hpp"
 
@@ -405,17 +405,31 @@ void GUI::renderAuctionEnd(Player* winner) {
     auction = nullptr;
 }
 
-void GUI::renderMovement(const std::string & playerName, int steps)
+void GUI::renderMovement(const std::string &playerName, int steps)
 {
-    auto it = find_if(players.begin(), players.end(), [playerName](PlayerView* p){
-        return p->getPlayer().getUsername() == playerName;
+    PlayerView *pv = nullptr;
+
+    for (auto p : players)
+    {
+        if (p->getPlayer().getUsername() == playerName)
+        {
+            pv = p;
+            break;
+        }
+    }
+
+    if (pv == nullptr)
+        return;
+
+    std::string camKey = pv->getPlayerCamKey();
+
+    camManager.switchTo(camKey, 1, [pv, steps]()
+    {
+        pv->moveSpaces(steps);
     });
-    camManager.switchTo((*it)->getPlayerCamKey(), 0.2, [this, it, steps](){
-        (*it)->moveSpaces(steps);
-        
-    });
+
     waitForCameraMovementToEnd(camManager.getCurrentCamera());
-    waitForAnimToEnd3D(*it);
+    waitForAnimToEnd3D(pv);
 }
 
 
@@ -798,7 +812,6 @@ void GUI::waitForAnimToEnd3D(View3D* view) {
     while (!shouldExit()) {
         update();
         display();
-        getCommand();
         if (!view->isAnimationActive()) {
             return;
         }
@@ -809,7 +822,6 @@ void GUI::waitForCameraMovementToEnd(View3DCamera* view) {
     while (!shouldExit()) {
         update();
         display();
-        getCommand();
         if (!view->isMovementActive()) {
             return;
         }

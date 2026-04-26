@@ -230,9 +230,16 @@ void GameHUDView::render()
     const Player *currentPlayer = gameModel ? gameModel->getCurrentPlayer() : nullptr;
     const std::vector<Player *> *players = gameModel ? &gameModel->getPlayers() : nullptr;
 
+    Vector2 corners[4] = {
+        {wProfile / 2 + margin, hProfile / 2 + margin},                                       // TL
+        {GetScreenWidth() - wProfile / 2 - margin, hProfile / 2 + margin},                    // TR
+        {wProfile / 2 + margin, GetScreenHeight() - hProfile / 2 - margin},                   // BL
+        {GetScreenWidth() - wProfile / 2 - margin, GetScreenHeight() - hProfile / 2 - margin} // BR
+    };
 
     for (size_t i = 0; i < playerProfiles.size() && i < 4; ++i)
     {
+        playerProfiles[i].movePosition(corners[i]);
         playerProfiles[i].render();
 
         if (currentPlayer != nullptr && players != nullptr && i < players->size() && (*players)[i] == currentPlayer)

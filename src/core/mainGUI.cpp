@@ -1,7 +1,7 @@
 #include "core/GameEngine.hpp"
 #include "views/IGUI.hpp"
 #include "views/viewElement/View2D.hpp"
-#include "views/GUI2.hpp"
+#include "views/GUI.hpp"
 #include "raylib.h"
 
 static constexpr int SCREEN_W = 1280;

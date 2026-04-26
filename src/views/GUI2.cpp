@@ -65,7 +65,15 @@ GUI::GUI(float fps, Board &board)
       pendingCommand("NULL"),
       fps(fps),
       exitRequested(false),
-    isDelayingPopupAfterDice(false)
+      isDelayingPopupAfterDice(false),
+      resumeBtn(
+          {200, 56},
+          true,
+          false,
+          "RESUME",
+          []() {},
+          []() {}),
+      showResume(false)
 {
     const float boardSize = this->board->getBoardSize();
 
@@ -103,6 +111,11 @@ void GUI::update()
         ToggleFullscreen();
     }
 
+    if (showResume)
+    {
+        resumeBtn.interactionCheck();
+    }
+
     if (WindowShouldClose())
         exitRequested = true;
 
@@ -132,6 +145,20 @@ void GUI::display()
     if (dice)
         dice->render();
     EndMode3D();
+
+    if (showResume)
+    {
+        float w = 200, h = 56;
+        float x = GetScreenWidth() / 2 - w / 2;
+        float y = GetScreenHeight() - 120;
+
+        resumeBtn.movePosition({x + w / 2, y + h / 2});
+
+        DrawRectangleRounded({x, y, w, h}, 0.5f, 8, Color{100, 180, 255, 255});
+        DrawText("RESUME", x + 50, y + 15, 20, WHITE);
+
+        resumeBtn.render();
+    }
 
     for (auto &view : views)
         view->render();
@@ -209,6 +236,13 @@ void GUI::showException(int code, const std::string &msg)
 
 std::string GUI::getCommand()
 {
+    if (showResume)
+    {
+        std::string cmd = resumeBtn.catchCommand();
+        if (cmd != "NULL")
+            return cmd;
+    }
+
     if (hasPendingCommand())
         return consumePendingCommand();
 
@@ -268,8 +302,12 @@ void GUI::renderDice(int d1, int d2)
     setHudDiceAnimationFinished(false);
 
     int idx = cachedGame->getCurrentTurnIndex();
-    dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
-    dice->initializeThrowDice(d1, d2);
+    camManager.switchTo("ACTION_CAM", 1, [this, idx, d1, d2]()
+                        {
+        loadDice(players[idx]);
+
+        dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
+        dice->initializeThrowDice(d1, d2); });
 }
 void GUI::renderSkillHand(const std::vector<SkillCard *> & /*hand*/) { /* TODO */ }
 void GUI::renderBankruptcy(const Player & /*player*/) { /* TODO */ }
@@ -426,6 +464,12 @@ void GUI::clearPlayers()
 }
 
 // ── Update helpers ─────────────────────────────────────────────────────────
+
+void GUI::setResumeVisible(bool v)
+{
+    showResume = v;
+    resumeBtn.setActive(v);
+}
 
 void GUI::updateDice()
 {

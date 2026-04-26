@@ -278,6 +278,24 @@ std::string GameEngine::waitForInput(IGUI *gui, const std::string &prompt)
     return "";
 }
 
+void GameEngine::waitForResume(IGUI *gui)
+{
+    if (gui == nullptr)
+        return;
+
+    gui->setResumeVisible(true);
+    while (!gui->shouldExit())
+    {
+        gui->update();
+        gui->display();
+
+        std::string cmd = gui->getCommand();
+        if (cmd == "RESUME")
+            break;
+    }
+    gui->setResumeVisible(false);
+}
+
 std::string GameEngine::normalizeInput(std::string s)
 {
     std::transform(s.begin(), s.end(), s.begin(),
@@ -344,6 +362,7 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
     int total = dice->getTotal();
     bool rolledDouble = dice->isDouble();
     gui->renderDice(dice->getDie1(), dice->getDie2());
+    waitForResume(gui);
     game->setLastDiceTotal(total);
 
     if (fromJailAttempt && player->isJailed())

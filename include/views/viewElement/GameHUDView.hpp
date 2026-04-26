@@ -11,6 +11,7 @@ private:
     Interactable switchCamBtn;
     Interactable rollDiceBtn;
     Interactable endTurnBtn;
+    Interactable pauseBtn;
     std::vector<PlayerProfileView> playerProfiles;
 
     bool isTopView = false;

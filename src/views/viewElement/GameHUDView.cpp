@@ -54,7 +54,14 @@ GameHUDView::GameHUDView()
           [this]()
           {
               showEndTurnButton = false;
-          })
+          }),
+      pauseBtn(
+          {50, 50},
+          true,
+          false,
+          "PAUSE",
+          []() {},
+          []() {})
 {
 }
 
@@ -118,6 +125,8 @@ void GameHUDView::interactionCheck()
 {
     rollDiceBtn.interactionCheck();
     switchCamBtn.interactionCheck();
+    pauseBtn.interactionCheck();
+
     if (showEndTurnButton)
     {
         endTurnBtn.interactionCheck();
@@ -143,6 +152,10 @@ std::string GameHUDView::catchCommand()
         return cmd;
 
     cmd = endTurnBtn.catchCommand();
+    if (cmd != "NULL")
+        return cmd;
+
+    cmd = pauseBtn.catchCommand();
     if (cmd != "NULL")
         return cmd;
 
@@ -283,6 +296,26 @@ void GameHUDView::render()
         textArea);
 
     EndScissorMode();
+
+    // ===== PAUSE BUTTON =====
+    Rectangle profileBox = playerProfiles[0].getHitbox();
+
+    float size = 44;
+    float px = profileBox.x + profileBox.width + 10;
+    float py = profileBox.y;
+
+    pauseBtn.movePosition({px + size / 2, py + size / 2});
+
+    DrawRectangleRounded({px, py, size, size}, 0.3f, 6, Color{50, 50, 50, 200});
+
+    float barW = 6;
+    float barH = 20;
+    float gap = 4;
+
+    DrawRectangle(px + size / 2 - gap - barW, py + size / 2 - barH / 2, barW, barH, WHITE);
+    DrawRectangle(px + size / 2 + gap, py + size / 2 - barH / 2, barW, barH, WHITE);
+
+    pauseBtn.render();
 
     if (showEndTurnButton)
     {

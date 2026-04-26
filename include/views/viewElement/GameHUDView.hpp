@@ -2,6 +2,9 @@
 #include "views/viewElement/View2D.hpp"
 #include "views/viewElement/Interactable.hpp"
 #include "views/viewElement/player/PlayerProfileView.hpp"
+#include "views/viewElement/player/PlayerInventory.hpp"
+
+#include <memory>
 
 class Game;
 
@@ -12,12 +15,16 @@ private:
     Interactable rollDiceBtn;
     Interactable useSkillBtn;
     Interactable endTurnBtn;
+    Interactable pauseBtn;
     std::vector<PlayerProfileView> playerProfiles;
+    std::unique_ptr<PlayerInventoryPopup> inventoryPopup;
 
     bool isTopView = false;
     bool showEndTurnButton = false;
     bool showUseSkillButton = false;
     bool hideButton = false;
+    std::vector<std::string> logs;
+    int maxLogs = 6;
 
     const Game *gameModel = nullptr;
 
@@ -29,6 +36,7 @@ public:
     void unhideButtons();
     void setGameModel(const Game *game);
     void updateProfileData();
+    void setLogs(const std::vector<std::string> &entries);
 
     void interactionCheck() override;
     std::string catchCommand() override;

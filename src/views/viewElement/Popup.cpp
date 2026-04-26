@@ -68,23 +68,42 @@ std::string MessagePopup::catchCommand()
 
 void MessagePopup::render()
 {
-    // background popup
-    DrawRectangle(getRenderPos().x, getRenderPos().y,
-                  boundingDim.x, boundingDim.y,
-                  {40, 40, 40, 230});
+    pos = getScreenCenter();
 
-    // title
-    Vector2 textDim = MeasureTextEx(fontMap.at("Orbitron"), "Message", 28, 0);
-    DrawTextEx(fontMap.at("Orbitron"), "Message",
-               {pos.x - textDim.x / 2, pos.y - 90},
-               28, 0, WHITE);
+    float w = boundingDim.x;
+    float h = boundingDim.y;
 
-    // isi pesan
-    textDim = MeasureTextEx(fontMap.at("Orbitron"),
-                            message.c_str(), 22, 0);
-    drawTextLinesWrapped(fontMap.at("Orbitron"), message.c_str(),
-               getPos(),22, 0, WHITE, getBoundingDim());
+    float x = pos.x - w / 2;
+    float y = pos.y - h / 2;
 
+    float headerH = 40;
+
+    DrawRectangle(x, y, w, h, Color{40, 40, 40, 230});
+    DrawRectangle(x, y, w, headerH, Color{60, 60, 60, 255});
+
+    const char *title = "MESSAGE";
+    int titleSize = 24;
+    int titleWidth = MeasureText(title, titleSize);
+
+    DrawText(title,
+             x + (w - titleWidth) / 2,
+             y + 8,
+             titleSize,
+             WHITE);
+
+    Vector2 textPos = {x + 20, y + headerH + 10};
+    Vector2 textArea = {w - 40, h - headerH - 80};
+
+    drawTextWrappedBox(
+        GetFontDefault(),
+        message,
+        textPos,
+        20,
+        1,
+        WHITE,
+        textArea);
+
+    okButton.movePosition({pos.x, y + h - 40});
     okButton.render();
 }
 
@@ -94,22 +113,23 @@ InputPopup::InputPopup(const std::string &title)
       inputEntry(Entry({400, 50}, "", 24, "Orbitron", []() {})),
       submitButton(Interactable({200, 50}, true, false, "SUBMIT_INPUT", []() {}, []() {}))
 {
-    Vector2 center = getScreenCenter();
-
-    inputEntry.movePosition(center + Vector2{0, 0});
-    submitButton.movePosition(center + Vector2{0, 80});
-
     submitButton.setRender([this]()
                            {
-        DrawRectangle(submitButton.getRenderPos().x, submitButton.getRenderPos().y,
-                      submitButton.getRenderWidth(), submitButton.getRenderHeight(),
-                      submitButton.getRenderColor(LOGO_RED));
+    float x = submitButton.getRenderPos().x;
+    float y = submitButton.getRenderPos().y;
+    float w = submitButton.getRenderWidth();
+    float h = submitButton.getRenderHeight();
 
-        Vector2 dim = MeasureTextEx(fontMap.at("Orbitron"), "OK", 28, 0);
+    DrawRectangle(x, y, w, h, submitButton.getRenderColor(LOGO_RED));
 
-        DrawTextEx(fontMap.at("Orbitron"), "OK",
-                   {submitButton.getX() - dim.x/2, submitButton.getY() - 14},
-                   28, 0, WHITE); });
+    const char *txt = "OK";
+    int fontSize = 28;
+
+    Vector2 dim = MeasureTextEx(fontMap.at("Orbitron"), txt, fontSize, 0);
+
+    DrawTextEx(fontMap.at("Orbitron"), txt,
+               {x + (w - dim.x) / 2, y + (h - dim.y) / 2},
+               fontSize, 0, WHITE); });
 }
 
 void InputPopup::enable()
@@ -145,23 +165,55 @@ std::string InputPopup::catchCommand()
 
 void InputPopup::render()
 {
-    Vector2 center = {
-        (float)GetScreenWidth() / 2,
-        (float)GetScreenHeight() / 2};
+    pos = getScreenCenter();
 
-    DrawRectangle(center.x - 250, center.y - 150, 500, 300, {40, 40, 40, 230});
+    float w = boundingDim.x;
+    float h = boundingDim.y;
 
-    Vector2 titleDim = MeasureTextEx(fontMap.at("Orbitron"), title.c_str(), 28, 0);
+    float x = pos.x - w / 2;
+    float y = pos.y - h / 2;
 
-    DrawTextEx(fontMap.at("Orbitron"), title.c_str(),
-               {center.x - titleDim.x / 2, center.y - 100},
-               28, 0, WHITE);
+    float headerH = 40;
+
+    DrawRectangle(x, y, w, h, Color{40, 40, 40, 230});
+    DrawRectangle(x, y, w, headerH, Color{60, 60, 60, 255});
+
+    int titleSize = 24;
+    int titleWidth = MeasureText(title.c_str(), titleSize);
+
+    DrawText(title.c_str(),
+             x + (w - titleWidth) / 2,
+             y + 8,
+             titleSize,
+             WHITE);
+
+    float inputW = 400;
+    float inputH = 50;
+
+    float inputY = y + headerH + 40;
+    float inputX = pos.x - inputW / 2;
+
+    DrawRectangle(
+        inputX,
+        inputY - inputH / 2,
+        inputW,
+        inputH,
+        Color{70, 70, 70, 255});
+
+    inputEntry.movePosition({pos.x,
+                             inputY});
 
     inputEntry.render();
+
+    float btnY = y + h - 60;
+
+    submitButton.movePosition({pos.x,
+                               btnY});
+
     submitButton.render();
 }
 
-ConfirmPopup::ConfirmPopup(const std::string& question)
+ConfirmPopup::ConfirmPopup(const std::string &question)
     : IndefinitePopup(View2D(getScreenCenter(), {600, 220}, []() {})),
       question(question)
 {
@@ -212,10 +264,12 @@ std::string ConfirmPopup::catchCommand()
     std::string cmd;
 
     cmd = yesButton.catchCommand();
-    if (cmd != "NULL") return cmd;
+    if (cmd != "NULL")
+        return cmd;
 
     cmd = noButton.catchCommand();
-    if (cmd != "NULL") return cmd;
+    if (cmd != "NULL")
+        return cmd;
 
     return "NULL";
 }
@@ -409,413 +463,240 @@ void ExceptionPopup::render()
     okButton.render();
 }
 
-PropertyPopup::PropertyPopup(
-    const std::string &name,
-    const std::string &type,
-    const std::string &status,
-    int buyPrice,
-    int mortgageValue,
-    int levelOrCount,
-    bool isOtherPlayer,
-    const std::string &ownerName,
-    const std::string &colorGroup,
-    const std::vector<int> &rentTable,
-    int buildCost,
-    const std::vector<int> &railroadRent,
-    const std::vector<int> &utilityMultiplier)
-    : IndefinitePopup(View2D(getScreenCenter(), {520, 420}, []() {})),
-      name(name),
-      type(type),
-      status(status),
-      ownerName(ownerName),
-      colorGroup(colorGroup),
-      rentTable(rentTable),
-      buildCost(buildCost),
-      buyPrice(buyPrice),
-      mortgageValue(mortgageValue),
-      railroadRent(railroadRent),
-      utilityMultiplier(utilityMultiplier),
-      levelOrCount(levelOrCount),
-      isOtherPlayer(isOtherPlayer),
-      actionCommand("")
+BankruptcyPopup::BankruptcyPopup(const std::string &playerName)
+    : IndefinitePopup(View2D(getScreenCenter(), {500, 250}, []() {})),
+      playerName(playerName),
+      okButton(Interactable({200, 50}, true, false, "BANKRUPT_OK", []() {}, []() {}))
 {
-    // posisi tombol
-    Vector2 btnPos = {
-        this->pos.x,
-        this->pos.y + this->getRenderDim().y / 2 - 60};
+    Vector2 center = getScreenCenter();
 
-    // BUTTON LOGIC
-    // BANK
-    if (status == "BANK")
-    {
-        if (type == "STREET")
-        {
-            addButton("BUY", "BUY_PROPERTY");
-            addButton("SKIP", "SKIP_PROPERTY");
-        }
-        else
-        {
-            addButton("OK", "ACK");
-        }
-    }
+    okButton.movePosition(center + Vector2{0, 70});
 
-    // OWNED
-    else if (status == "OWNED")
-    {
+    okButton.setRender([this]()
+                       {
+        DrawRectangle(okButton.getRenderPos().x, okButton.getRenderPos().y,
+                      okButton.getRenderWidth(), okButton.getRenderHeight(),
+                      okButton.getRenderColor(RED));
 
-        if (isOtherPlayer)
-        {
-            addButton("PAY", "PAY_RENT");
-        }
-        else
-        {
-            // milik sendiri
+        Vector2 dim = MeasureTextEx(fontMap.at("Orbitron"), "OK", 28, 0);
 
-            if (type == "STREET")
-            {
-                if (levelOrCount == 0)
-                {
-                    addButton("BUILD", "BUILD_PROPERTY");
-                    addButton("MORTGAGE", "MORTGAGE_PROPERTY");
-                }
-                else if (levelOrCount < 5)
-                {
-                    addButton("BUILD", "BUILD_PROPERTY");
-                }
-            }
-            else
-            {
-                addButton("MORTGAGE", "MORTGAGE_PROPERTY");
-            }
-
-            addButton("OK", "ACK");
-        }
-    }
-
-    // MORTGAGED
-    else if (status == "MORTGAGED")
-    {
-        addButton("REDEEM", "REDEEM_PROPERTY");
-        addButton("OK", "ACK");
-    }
-
-    float startY = this->pos.y + this->getRenderDim().y / 2 - 60;
-
-    for (int i = 0; i < actionButtons.size(); i++)
-    {
-        actionButtons[i].movePosition({this->pos.x,
-                                       startY - i * 70});
-
-        actionButtons[i].setRender([this, i]()
-                                   {
-            auto& btn = actionButtons[i];
-
-            DrawRectangle(
-                btn.getRenderPos().x,
-                btn.getRenderPos().y,
-                btn.getRenderWidth(),
-                btn.getRenderHeight(),
-                btn.getRenderColor(DARKGREEN)
-            );
-
-            std::string label = btn.getGameCommand();
-
-            Vector2 t = MeasureTextEx(fontMap["Orbitron"],
-                                    label.c_str(), 28, 1);
-
-            DrawTextEx(fontMap["Orbitron"],
-                    label.c_str(),
-                    btn.getPos() - t/2,
-                    28, 1,
-                    WHITE); });
-    }
-    std::cout << "PropertyPopup constructed\n";
+        DrawTextEx(fontMap.at("Orbitron"), "OK",
+                   {okButton.getX() - dim.x / 2, okButton.getY() - 14},
+                   28, 0, WHITE); });
 }
 
-void PropertyPopup::enable()
+void BankruptcyPopup::enable()
 {
-    for (auto &btn : actionButtons)
-        btn.enable();
-    exitButton.enable();
+    okButton.enable();
 }
 
-void PropertyPopup::disable()
+void BankruptcyPopup::disable()
 {
-    for (auto &btn : actionButtons)
-        btn.disable();
-    exitButton.disable();
+    okButton.disable();
 }
 
-void PropertyPopup::addButton(const std::string &label, const std::string &command)
+void BankruptcyPopup::interactionCheck()
 {
-    Interactable btn(
-        {220, 50},
-        true,
-        false,
-        label,
-        []() {},
-        [this, command]()
-        {
-            this->actionCommand = command;
-            this->closeView = true;
-        });
+    okButton.interactionCheck();
 
-    actionButtons.push_back(btn);
-}
-
-void PropertyPopup::interactionCheck()
-{
-    for (auto &btn : actionButtons)
-        btn.interactionCheck();
-    exitButton.interactionCheck();
-}
-
-string PropertyPopup::catchCommand()
-{
-    if (actionCommand != "")
-        return actionCommand;
-
-    for (auto &btn : actionButtons)
+    if (okButton.catchCommand() == "BANKRUPT_OK")
     {
-        string cmd = btn.catchCommand();
-        if (cmd != "NULL")
-            return cmd;
+        closeView = true;
     }
+}
+
+std::string BankruptcyPopup::catchCommand()
+{
+    return "NULL";
+}
+
+void BankruptcyPopup::render()
+{
+    DrawRectangle(getRenderPos().x, getRenderPos().y,
+                  boundingDim.x, boundingDim.y,
+                  {40, 40, 40, 230});
+
+    std::string text = playerName + " BANKRUPT!";
+
+    Vector2 textDim = MeasureTextEx(fontMap.at("Orbitron"),
+                                    text.c_str(), 24, 0);
+
+    DrawTextEx(fontMap.at("Orbitron"), text.c_str(),
+               {pos.x - textDim.x / 2, pos.y - 20},
+               24, 0, RED);
+
+    okButton.render();
+}
+
+WinnerPopup::WinnerPopup(const std::string &playerName)
+    : IndefinitePopup(View2D(getScreenCenter(), {500, 250}, []() {})),
+      playerName(playerName),
+      okButton(Interactable({200, 50}, true, false, "WINNER_OK", []() {}, []() {}))
+{
+    Vector2 center = getScreenCenter();
+
+    okButton.movePosition(center + Vector2{0, 70});
+
+    okButton.setRender([this]()
+                       {
+        DrawRectangle(okButton.getRenderPos().x, okButton.getRenderPos().y,
+                      okButton.getRenderWidth(), okButton.getRenderHeight(),
+                      okButton.getRenderColor(GOLD));
+
+        Vector2 dim = MeasureTextEx(fontMap.at("Orbitron"), "OK", 28, 0);
+
+        DrawTextEx(fontMap.at("Orbitron"), "OK",
+                   {okButton.getX() - dim.x / 2, okButton.getY() - 14},
+                   28, 0, BLACK); });
+}
+
+void WinnerPopup::enable()
+{
+    okButton.enable();
+}
+
+void WinnerPopup::disable()
+{
+    okButton.disable();
+}
+
+void WinnerPopup::interactionCheck()
+{
+    okButton.interactionCheck();
+
+    if (okButton.catchCommand() == "WINNER_OK")
+    {
+        closeView = true;
+    }
+}
+
+std::string WinnerPopup::catchCommand()
+{
+    return "NULL";
+}
+
+void WinnerPopup::render()
+{
+    DrawRectangle(getRenderPos().x, getRenderPos().y,
+                  boundingDim.x, boundingDim.y,
+                  {40, 40, 40, 230});
+
+    std::string title = "WINNER!";
+    std::string text = playerName + " MENANG!";
+
+    Vector2 titleDim = MeasureTextEx(fontMap.at("Orbitron"), title.c_str(), 28, 0);
+    DrawTextEx(fontMap.at("Orbitron"), title.c_str(),
+               {pos.x - titleDim.x / 2, pos.y - 80},
+               28, 0, GOLD);
+
+    Vector2 textDim = MeasureTextEx(fontMap.at("Orbitron"), text.c_str(), 24, 0);
+    DrawTextEx(fontMap.at("Orbitron"), text.c_str(),
+               {pos.x - textDim.x / 2, pos.y - 20},
+               24, 0, WHITE);
+
+    okButton.render();
+}
+
+PausePopup::PausePopup()
+    : IndefinitePopup(View2D(getScreenCenter(), {420, 300}, []() {})),
+      resumeBtn({200, 50}, true, false, "PAUSE_RESUME", []() {}, []() {}), saveBtn({200, 50}, true, false, "PAUSE_SAVE", []() {}, []() {}), exitBtn({200, 50}, true, false, "PAUSE_EXIT", []() {}, []() {})
+{
+    Vector2 center = pos;
+    float gap = 60;
+
+    resumeBtn.movePosition(center + Vector2{0, -gap});
+    saveBtn.movePosition(center);
+    exitBtn.movePosition(center + Vector2{0, gap});
+}
+
+void PausePopup::enable()
+{
+    resumeBtn.enable();
+    saveBtn.enable();
+    exitBtn.enable();
+}
+
+void PausePopup::disable()
+{
+    resumeBtn.disable();
+    saveBtn.disable();
+    exitBtn.disable();
+}
+
+void PausePopup::interactionCheck()
+{
+    resumeBtn.interactionCheck();
+    saveBtn.interactionCheck();
+    exitBtn.interactionCheck();
+
+    if (resumeBtn.catchCommand() == "PAUSE_RESUME")
+        closeView = true;
+}
+
+std::string PausePopup::catchCommand()
+{
+    if (saveBtn.catchCommand() == "PAUSE_SAVE")
+        return "PAUSE_SAVE";
+
+    if (exitBtn.catchCommand() == "PAUSE_EXIT")
+        return "PAUSE_EXIT";
 
     return "NULL";
 }
 
-// Helper
-std::string PropertyPopup::buildDetails() const
+void PausePopup::render()
 {
-    std::string s;
+    pos = getScreenCenter();
 
-    // STATUS
-    s += "Status: " + status;
-    if (status == "OWNED" && ownerName != "")
-        s += " (" + ownerName + ")";
-    s += "\n\n";
-    // std::cout << "Building details status\n";
+    float w = boundingDim.x;
+    float h = boundingDim.y;
 
-    // TYPE
-    s += "Type: " + type + "\n";
-    // std::cout << "Building details type\n";
+    float x = pos.x - w / 2;
+    float y = pos.y - h / 2;
 
-    // STREET
-    if (type == "STREET")
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.5f));
+    DrawRectangle(x, y, w, h, Color{40, 40, 40, 240});
+
+    const char *title = "PAUSED";
+    int fontSize = 26;
+    int textWidth = MeasureText(title, fontSize);
+
+    DrawText(title,
+             x + (w - textWidth) / 2,
+             y + 20,
+             fontSize,
+             WHITE);
+
+    Vector2 center = pos;
+
+    resumeBtn.movePosition(center + Vector2{0, -40});
+    saveBtn.movePosition(center + Vector2{0, 30});
+    exitBtn.movePosition(center + Vector2{0, 100});
+
+    auto drawBtn = [&](Interactable &btn, const char *text, Color color)
     {
-        s += "Color: " + colorGroup + "\n";
+        float bx = btn.getRenderPos().x;
+        float by = btn.getRenderPos().y;
+        float bw = btn.getRenderWidth();
+        float bh = btn.getRenderHeight();
 
-        if (status == "BANK")
-        {
-            s += "Buy Price: " + std::to_string(buyPrice) + "\n";
-            return s;
-        }
+        DrawRectangleRounded({bx, by, bw, bh}, 0.4f, 8, color);
 
-        if (status == "OWNED")
-        {
-            if (!rentTable.empty())
-            {
-                int idx = std::max(0, levelOrCount);
-                idx = std::min(idx, (int)rentTable.size() - 1);
-                int rent = rentTable[idx];
-                s += "Current Rent: " + std::to_string(rent) + "\n";
-            }
+        int fs = 20;
+        int tw = MeasureText(text, fs);
 
-            if (!isOtherPlayer)
-            {
-                s += "Build Cost: " + std::to_string(buildCost) + "\n";
-                s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
-                s += "Level: " + std::to_string(levelOrCount) + "\n";
-            }
-        }
+        DrawText(text,
+                 bx + (bw - tw) / 2,
+                 by + (bh - fs) / 2,
+                 fs,
+                 WHITE);
+    };
 
-        if (status == "MORTGAGED")
-        {
-            s += "This property is mortgaged.\n";
-            if (!isOtherPlayer)
-            {
-                s += "Mortgage Value: " + std::to_string(mortgageValue) + "\n";
-            }
-        }
-        // std::cout << "Building details street\n";
-    }
+    drawBtn(resumeBtn, "RESUME", Color{40, 120, 220, 255});
+    drawBtn(saveBtn, "SAVE", Color{40, 160, 100, 255});
+    drawBtn(exitBtn, "EXIT", Color{180, 60, 60, 255});
 
-    // RAILROAD
-    else if (type == "RAILROAD")
-    {
-        if (status == "OWNED")
-        {
-            if (!railroadRent.empty())
-            {
-                int idx = std::max(0, levelOrCount - 1);
-                idx = std::min(idx, (int)railroadRent.size() - 1);
-                int rent = railroadRent[idx];
-                s += "Rent: " + std::to_string(rent) + "\n";
-            }
-
-            s += "Owned Count: " + std::to_string(levelOrCount) + "\n";
-
-            if (!isOtherPlayer)
-            {
-                s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
-            }
-        }
-
-        else if (status == "MORTGAGED")
-        {
-            s += "This railroad is mortgaged.\n";
-
-            if (!isOtherPlayer)
-            {
-                s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
-            }
-        }
-        // std::cout << "Building details railroad\n";
-    }
-
-    // UTILITY
-    else if (type == "UTILITY")
-    {
-        if (status == "OWNED")
-        {
-            if (!utilityMultiplier.empty())
-            {
-                int idx = std::max(0, levelOrCount - 1);
-                idx = std::min(idx, (int)utilityMultiplier.size() - 1);
-                int mult = utilityMultiplier[idx];
-                s += "Multiplier: x" + std::to_string(mult) + "\n";
-            }
-
-            s += "Owned Count: " + std::to_string(levelOrCount) + "\n";
-
-            if (!isOtherPlayer)
-            {
-                s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
-            }
-        }
-
-        else if (status == "MORTGAGED")
-        {
-            s += "This utility is mortgaged.\n";
-
-            if (!isOtherPlayer)
-            {
-                s += "Mortgage: " + std::to_string(mortgageValue) + "\n";
-            }
-        }
-        // std::cout << "Building details utility\n";
-    }
-
-    return s;
+    resumeBtn.render();
+    saveBtn.render();
+    exitBtn.render();
 }
-
-void PropertyPopup::render()
-{
-    animationCheck();
-
-    // background
-    DrawRectangle(getRenderPos().x, getRenderPos().y,
-                  getRenderWidth(), getRenderHeight(),
-                  RAYWHITE);
-    // std::cout << "Setting up background\n";
-
-    // header
-    DrawRectangle(getRenderPos().x, getRenderPos().y,
-                  getRenderWidth(), getRenderHeight() * 0.125,
-                  RED);
-    // std::cout << "Setting up header\n";
-
-    // title
-    Vector2 t = MeasureTextEx(fontMap["Orbitron"], name.c_str(), 28, 1);
-    DrawTextEx(fontMap["Orbitron"], name.c_str(),
-               pos - Vector2{t.x / 2, getRenderHeight() / 2 - 10},
-               28, 1, WHITE);
-    // std::cout << "Setting up title\n";
-
-    // details
-    std::string text = buildDetails();
-
-    // menghapus baris kosong
-    std::stringstream ss(text);
-    std::string line;
-    std::string fixedText;
-
-    while (std::getline(ss, line))
-    {
-        if (!line.empty())
-        {
-            fixedText += line + "\n";
-        }
-    }
-    // std::cout << "Built details done\n";
-
-    drawTextLinesWrapped(
-        fontMap["Orbitron"],
-        fixedText,
-        pos,
-        22,
-        1,
-        BLACK,
-        getRenderDim() - (Vector2){40, 0});
-    // std::cout << "Drawing text lines\n";
-
-    for (auto &btn : actionButtons)
-        btn.render();
-    exitButton.render();
-    // std::cout << "Rendering popup\n";
-}
-
-// Contoh pakai Popup untuk Street di view testing (Belum implementasi color group bonus)
-// app.loadPopup(new PropertyPopup(
-//     "Medan",                         // nama properti
-//     "STREET",                        // tipe properti ("STREET", "RAILROAD", atau "UTILITY")
-//     "OWNED",                         // status kepemilikan ("BANK", "OWNED", atau "MORTGAGED")
-//     200,                             // harga beli
-//     100,                             // nilai gadai (mortgage value)
-
-//     2,                               // 2 rumah dibangun
-//     true,                            // milik orang lain
-
-//     "Player2",                       // owner properti
-//     "YELLOW",                        // warna group (hanya untuk Street)
-//     {20, 40, 60, 100, 150, 200},     // rentTable untuk Street (index 0-5: 0 rumah - hotel)
-//     50                               // harga bangun (hanya untuk Street)
-// ));                                  // railroadRent dan utilityMultiplier DIKOSONGKAN karena bukan Railroad/Utility
-
-// Contoh pakai Popup untuk Railroad di view testing
-// app.loadPopup(new PropertyPopup(
-//     "Stasiun Gambir",                // nama properti
-//     "RAILROAD",                      // tipe properti ("STREET", "RAILROAD", atau "UTILITY")
-//     "OWNED",                         // status kepemilikan ("BANK", "OWNED", atau "MORTGAGED")
-//     0,                               // tidak ada harga beli untuk Railroad (dianggap 0 karena tidak relevan)
-//     100,                             // nilai gadai (mortgage value)
-
-//     3,                               // punya 3 railroad
-//     true,                            // milik orang lain
-
-//     "Player1",                       // owner properti
-//     "",                              // warna group DIKOSONGKAN karena bukan Street
-//     {},                              // rentTable DIKOSONGKAN karena bukan Street
-//     0,                               // harga bangun DIKOSONGKAN karena bukan Street
-//     {25, 50, 100, 200}               // railroadRent berdasarkan jumlah kepemilikan Railroad yang sama (index 0-3: punya 1-4 railroad)
-// ));                                  // buildCost dan utilityMultiplier DIKOSONGKAN karena bukan Street/Utility
-
-// Contoh pakai Popup untuk Utility di view testing
-// app.loadPopup(new PropertyPopup(
-//     "PLN",                           // nama properti
-//     "UTILITY",                       // tipe properti ("STREET", "RAILROAD", atau "UTILITY")
-//     "OWNED",                         // status kepemilikan ("BANK", "OWNED", atau "MORTGAGED")
-//     0,                               // tidak ada harga beli untuk Utility (dianggap 0 karena tidak relevan)
-//     75,                              // nilai gadai (mortgage value)
-
-//     2,                               // punya 2 utility
-//     true,                            // milik orang lain
-
-//     "Player2",                       // owner properti
-//     "",                              // warna group DIKOSONGKAN karena bukan Street
-//     {},                              // rentTable DIKOSONGKAN karena bukan Street
-//     0,                               // harga bangun DIKOSONGKAN karena bukan Street
-//     {},                              // railroadRent DIKOSONGKAN karena bukan Railroad
-//     {4, 10}                          // utilityMultiplier berdasarkan jumlah kepemilikan Utility yang sama (index 0-1: punya 1-2 utility)
-// ));

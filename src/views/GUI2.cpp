@@ -154,14 +154,28 @@ void GUI::display()
 
     if (showResume)
     {
-        float w = 200, h = 56;
-        float x = GetScreenWidth() / 2 - w / 2;
-        float y = GetScreenHeight() - 120;
+        float w = 220;
+        float h = 60;
+
+        float x = GetScreenWidth() / 2.0f - w / 2;
+        float y = 40;
 
         resumeBtn.movePosition({x + w / 2, y + h / 2});
 
-        DrawRectangleRounded({x, y, w, h}, 0.5f, 8, Color{100, 180, 255, 255});
-        DrawText("RESUME", x + 50, y + 15, 20, WHITE);
+        DrawRectangleRounded({x + 3, y + 4, w, h}, 0.4f, 8, Fade(BLACK, 0.5f));
+        DrawRectangleRounded({x, y, w, h}, 0.4f, 8, Color{40, 120, 220, 255});
+        DrawRectangleRoundedLines({x, y, w, h}, 0.4f, 8, WHITE);
+
+        const char *text = "SKIP ANIMATION";
+        int fontSize = 22;
+
+        int textWidth = MeasureText(text, fontSize);
+
+        DrawText(text,
+                 x + (w - textWidth) / 2,
+                 y + (h - fontSize) / 2,
+                 fontSize,
+                 WHITE);
 
         resumeBtn.render();
     }
@@ -250,6 +264,11 @@ void GUI::showInputPrompt(const std::string &prompt)
 void GUI::showException(int code, const std::string &msg)
 {
     loadPopup(new ExceptionPopup(code, msg));
+}
+
+void GUI::showPauseMenu()
+{
+    loadPopup(new PausePopup());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -349,12 +368,33 @@ void GUI::renderCloseSkillHand() {
     if(skillCard != nullptr) skillCard->close();
     camManager.switchTo("BOARD_CAM", 1, []() {});
 }
-void GUI::renderBankruptcy(const Player & /*player*/) { /* TODO */ }
-void GUI::renderWinner(const Player & /*winner*/) { /* TODO */ }
 
-void GUI::renderLog(const std::vector<LogEntry> & /*entries*/, const std::string & /*title*/)
+void GUI::renderBankruptcy(const Player &player)
 {
-    // TODO: tampilkan log di panel HUD
+    loadPopup(new BankruptcyPopup(player.getUsername()));
+}
+
+void GUI::renderWinner(const Player &player)
+{
+    loadPopup(new WinnerPopup(player.getUsername()));
+}
+
+void GUI::renderLog(const std::vector<LogEntry> &entries, const std::string &)
+{
+    std::vector<std::string> texts;
+
+    for (const auto &e : entries)
+    {
+        texts.push_back(e.toString());
+    }
+
+    for (auto &view : views)
+    {
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+        {
+            hud->setLogs(texts);
+        }
+    }
 }
 
 void GUI::renderAuctionStart(Property* property, Player *auctioner, Game* game) {
@@ -401,20 +441,63 @@ void GUI::renderAuctionEnd(Player* winner) {
     camManager.switchTo("BOARD_CAM", 0.2, [](){});
 }
 
-void GUI::renderMovement(const std::string & playerName, int steps)
-{
-    auto it = find_if(players.begin(), players.end(), [playerName](PlayerView* p){
-        return p->getPlayer().getUsername() == playerName;
-    });
-    camManager.switchTo((*it)->getPlayerCamKey(), 0.2, [this, it, steps](){
-        (*it)->moveSpaces(steps);
+// void GUI::renderMovement(const std::string & playerName, int steps)
+// {
+//     auto it = find_if(players.begin(), players.end(), [playerName](PlayerView* p){
+//         return p->getPlayer().getUsername() == playerName;
+//     });
+//     camManager.switchTo((*it)->getPlayerCamKey(), 0.2, [this, it, steps](){
+//         (*it)->moveSpaces(steps);
         
-    });
-    waitForCameraMovementToEnd(camManager.getCurrentCamera());
-    waitForAnimToEnd3D(*it);
+//     });
+//     waitForCameraMovementToEnd(camManager.getCurrentCamera());
+//     waitForAnimToEnd3D(*it);
+// }
+
+
+void GUI::renderTeleport(const std::string &playerName, int targetIndex)
+{
+    if (!board)
+        return;
+
+    PlayerView *targetView = nullptr;
+    for (auto *pv : players)
+    {
+        if (pv->getPlayer().getUsername() == playerName)
+        {
+            targetView = pv;
+            break;
+        }
+    }
+    if (!targetView)
+        return;
+
+    JailTileView *jailTile = board->getJailTile();
+
+    if (jailTile && jailTile->getTile()->getIndex() == targetIndex)
+    {
+        targetView->sendPlayerToJail();
+    }
+    else
+    {
+        TileView *tile = board->getTileFromIdx(targetIndex);
+        if (!tile)
+            return;
+
+        targetView->teleportToTile(*tile);
+    }
+
+    camManager.switchTo(
+        targetView->getPlayerCamKey(),
+        0.5f,
+        []() {});
+        
+    showMessage(playerName + " dipindahkan ke tile " + std::to_string(targetIndex));
 }
 
-
+// ═══════════════════════════════════════════════════════════════════════════
+// Setup khusus raylib
+// ═══════════════════════════════════════════════════════════════════════════
 
 void GUI::loadPlayer(Player &player)
 {

@@ -104,60 +104,51 @@ public:
     void render() override;
 };
 
-class PropertyPopup : public IndefinitePopup {
+class BankruptcyPopup : public IndefinitePopup
+{
 private:
-    // Basic
-    std::string name;
-    std::string type;     // "STREET", "RAILROAD", "UTILITY"
-    std::string status;   // "BANK", "OWNED", "MORTGAGED"
-
-    // Common
-    int buyPrice;
-    int mortgageValue;
-
-    int levelOrCount = 0;
-    bool isOtherPlayer = false;
-
-    std::string ownerName;
-
-    // STREET
-    std::string colorGroup;
-    std::vector<int> rentTable;
-    int buildCost;
-
-    // RAILROAD & UTILITY
-    std::vector<int> railroadRent;
-    std::vector<int> utilityMultiplier;
-
-    std::string actionCommand;
-    std::vector<Interactable> actionButtons;
-
-    // Helper
-    std::string buildDetails() const;
+    std::string playerName;
+    Interactable okButton;
 
 public:
-    PropertyPopup(
-        const std::string& name,
-        const std::string& type,
-        const std::string& status,
-        int buyPrice,
-        int mortgageValue,
-
-        int levelOrCount = 0,
-        bool isOtherPlayer = false,
-
-        const std::string& ownerName = "",
-        const std::string& colorGroup = "",
-        const std::vector<int>& rentTable = {},
-        int buildCost = 0,
-        const std::vector<int>& railroadRent = {},
-        const std::vector<int>& utilityMultiplier = {}
-    );
+    BankruptcyPopup(const std::string &playerName);
 
     void enable() override;
     void disable() override;
     void interactionCheck() override;
-    void addButton(const std::string& label, const std::string& command);
-    string catchCommand() override;
+    std::string catchCommand() override;
+    void render() override;
+};
+
+class WinnerPopup : public IndefinitePopup
+{
+private:
+    std::string playerName;
+    Interactable okButton;
+
+public:
+    WinnerPopup(const std::string &playerName);
+
+    void enable() override;
+    void disable() override;
+    void interactionCheck() override;
+    std::string catchCommand() override;
+    void render() override;
+};
+
+class PausePopup : public IndefinitePopup
+{
+private:
+    Interactable resumeBtn;
+    Interactable saveBtn;
+    Interactable exitBtn;
+
+public:
+    PausePopup();
+
+    void enable() override;
+    void disable() override;
+    void interactionCheck() override;
+    std::string catchCommand() override;
     void render() override;
 };

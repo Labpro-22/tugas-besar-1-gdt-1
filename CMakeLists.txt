@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.11)
 project(Nimonspoli LANGUAGES CXX)
 
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -23,6 +25,7 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/views/viewElement/MenuView.cpp
                                src/views/viewElement/AuctionMenuView.cpp
                                src/views/viewElement/GameHUDView.cpp
+                               src/views/viewElement/property/PropertyPopup.cpp
                                src/views/viewElement/board/TileView.cpp
                                src/views/viewElement/board/BoardView.cpp
                                src/views/viewElement/cards/CardView.cpp
@@ -31,6 +34,7 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/views/viewElement/player/PlayerView.cpp
                                src/views/viewElement/player/DiceView.cpp
                                src/views/viewElement/player/PlayerProfileView.cpp
+                               src/views/viewElement/player/PlayerInventory.cpp
                                src/views/viewElement/player/DiceView.cpp
                                src/views/animation/ViewAnimation.cpp
                                src/views/animation/physicsEngine/PhysicsObject.cpp

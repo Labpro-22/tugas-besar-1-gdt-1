@@ -76,13 +76,6 @@ void GameHUDView::setGameModel(const Game *game)
     }
 }
 
-void GameHUDView::setDiceAnimationFinished(bool finished)
-{
-    diceAnimationFinished = finished;
-    if (!finished)
-        showEndTurnButton = false;
-}
-
 void GameHUDView::updateProfileData()
 {
     if (!gameModel)
@@ -104,7 +97,7 @@ void GameHUDView::updateProfileData()
                         currentPlayer->getConsecutiveDoubles() == 0;
     }
 
-    showEndTurnButton = canEndTurnNow && diceAnimationFinished;
+    showEndTurnButton = canEndTurnNow;
 }
 
 void GameHUDView::interactionCheck()

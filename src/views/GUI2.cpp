@@ -296,12 +296,6 @@ void GUI::renderDice(int d1, int d2)
     if (dice != nullptr)
         delete dice;
 
-    for (auto &view : views)
-    {
-        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
-            hud->setDiceAnimationFinished(false);
-    }
-
     int idx = cachedGame->getCurrentTurnIndex();
     camManager.switchTo("ACTION_CAM", 1, [this, idx, d1, d2]()
                         {
@@ -509,12 +503,6 @@ void GUI::updateDice()
     {
         delete dice;
         dice = nullptr;
-
-        for (auto &view : views)
-        {
-            if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
-                hud->setDiceAnimationFinished(true);
-        }
     }
 }
 

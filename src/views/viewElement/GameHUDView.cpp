@@ -165,6 +165,13 @@ void GameHUDView::interactionCheck()
 
 std::string GameHUDView::catchCommand()
 {
+    if (inventoryPopup)
+    {
+        std::string popupCmd = inventoryPopup->catchCommand();
+        if (popupCmd != "NULL")
+            return popupCmd;
+    }
+
     std::string cmd;
 
     cmd = switchCamBtn.catchCommand();

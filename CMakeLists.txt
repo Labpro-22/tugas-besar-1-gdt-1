@@ -6,14 +6,8 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(FetchContent)
-
-FetchContent_Declare(
-  raylib
-  GIT_REPOSITORY https://github.com/raysan5/raylib.git
-  GIT_TAG 5.0
-)
-FetchContent_MakeAvailable(raylib)
+include_directories(C:/msys64/ucrt64/include)
+link_directories(C:/msys64/ucrt64/lib)
 
 add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/core/mainGUI.cpp
@@ -31,6 +25,7 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/views/viewElement/Entry.cpp
                                src/views/viewElement/MenuView.cpp
                                src/views/viewElement/GameHUDView.cpp
+                               src/views/viewElement/property/PropertyPopup.cpp
                                src/views/viewElement/board/TileView.cpp
                                src/views/viewElement/board/BoardView.cpp
                                src/views/viewElement/cards/CardView.cpp
@@ -108,6 +103,9 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
 
 target_link_libraries(${PROJECT_NAME}
     raylib
+    opengl32
+    gdi32
+    winmm
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)

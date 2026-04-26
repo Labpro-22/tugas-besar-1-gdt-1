@@ -363,8 +363,7 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
     }
     else
     {
-        dice->setManual(1, 1);
-        // dice->rollRandom();
+        dice->rollRandom();
     }
 
     int total = dice->getTotal();

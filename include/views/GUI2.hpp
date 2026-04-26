@@ -30,6 +30,9 @@ class GUI : public IGUI
 {
 private:
     const Game *cachedGame = nullptr;
+    bool showResume = false;
+    Interactable resumeBtn;
+    void setResumeVisible(bool v);
 
     // ── View layers ────────────────────────────────────────────────────────
     std::vector<std::unique_ptr<View2D>> views;
@@ -74,7 +77,6 @@ private:
     void handleDisplayCommand(const std::vector<std::string> &tokens);
 
     // ── Popup delay after dice roll ─────────────────────────────────────────
-    std::queue<Popup *> popupQueue;
     std::queue<Popup *> delayedPopupQueue;
     bool isDelayingPopupAfterDice;
 

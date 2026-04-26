@@ -96,13 +96,6 @@ void GameHUDView::setGameModel(const Game *game)
     }
 }
 
-void GameHUDView::setDiceAnimationFinished(bool finished)
-{
-    diceAnimationFinished = finished;
-    if (!finished)
-        showEndTurnButton = false;
-}
-
 void GameHUDView::updateProfileData()
 {
     if (!gameModel)

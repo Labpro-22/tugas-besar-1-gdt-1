@@ -162,6 +162,117 @@ void InputPopup::render()
     submitButton.render();
 }
 
+ConfirmPopup::ConfirmPopup(const std::string& question)
+    : IndefinitePopup(View2D(getScreenCenter(), {600, 220}, []() {})),
+      question(question)
+{
+    yesButton.setGameCommand("YES");
+    noButton.setGameCommand("NO");
+}
+
+void ConfirmPopup::enable()
+{
+    float popupWidth = 600;
+    float popupHeight = 220;
+
+    float x = (GetScreenWidth() - popupWidth) / 2.0f;
+    float y = (GetScreenHeight() - popupHeight) / 2.0f;
+
+    float btnWidth = 140;
+    float btnHeight = 50;
+    float gap = 40;
+
+    float totalWidth = btnWidth * 2 + gap;
+    float startX = x + (popupWidth - totalWidth) / 2.0f;
+    float btnY = y + popupHeight - 80;
+
+    yesButton.setPosition({startX, btnY});
+    yesButton.setHitboxDim({btnWidth, btnHeight});
+
+    noButton.setPosition({startX + btnWidth + gap, btnY});
+    noButton.setHitboxDim({btnWidth, btnHeight});
+
+    yesButton.enable();
+    noButton.enable();
+}
+
+void ConfirmPopup::disable()
+{
+    yesButton.disable();
+    noButton.disable();
+}
+
+void ConfirmPopup::interactionCheck()
+{
+    yesButton.interactionCheck();
+    noButton.interactionCheck();
+}
+
+std::string ConfirmPopup::catchCommand()
+{
+    std::string cmd;
+
+    cmd = yesButton.catchCommand();
+    if (cmd != "NULL") return cmd;
+
+    cmd = noButton.catchCommand();
+    if (cmd != "NULL") return cmd;
+
+    return "NULL";
+}
+
+void ConfirmPopup::render()
+{
+    float popupWidth = 600;
+    float popupHeight = 220;
+
+    float x = (GetScreenWidth() - popupWidth) / 2.0f;
+    float y = (GetScreenHeight() - popupHeight) / 2.0f;
+
+    DrawRectangle(0, 0,
+                  GetScreenWidth(),
+                  GetScreenHeight(),
+                  Color{0, 0, 0, 150});
+
+    DrawRectangleRounded(
+        {x, y, popupWidth, popupHeight},
+        0.1f,
+        10,
+        Color{40, 40, 40, 240});
+
+    DrawRectangleLinesEx(
+        {x, y, popupWidth, popupHeight},
+        2,
+        GOLD);
+
+    DrawText(
+        question.c_str(),
+        x + 30,
+        y + 40,
+        20,
+        WHITE);
+
+    float btnWidth = 140;
+    float btnHeight = 50;
+    float gap = 40;
+
+    float totalWidth = btnWidth * 2 + gap;
+    float startX = x + (popupWidth - totalWidth) / 2.0f;
+    float btnY = y + popupHeight - 80;
+
+    Rectangle yesRect = {startX, btnY, btnWidth, btnHeight};
+    Rectangle noRect = {startX + btnWidth + gap, btnY, btnWidth, btnHeight};
+
+    DrawRectangleRounded(yesRect, 0.3f, 10, GREEN);
+    DrawText("YA", yesRect.x + 45, yesRect.y + 15, 20, BLACK);
+
+    DrawRectangleRounded(noRect, 0.3f, 10, RED);
+    DrawText("TIDAK", noRect.x + 25, noRect.y + 15, 20, BLACK);
+
+    yesButton.render();
+    noButton.render();
+}
+
 LoadConfirmPopup::LoadConfirmPopup(const std::string &title, const std::string &placeholder)
     : IndefinitePopup(View2D(getScreenCenter(), {600, 300}, []() {})),
       title(title),

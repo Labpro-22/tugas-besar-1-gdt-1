@@ -15,7 +15,6 @@ private:
 
     bool isTopView = false;
     bool showEndTurnButton = false;
-    bool diceAnimationFinished = true;
 
     const Game *gameModel = nullptr;
 
@@ -25,7 +24,6 @@ public:
 
 
     void setGameModel(const Game *game);
-    void setDiceAnimationFinished(bool finished);
     void updateProfileData();
 
     void interactionCheck() override;

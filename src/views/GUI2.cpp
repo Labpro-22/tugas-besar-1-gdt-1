@@ -65,7 +65,14 @@ GUI::GUI(float fps, Board &board)
       pendingCommand("NULL"),
       fps(fps),
       exitRequested(false),
-    isDelayingPopupAfterDice(false)
+      resumeBtn(
+          {200, 56},
+          true,
+          false,
+          "RESUME",
+          []() {},
+          []() {}),
+      showResume(false)
 {
     const float boardSize = this->board->getBoardSize();
 
@@ -103,12 +110,16 @@ void GUI::update()
         ToggleFullscreen();
     }
 
+    if (showResume)
+    {
+        resumeBtn.interactionCheck();
+    }
+
     if (WindowShouldClose())
         exitRequested = true;
 
     camManager.updateCamMap();
     updateDice();
-    updateDelayedPopups();
     updatePlayerProfilesLayout();
     updateViews();
     updatePopupStack();
@@ -131,6 +142,20 @@ void GUI::display()
     if (dice)
         dice->render();
     EndMode3D();
+
+    if (showResume)
+    {
+        float w = 200, h = 56;
+        float x = GetScreenWidth() / 2 - w / 2;
+        float y = GetScreenHeight() - 120;
+
+        resumeBtn.movePosition({x + w / 2, y + h / 2});
+
+        DrawRectangleRounded({x, y, w, h}, 0.5f, 8, Color{100, 180, 255, 255});
+        DrawText("RESUME", x + 50, y + 15, 20, WHITE);
+
+        resumeBtn.render();
+    }
 
     for (auto &view : views)
         view->render();
@@ -198,9 +223,9 @@ void GUI::showMessage(const std::string &message)
     loadPopup(new MessagePopup(message));
 }
 
-void GUI::showConfirm(const std::string & /*question*/)
+void GUI::showConfirm(const std::string &question)
 {
-    // TODO: popup konfirmasi ya/tidak
+    loadPopup(new ConfirmPopup(question));
 }
 
 void GUI::showInputPrompt(const std::string &prompt)
@@ -220,6 +245,13 @@ void GUI::showException(int code, const std::string &msg)
 
 std::string GUI::getCommand()
 {
+    if (showResume)
+    {
+        std::string cmd = resumeBtn.catchCommand();
+        if (cmd != "NULL")
+            return cmd;
+    }
+
     if (hasPendingCommand())
         return consumePendingCommand();
 
@@ -405,41 +437,20 @@ void GUI::unloadView(View2D *v)
         views.end());
 }
 
-void GUI::loadPopupNow(Popup *popup)
-{
-    disableAll();
-    views.push_back(std::unique_ptr<View2D>(popup));
-    popupStack.push(popup);
-}
-
-void GUI::pumpPopupQueue()
-{
-    if (isDelayingPopupAfterDice)
-        return;
-
-    if (!popupStack.empty())
-        return;
-
-    if (popupQueue.empty())
-        return;
-
-    Popup *popup = popupQueue.front();
-    popupQueue.pop();
-    loadPopupNow(popup);
-}
-
 void GUI::loadPopup(Popup *popup)
 {
     if (popup == nullptr)
         return;
 
-    if (!popupStack.empty() || isDelayingPopupAfterDice || !popupQueue.empty())
+    if (!popupStack.empty() || dice != nullptr || !delayedPopupQueue.empty())
     {
-        popupQueue.push(popup);
+        delayedPopupQueue.push(popup);
         return;
     }
 
-    loadPopupNow(popup);
+    disableAll();
+    views.push_back(std::unique_ptr<View2D>(popup));
+    popupStack.push(popup);
 }
 
 void GUI::enableAll()
@@ -464,10 +475,10 @@ void GUI::clearPopups()
 {
     while (!popupStack.empty())
         popupStack.pop();
-    while (!popupQueue.empty())
+    while (!delayedPopupQueue.empty())
     {
-        delete popupQueue.front();
-        popupQueue.pop();
+        delete delayedPopupQueue.front();
+        delayedPopupQueue.pop();
     }
 }
 
@@ -482,6 +493,12 @@ void GUI::clearPlayers()
 }
 
 // ── Update helpers ─────────────────────────────────────────────────────────
+
+void GUI::setResumeVisible(bool v)
+{
+    showResume = v;
+    resumeBtn.setActive(v);
+}
 
 void GUI::updateDice()
 {
@@ -504,7 +521,6 @@ void GUI::updateDice()
     }
 }
 
-
 void GUI::updateViews()
 {
     views.erase(
@@ -513,10 +529,20 @@ void GUI::updateViews()
                        {
                            if (v->closed())
                                return true;
-                           v->interactionCheck();
                            return false;
                        }),
         views.end());
+
+    if (!popupStack.empty())
+    {
+        popupStack.top()->interactionCheck();
+        return;
+    }
+
+    for (auto &v : views)
+    {
+        v->interactionCheck();
+    }
 
     if (menu != nullptr && menu->closed())
         menu = nullptr;
@@ -533,19 +559,15 @@ void GUI::updatePopupStack()
             popupStack.top()->enable();
     }
 
-    pumpPopupQueue();
-}
-
-void GUI::updateDelayedPopups()
-{
-    if (!isDelayingPopupAfterDice)
-        return;
-
-    if (dice != nullptr)
-        return;
-
-    isDelayingPopupAfterDice = false;
-    pumpPopupQueue();
+    if (dice == nullptr && popupStack.empty() && !delayedPopupQueue.empty())
+    {
+        Popup *popup = delayedPopupQueue.front();
+        delayedPopupQueue.pop();
+        disableAll();
+        popup->enable();
+        views.push_back(std::unique_ptr<View2D>(popup));
+        popupStack.push(popup);
+    }
 }
 
 void GUI::updatePlayerProfilesLayout()

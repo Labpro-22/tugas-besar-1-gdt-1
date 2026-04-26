@@ -113,22 +113,23 @@ InputPopup::InputPopup(const std::string &title)
       inputEntry(Entry({400, 50}, "", 24, "Orbitron", []() {})),
       submitButton(Interactable({200, 50}, true, false, "SUBMIT_INPUT", []() {}, []() {}))
 {
-    Vector2 center = getScreenCenter();
-
-    inputEntry.movePosition(center + Vector2{0, 0});
-    submitButton.movePosition(center + Vector2{0, 80});
-
     submitButton.setRender([this]()
                            {
-        DrawRectangle(submitButton.getRenderPos().x, submitButton.getRenderPos().y,
-                      submitButton.getRenderWidth(), submitButton.getRenderHeight(),
-                      submitButton.getRenderColor(LOGO_RED));
+    float x = submitButton.getRenderPos().x;
+    float y = submitButton.getRenderPos().y;
+    float w = submitButton.getRenderWidth();
+    float h = submitButton.getRenderHeight();
 
-        Vector2 dim = MeasureTextEx(fontMap.at("Orbitron"), "OK", 28, 0);
+    DrawRectangle(x, y, w, h, submitButton.getRenderColor(LOGO_RED));
 
-        DrawTextEx(fontMap.at("Orbitron"), "OK",
-                   {submitButton.getX() - dim.x/2, submitButton.getY() - 14},
-                   28, 0, WHITE); });
+    const char *txt = "OK";
+    int fontSize = 28;
+
+    Vector2 dim = MeasureTextEx(fontMap.at("Orbitron"), txt, fontSize, 0);
+
+    DrawTextEx(fontMap.at("Orbitron"), txt,
+               {x + (w - dim.x) / 2, y + (h - dim.y) / 2},
+               fontSize, 0, WHITE); });
 }
 
 void InputPopup::enable()
@@ -164,19 +165,51 @@ std::string InputPopup::catchCommand()
 
 void InputPopup::render()
 {
-    Vector2 center = {
-        (float)GetScreenWidth() / 2,
-        (float)GetScreenHeight() / 2};
+    pos = getScreenCenter();
 
-    DrawRectangle(center.x - 250, center.y - 150, 500, 300, {40, 40, 40, 230});
+    float w = boundingDim.x;
+    float h = boundingDim.y;
 
-    Vector2 titleDim = MeasureTextEx(fontMap.at("Orbitron"), title.c_str(), 28, 0);
+    float x = pos.x - w / 2;
+    float y = pos.y - h / 2;
 
-    DrawTextEx(fontMap.at("Orbitron"), title.c_str(),
-               {center.x - titleDim.x / 2, center.y - 100},
-               28, 0, WHITE);
+    float headerH = 40;
+
+    DrawRectangle(x, y, w, h, Color{40, 40, 40, 230});
+    DrawRectangle(x, y, w, headerH, Color{60, 60, 60, 255});
+
+    int titleSize = 24;
+    int titleWidth = MeasureText(title.c_str(), titleSize);
+
+    DrawText(title.c_str(),
+             x + (w - titleWidth) / 2,
+             y + 8,
+             titleSize,
+             WHITE);
+
+    float inputW = 400;
+    float inputH = 50;
+
+    float inputY = y + headerH + 40;
+    float inputX = pos.x - inputW / 2;
+
+    DrawRectangle(
+        inputX,
+        inputY - inputH / 2,
+        inputW,
+        inputH,
+        Color{70, 70, 70, 255});
+
+    inputEntry.movePosition({pos.x,
+                             inputY});
 
     inputEntry.render();
+
+    float btnY = y + h - 60;
+
+    submitButton.movePosition({pos.x,
+                               btnY});
+
     submitButton.render();
 }
 

@@ -68,24 +68,42 @@ std::string MessagePopup::catchCommand()
 
 void MessagePopup::render()
 {
-    // background popup
-    DrawRectangle(getRenderPos().x, getRenderPos().y,
-                  boundingDim.x, boundingDim.y,
-                  {40, 40, 40, 230});
+    pos = getScreenCenter();
 
-    // title
-    Vector2 textDim = MeasureTextEx(fontMap.at("Orbitron"), "Message", 28, 0);
-    DrawTextEx(fontMap.at("Orbitron"), "Message",
-               {pos.x - textDim.x / 2, pos.y - 90},
-               28, 0, WHITE);
+    float w = boundingDim.x;
+    float h = boundingDim.y;
 
-    // isi pesan
-    textDim = MeasureTextEx(fontMap.at("Orbitron"),
-                            message.c_str(), 22, 0);
-    DrawTextEx(fontMap.at("Orbitron"), message.c_str(),
-               {pos.x - textDim.x / 2, pos.y - 20},
-               22, 0, WHITE);
+    float x = pos.x - w / 2;
+    float y = pos.y - h / 2;
 
+    float headerH = 40;
+
+    DrawRectangle(x, y, w, h, Color{40, 40, 40, 230});
+    DrawRectangle(x, y, w, headerH, Color{60, 60, 60, 255});
+
+    const char *title = "MESSAGE";
+    int titleSize = 24;
+    int titleWidth = MeasureText(title, titleSize);
+
+    DrawText(title,
+             x + (w - titleWidth) / 2,
+             y + 8,
+             titleSize,
+             WHITE);
+
+    Vector2 textPos = {x + 20, y + headerH + 10};
+    Vector2 textArea = {w - 40, h - headerH - 80};
+
+    drawTextWrappedBox(
+        GetFontDefault(),
+        message,
+        textPos,
+        20,
+        1,
+        WHITE,
+        textArea);
+
+    okButton.movePosition({pos.x, y + h - 40});
     okButton.render();
 }
 
@@ -162,7 +180,7 @@ void InputPopup::render()
     submitButton.render();
 }
 
-ConfirmPopup::ConfirmPopup(const std::string& question)
+ConfirmPopup::ConfirmPopup(const std::string &question)
     : IndefinitePopup(View2D(getScreenCenter(), {600, 220}, []() {})),
       question(question)
 {
@@ -213,10 +231,12 @@ std::string ConfirmPopup::catchCommand()
     std::string cmd;
 
     cmd = yesButton.catchCommand();
-    if (cmd != "NULL") return cmd;
+    if (cmd != "NULL")
+        return cmd;
 
     cmd = noButton.catchCommand();
-    if (cmd != "NULL") return cmd;
+    if (cmd != "NULL")
+        return cmd;
 
     return "NULL";
 }
@@ -408,4 +428,242 @@ void ExceptionPopup::render()
                          getRenderFontSize(28), 1, getRenderColor(BLACK), getRenderDim() - (Vector2){20, 0});
 
     okButton.render();
+}
+
+BankruptcyPopup::BankruptcyPopup(const std::string &playerName)
+    : IndefinitePopup(View2D(getScreenCenter(), {500, 250}, []() {})),
+      playerName(playerName),
+      okButton(Interactable({200, 50}, true, false, "BANKRUPT_OK", []() {}, []() {}))
+{
+    Vector2 center = getScreenCenter();
+
+    okButton.movePosition(center + Vector2{0, 70});
+
+    okButton.setRender([this]()
+                       {
+        DrawRectangle(okButton.getRenderPos().x, okButton.getRenderPos().y,
+                      okButton.getRenderWidth(), okButton.getRenderHeight(),
+                      okButton.getRenderColor(RED));
+
+        Vector2 dim = MeasureTextEx(fontMap.at("Orbitron"), "OK", 28, 0);
+
+        DrawTextEx(fontMap.at("Orbitron"), "OK",
+                   {okButton.getX() - dim.x / 2, okButton.getY() - 14},
+                   28, 0, WHITE); });
+}
+
+void BankruptcyPopup::enable()
+{
+    okButton.enable();
+}
+
+void BankruptcyPopup::disable()
+{
+    okButton.disable();
+}
+
+void BankruptcyPopup::interactionCheck()
+{
+    okButton.interactionCheck();
+
+    if (okButton.catchCommand() == "BANKRUPT_OK")
+    {
+        closeView = true;
+    }
+}
+
+std::string BankruptcyPopup::catchCommand()
+{
+    return "NULL";
+}
+
+void BankruptcyPopup::render()
+{
+    DrawRectangle(getRenderPos().x, getRenderPos().y,
+                  boundingDim.x, boundingDim.y,
+                  {40, 40, 40, 230});
+
+    std::string text = playerName + " BANKRUPT!";
+
+    Vector2 textDim = MeasureTextEx(fontMap.at("Orbitron"),
+                                    text.c_str(), 24, 0);
+
+    DrawTextEx(fontMap.at("Orbitron"), text.c_str(),
+               {pos.x - textDim.x / 2, pos.y - 20},
+               24, 0, RED);
+
+    okButton.render();
+}
+
+WinnerPopup::WinnerPopup(const std::string &playerName)
+    : IndefinitePopup(View2D(getScreenCenter(), {500, 250}, []() {})),
+      playerName(playerName),
+      okButton(Interactable({200, 50}, true, false, "WINNER_OK", []() {}, []() {}))
+{
+    Vector2 center = getScreenCenter();
+
+    okButton.movePosition(center + Vector2{0, 70});
+
+    okButton.setRender([this]()
+                       {
+        DrawRectangle(okButton.getRenderPos().x, okButton.getRenderPos().y,
+                      okButton.getRenderWidth(), okButton.getRenderHeight(),
+                      okButton.getRenderColor(GOLD));
+
+        Vector2 dim = MeasureTextEx(fontMap.at("Orbitron"), "OK", 28, 0);
+
+        DrawTextEx(fontMap.at("Orbitron"), "OK",
+                   {okButton.getX() - dim.x / 2, okButton.getY() - 14},
+                   28, 0, BLACK); });
+}
+
+void WinnerPopup::enable()
+{
+    okButton.enable();
+}
+
+void WinnerPopup::disable()
+{
+    okButton.disable();
+}
+
+void WinnerPopup::interactionCheck()
+{
+    okButton.interactionCheck();
+
+    if (okButton.catchCommand() == "WINNER_OK")
+    {
+        closeView = true;
+    }
+}
+
+std::string WinnerPopup::catchCommand()
+{
+    return "NULL";
+}
+
+void WinnerPopup::render()
+{
+    DrawRectangle(getRenderPos().x, getRenderPos().y,
+                  boundingDim.x, boundingDim.y,
+                  {40, 40, 40, 230});
+
+    std::string title = "WINNER!";
+    std::string text = playerName + " MENANG!";
+
+    Vector2 titleDim = MeasureTextEx(fontMap.at("Orbitron"), title.c_str(), 28, 0);
+    DrawTextEx(fontMap.at("Orbitron"), title.c_str(),
+               {pos.x - titleDim.x / 2, pos.y - 80},
+               28, 0, GOLD);
+
+    Vector2 textDim = MeasureTextEx(fontMap.at("Orbitron"), text.c_str(), 24, 0);
+    DrawTextEx(fontMap.at("Orbitron"), text.c_str(),
+               {pos.x - textDim.x / 2, pos.y - 20},
+               24, 0, WHITE);
+
+    okButton.render();
+}
+
+PausePopup::PausePopup()
+    : IndefinitePopup(View2D(getScreenCenter(), {420, 300}, []() {})),
+      resumeBtn({200, 50}, true, false, "PAUSE_RESUME", []() {}, []() {}), saveBtn({200, 50}, true, false, "PAUSE_SAVE", []() {}, []() {}), exitBtn({200, 50}, true, false, "PAUSE_EXIT", []() {}, []() {})
+{
+    Vector2 center = pos;
+    float gap = 60;
+
+    resumeBtn.movePosition(center + Vector2{0, -gap});
+    saveBtn.movePosition(center);
+    exitBtn.movePosition(center + Vector2{0, gap});
+}
+
+void PausePopup::enable()
+{
+    resumeBtn.enable();
+    saveBtn.enable();
+    exitBtn.enable();
+}
+
+void PausePopup::disable()
+{
+    resumeBtn.disable();
+    saveBtn.disable();
+    exitBtn.disable();
+}
+
+void PausePopup::interactionCheck()
+{
+    resumeBtn.interactionCheck();
+    saveBtn.interactionCheck();
+    exitBtn.interactionCheck();
+
+    if (resumeBtn.catchCommand() == "PAUSE_RESUME")
+        closeView = true;
+}
+
+std::string PausePopup::catchCommand()
+{
+    if (saveBtn.catchCommand() == "PAUSE_SAVE")
+        return "PAUSE_SAVE";
+
+    if (exitBtn.catchCommand() == "PAUSE_EXIT")
+        return "PAUSE_EXIT";
+
+    return "NULL";
+}
+
+void PausePopup::render()
+{
+    pos = getScreenCenter();
+
+    float w = boundingDim.x;
+    float h = boundingDim.y;
+
+    float x = pos.x - w / 2;
+    float y = pos.y - h / 2;
+
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.5f));
+    DrawRectangle(x, y, w, h, Color{40, 40, 40, 240});
+
+    const char *title = "PAUSED";
+    int fontSize = 26;
+    int textWidth = MeasureText(title, fontSize);
+
+    DrawText(title,
+             x + (w - textWidth) / 2,
+             y + 20,
+             fontSize,
+             WHITE);
+
+    Vector2 center = pos;
+
+    resumeBtn.movePosition(center + Vector2{0, -40});
+    saveBtn.movePosition(center + Vector2{0, 30});
+    exitBtn.movePosition(center + Vector2{0, 100});
+
+    auto drawBtn = [&](Interactable &btn, const char *text, Color color)
+    {
+        float bx = btn.getRenderPos().x;
+        float by = btn.getRenderPos().y;
+        float bw = btn.getRenderWidth();
+        float bh = btn.getRenderHeight();
+
+        DrawRectangleRounded({bx, by, bw, bh}, 0.4f, 8, color);
+
+        int fs = 20;
+        int tw = MeasureText(text, fs);
+
+        DrawText(text,
+                 bx + (bw - tw) / 2,
+                 by + (bh - fs) / 2,
+                 fs,
+                 WHITE);
+    };
+
+    drawBtn(resumeBtn, "RESUME", Color{40, 120, 220, 255});
+    drawBtn(saveBtn, "SAVE", Color{40, 160, 100, 255});
+    drawBtn(exitBtn, "EXIT", Color{180, 60, 60, 255});
+
+    resumeBtn.render();
+    saveBtn.render();
+    exitBtn.render();
 }

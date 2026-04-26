@@ -261,6 +261,12 @@ bool GameEngine::loadFromPath(const std::string &filepath)
     gui->showMessage("Permainan berhasil dimuat dari " + filepath + ".");
     gui->renderBoard(*game);
     gui->loadGameView();
+
+    for (Player *p : game->getPlayers())
+    {
+        gui->renderPlayer(*p);
+    }
+
     resumeLoadedTurn = true;
     return true;
 }
@@ -357,7 +363,6 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
     }
     else
     {
-        gui->showMessage("Mengocok dadu...");
         dice->rollRandom();
     }
 

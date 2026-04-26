@@ -68,6 +68,7 @@ GameHUDView::GameHUDView()
 void GameHUDView::setGameModel(const Game *game)
 {
     this->gameModel = game;
+    inventoryPopup.reset();
 
     playerProfiles.clear();
 
@@ -123,6 +124,16 @@ void GameHUDView::setLogs(const std::vector<std::string> &entries)
 
 void GameHUDView::interactionCheck()
 {
+    if (inventoryPopup)
+    {
+        inventoryPopup->interactionCheck();
+        if (inventoryPopup->closed())
+        {
+            inventoryPopup.reset();
+        }
+        return;
+    }
+
     rollDiceBtn.interactionCheck();
     switchCamBtn.interactionCheck();
     pauseBtn.interactionCheck();
@@ -134,13 +145,33 @@ void GameHUDView::interactionCheck()
 
     for (auto &p : playerProfiles)
     {
-        p.onHover();
-        p.onClicked();
+        p.interactionCheck();
+
+        std::string cmd = p.catchCommand();
+        if (cmd != "NULL")
+        {
+            Player *clickedPlayer = p.getPlayer();
+            Player *currentPlayer = gameModel ? gameModel->getCurrentPlayer() : nullptr;
+
+            if (clickedPlayer != nullptr && clickedPlayer == currentPlayer)
+            {
+                inventoryPopup = std::make_unique<PlayerInventoryPopup>(clickedPlayer);
+                inventoryPopup->enable();
+                break;
+            }
+        }
     }
 }
 
 std::string GameHUDView::catchCommand()
 {
+    if (inventoryPopup)
+    {
+        std::string popupCmd = inventoryPopup->catchCommand();
+        if (popupCmd != "NULL")
+            return popupCmd;
+    }
+
     std::string cmd;
 
     cmd = switchCamBtn.catchCommand();
@@ -336,5 +367,10 @@ void GameHUDView::render()
                  WHITE);
 
         endTurnBtn.render();
+    }
+
+    if (inventoryPopup)
+    {
+        inventoryPopup->render();
     }
 }

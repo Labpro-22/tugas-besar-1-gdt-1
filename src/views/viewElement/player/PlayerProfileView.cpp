@@ -5,6 +5,7 @@ PlayerProfileView::PlayerProfileView(Player *player)
     : player(player), playerColor(LIGHTGRAY)
 {
     setActive(true);
+    setGameCommand("SHOW_PLAYER_INVENTORY");
 }
 
 void PlayerProfileView::render()
@@ -49,6 +50,16 @@ void PlayerProfileView::setPlayer(Player *p)
     this->player = p;
 }
 
+Player* PlayerProfileView::getPlayer()
+{
+    return player;
+}
+
+const Player* PlayerProfileView::getPlayer() const
+{
+    return player;
+}
+
 void PlayerProfileView::onHover()
 {
     DrawRectangleLinesEx(getHitbox(), 6, Fade(playerColor, 0.5f));
@@ -56,5 +67,5 @@ void PlayerProfileView::onHover()
 
 void PlayerProfileView::onClicked()
 {
-    // contoh: buka detail player
+    Interactable::onClicked();
 }

@@ -132,8 +132,7 @@ void DiceView::showDiceOnCam() {
     View3DAnimation* moveAnim2 = new View3DAnimation(*getObject("DICE_2"), 120, false, [](){}, [this](){
         View3DAnimation* waitAnim = new View3DAnimation(*getObject("DICE_2"), 120, false, [](){}, [](){});\
         waitAnim->setWait(1, [this](){
-            throwButton.setGameCommand("DISPLAY THROW_DONE");
-            throwButton.sendCommand();
+            moveDiceOffScreen();
         });
         waitAnim->start();
         getObject("DICE_2")->addAnimation("WAIT_SEND", waitAnim);

@@ -80,6 +80,7 @@ private:
     void waitForAnimToEnd2D(View2D* view);
     void waitForAnimToEnd3D(View3D* view);
     void waitForCameraMovementToEnd(View3DCamera* view);
+    void waitFor(function<bool()> );
     void setHudDiceAnimationFinished(bool finished);
     void loadPopupNow(Popup *popup);
     void pumpPopupQueue();

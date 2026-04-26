@@ -277,7 +277,10 @@ void GUI::renderDice(int d1, int d2)
     camManager.switchTo("ACTION_CAM", 0.2, [this, idx, d1, d2](){
         dice = new DiceView(d1,d2,players[idx], &camManager.getCamera("ACTION_CAM"));
     });
-    waitForAnimationEnd();
+    waitFor([this](){
+        if (dice == nullptr) return false;
+        return dice->isDone();
+    });
     delete dice;
     dice = nullptr;
 }
@@ -487,14 +490,6 @@ void GUI::updateDice()
     }
 }
 
-void GUI::setHudDiceAnimationFinished(bool finished)
-{
-    for (auto &view : views)
-    {
-        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
-            hud->setDiceAnimationFinished(finished);
-    }
-}
 
 void GUI::updateViews()
 {
@@ -637,10 +632,22 @@ std::string GUI::pollViews()
     return "NULL";
 }
 
+void GUI::waitFor(function<bool()> pred) {
+    while (!shouldExit()) {
+        update();
+        display();
+        getCommand();
+        if (pred()) {
+            return;
+        }
+    }
+} 
+
 void GUI::waitForAnimToEnd2D(View2D* view) {
     while (!shouldExit()) {
         update();
         display();
+        getCommand();
         if (!view->isAnimationActive()) {
             return;
         }
@@ -651,6 +658,7 @@ void GUI::waitForAnimToEnd3D(View3D* view) {
     while (!shouldExit()) {
         update();
         display();
+        getCommand();
         if (!view->isAnimationActive()) {
             return;
         }
@@ -661,6 +669,7 @@ void GUI::waitForCameraMovementToEnd(View3DCamera* view) {
     while (!shouldExit()) {
         update();
         display();
+        getCommand();
         if (!view->isMovementActive()) {
             return;
         }
@@ -693,7 +702,7 @@ void GUI::handleDisplayCommand(const std::vector<std::string> &tokens)
     }
     else if (sub == "THROW_DONE" && dice != nullptr)
     {
-        pendingCommand = "ANIM_END";
+        
     }
     else if (sub == "DRAW" && tokens.size() >= 3)
     {

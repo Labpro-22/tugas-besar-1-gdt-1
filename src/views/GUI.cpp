@@ -65,15 +65,7 @@ GUI::GUI(float fps, Board &board)
       camManager(CameraManager()),
       pendingCommand("NULL"),
       fps(fps),
-      exitRequested(false),
-      resumeBtn(
-          {200, 56},
-          true,
-          false,
-          "RESUME",
-          []() {},
-          []() {}),
-      showResume(false)
+      exitRequested(false)
 {
     const float boardSize = this->board->getBoardSize();
 
@@ -114,11 +106,6 @@ void GUI::update()
         ToggleFullscreen();
     }
 
-    if (showResume)
-    {
-        resumeBtn.interactionCheck();
-    }
-
     if (WindowShouldClose())
         exitRequested = true;
 
@@ -146,34 +133,6 @@ void GUI::display()
     if (dice)
         dice->render();
     EndMode3D();
-
-    if (showResume)
-    {
-        float w = 220;
-        float h = 60;
-
-        float x = GetScreenWidth() / 2.0f - w / 2;
-        float y = 40;
-
-        resumeBtn.movePosition({x + w / 2, y + h / 2});
-
-        DrawRectangleRounded({x + 3, y + 4, w, h}, 0.4f, 8, Fade(BLACK, 0.5f));
-        DrawRectangleRounded({x, y, w, h}, 0.4f, 8, Color{40, 120, 220, 255});
-        DrawRectangleRoundedLines({x, y, w, h}, 0.4f, 8, WHITE);
-
-        const char *text = "SKIP ANIMATION";
-        int fontSize = 22;
-
-        int textWidth = MeasureText(text, fontSize);
-
-        DrawText(text,
-                 x + (w - textWidth) / 2,
-                 y + (h - fontSize) / 2,
-                 fontSize,
-                 WHITE);
-
-        resumeBtn.render();
-    }
 
     for (auto &view : views)
         view->render();
@@ -268,13 +227,6 @@ void GUI::showPauseMenu()
 
 std::string GUI::getCommand()
 {
-    if (showResume)
-    {
-        std::string cmd = resumeBtn.catchCommand();
-        if (cmd != "NULL")
-            return cmd;
-    }
-
     if (hasPendingCommand())
         return consumePendingCommand();
 
@@ -611,13 +563,6 @@ void GUI::clearPlayers()
 }
 
 // ── Update helpers ─────────────────────────────────────────────────────────
-
-void GUI::setResumeVisible(bool v)
-{
-    showResume = v;
-    resumeBtn.setActive(v);
-}
-
 void GUI::updateDice()
 {
     if (dice == nullptr)

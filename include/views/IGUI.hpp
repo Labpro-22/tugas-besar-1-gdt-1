@@ -14,7 +14,6 @@ class IGUI
 {
 public:
     virtual ~IGUI() = default;
-    virtual void setResumeVisible(bool v) = 0;
 
     // Lifecycle
     virtual void update() = 0;

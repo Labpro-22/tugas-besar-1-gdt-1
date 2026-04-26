@@ -179,6 +179,8 @@ PlayerInventoryPopup::PlayerInventoryPopup(Player* player)
 void PlayerInventoryPopup::enable()
 {
     exitButton.enable();
+    for (auto &button : cardUseButtons)
+        button.enable();
     for (auto &button : propertyInfoButtons)
         button.enable();
     if (propertyPopup)
@@ -188,6 +190,8 @@ void PlayerInventoryPopup::enable()
 void PlayerInventoryPopup::disable()
 {
     exitButton.disable();
+    for (auto &button : cardUseButtons)
+        button.disable();
     for (auto &button : propertyInfoButtons)
         button.disable();
     if (propertyPopup)
@@ -309,6 +313,11 @@ void PlayerInventoryPopup::interactionCheck()
         }
     }
 
+    for (auto &button : cardUseButtons)
+    {
+        button.interactionCheck();
+    }
+
     exitButton.interactionCheck();
 }
 
@@ -329,6 +338,18 @@ std::string PlayerInventoryPopup::catchCommand()
         {
             propertyPopup.reset();
             selectedPropertyCode.clear();
+        }
+    }
+
+    for (auto &button : cardUseButtons)
+    {
+        std::string cmd = button.catchCommand();
+        const std::string prefix = "USE_CARD_IDX_";
+        if (cmd.rfind(prefix, 0) == 0)
+        {
+            std::string cardNumber = cmd.substr(prefix.size());
+            close();
+            return "GUNAKAN_KEMAMPUAN " + cardNumber;
         }
     }
 
@@ -406,6 +427,7 @@ void PlayerInventoryPopup::render()
     const std::vector<SkillCard*>& cards = player->getHandCards();
     float cardY = topY + 135;
     float cardMaxWidth = x + (w / 2 - 24) - leftX;
+    int renderedCardButtons = 0;
 
     if (cards.empty())
     {
@@ -414,8 +436,9 @@ void PlayerInventoryPopup::render()
     else
     {
         int shown = 0;
-        for (SkillCard* card : cards)
+        for (size_t handIndex = 0; handIndex < cards.size(); ++handIndex)
         {
+            SkillCard *card = cards[handIndex];
             if (card == nullptr) continue;
             if (shown >= 10) break;
 
@@ -429,6 +452,55 @@ void PlayerInventoryPopup::render()
                 1,
                 BLACK
             );
+
+            if (cardUseButtons.size() <= static_cast<size_t>(renderedCardButtons))
+            {
+                cardUseButtons.emplace_back(
+                    Vector2{52, 20},
+                    true,
+                    false,
+                    "USE_CARD_IDX_" + std::to_string(handIndex + 1),
+                    []() {},
+                    []() {});
+            }
+
+            auto &useBtn = cardUseButtons[renderedCardButtons];
+            useBtn.setGameCommand("USE_CARD_IDX_" + std::to_string(handIndex + 1));
+            useBtn.setHitboxDim({52, 20});
+            useBtn.enable();
+            useBtn.movePosition({leftX + cardMaxWidth - 26, cardY + 8});
+            useBtn.setRender([this, renderedCardButtons]()
+                             {
+                auto &btn = cardUseButtons[renderedCardButtons];
+                Rectangle rect = btn.getHitbox();
+                bool hovered = CheckCollisionPointRec(GetMousePosition(), rect);
+
+                DrawRectangleRounded(
+                    rect,
+                    0.25f,
+                    6,
+                    hovered ? Color{225, 240, 225, 255} : Color{235, 248, 235, 255}
+                );
+                DrawRectangleRoundedLinesEx(
+                    rect,
+                    0.25f,
+                    6,
+                    1.2f,
+                    Color{55, 95, 55, 255}
+                );
+
+                const char *txt = "USE";
+                int fs = 12;
+                int tw = MeasureText(txt, fs);
+                DrawText(
+                    txt,
+                    rect.x + (rect.width - tw) / 2,
+                    rect.y + (rect.height - fs) / 2,
+                    fs,
+                    Color{25, 75, 25, 255}
+                ); });
+            useBtn.render();
+            renderedCardButtons++;
 
             cardY += 20;
 
@@ -454,6 +526,11 @@ void PlayerInventoryPopup::render()
         {
             DrawTextEx(fontMap["Orbitron"], "... more cards omitted", {leftX, cardY}, 14, 1, GRAY);
         }
+    }
+
+    if (cardUseButtons.size() > static_cast<size_t>(renderedCardButtons))
+    {
+        cardUseButtons.resize(renderedCardButtons);
     }
 
     const std::vector<Property *> &properties = player->getOwnedProperties();
@@ -592,4 +669,5 @@ void PlayerInventoryPopup::render()
     {
         propertyPopup->render();
     }
+
 }

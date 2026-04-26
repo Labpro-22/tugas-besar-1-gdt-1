@@ -49,8 +49,8 @@ map<pair<int, int> , pair<Vector3, Vector3>> DiceView::rollMap = {
     {{2,6}, {{ 2.5f, -0.7, 1.0f } , { 0, -1.0f, -1.0f }}},
 };
 
-DiceView::DiceView(PlayerView* player, View3DCamera* diceCam) : originalPos(diceCam->getPos() + (Vector3){7.5f, -10.0f, 0}), 
-    playing(false), diceCam(diceCam), done(false), diceNum({0,0}), player(player),
+DiceView::DiceView(int dice1, int dice2, PlayerView* player, View3DCamera* diceCam) : originalPos(diceCam->getPos() + (Vector3){7.5f, -10.0f, 0}), 
+    playing(false), diceCam(diceCam), done(false), diceNum({dice1,dice2}), player(player),
     throwButton(Interactable((Vector2){(float)GetScreenWidth()*0.4f, (float)GetScreenHeight()*0.4f}, false, false, "DISPLAY THROW", [](){}, [](){})),
     PhysicsEngine(9.80655, 0.5, 0, 120.0f) {
     float cubeEdges = 2.0f;
@@ -108,10 +108,9 @@ PlayerView* DiceView::getPlayer() {
     return player;
 }
 
-void DiceView::initializeThrowDice(int dice1, int dice2) {
-    diceNum = {dice1, dice2};
-    pair<Vector3, Vector3> dice1Val = rollMap.at({1, dice1});
-    pair<Vector3, Vector3> dice2Val = rollMap.at({2, dice2});
+void DiceView::initializeThrowDice() {
+    pair<Vector3, Vector3> dice1Val = rollMap.at({1, diceNum.first});
+    pair<Vector3, Vector3> dice2Val = rollMap.at({2, diceNum.second});
     getObject("DICE_1")->applyInitialMomentum(dice1Val.first , dice1Val.second, 0.2);
     getObject("DICE_2")->applyInitialMomentum(dice2Val.first , dice2Val.second, 0.2);
     playing = true;
@@ -133,8 +132,7 @@ void DiceView::showDiceOnCam() {
     View3DAnimation* moveAnim2 = new View3DAnimation(*getObject("DICE_2"), 120, false, [](){}, [this](){
         View3DAnimation* waitAnim = new View3DAnimation(*getObject("DICE_2"), 120, false, [](){}, [](){});\
         waitAnim->setWait(1, [this](){
-            throwButton.setGameCommand("DISPLAY THROW_DONE");
-            throwButton.sendCommand();
+            moveDiceOffScreen();
         });
         waitAnim->start();
         getObject("DICE_2")->addAnimation("WAIT_SEND", waitAnim);

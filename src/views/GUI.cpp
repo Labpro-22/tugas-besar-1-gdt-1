@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 
+
 GUI::GUI(float fps, Board &board) : menu(nullptr), board(new BoardView(board)),
                                     debuggingEntry(nullptr), dice(nullptr), chancePile(nullptr), communityChestPile(nullptr),
                                     pendingCommand("NULL"), fps(fps), camManager(CameraManager()), exitRequested(false)

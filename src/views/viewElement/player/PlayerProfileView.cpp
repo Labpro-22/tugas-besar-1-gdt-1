@@ -8,8 +8,13 @@ PlayerProfileView::PlayerProfileView(Player *player)
     setGameCommand("SHOW_PLAYER_INVENTORY");
 }
 
+Player* PlayerProfileView::getPlayer() const {
+    return player;
+}
+
 void PlayerProfileView::render()
 {
+    animationCheck();
     if (!player)
         return;
 

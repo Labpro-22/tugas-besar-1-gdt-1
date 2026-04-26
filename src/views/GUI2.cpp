@@ -56,6 +56,7 @@ namespace
 
 GUI::GUI(float fps, Board &board)
     : menu(nullptr),
+      auction(nullptr),
       board(new BoardView(board)),
       debuggingEntry(nullptr),
       dice(nullptr),
@@ -92,6 +93,9 @@ GUI::GUI(float fps, Board &board)
     // Kamera aksi untuk giliran pemain
     camManager.addCamera("ACTION_CAM",
                          View3DCamera({-boardSize * 0.8f, boardSize * 0.6f, 0.0f}, {0, 0, 0}, 45.0f));
+    camManager.addCamera("TILE_CAM_1", View3DCamera({0,0,0}, {0,0,0}, 45.0f));
+    camManager.addCamera("TILE_CAM_2", View3DCamera({0,0,0}, {0,0,0}, 45.0f));
+    
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -119,7 +123,6 @@ void GUI::update()
         exitRequested = true;
 
     camManager.updateCamMap();
-
     updateDice();
     updatePlayerProfilesLayout();
     updateViews();
@@ -174,8 +177,20 @@ void GUI::display()
 
     for (auto &view : views)
         view->render();
-
+    DrawFPS(10,10);
     EndDrawing();
+}
+
+void GUI::waitForAnimationEnd() {
+    while (!shouldExit()) {
+        update();
+        display();
+        std::string command = getCommand();
+        if (command == "ANIM_END") {
+            return;
+        }
+    }
+    return;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -312,16 +327,16 @@ void GUI::renderProperty(const Property & /*property*/) { /* TODO */ }
 void GUI::renderOwnedProperties(const Player & /*player*/) { /* TODO */ }
 void GUI::renderDice(int d1, int d2)
 {
-    if (dice != nullptr)
-        delete dice;
-
     int idx = cachedGame->getCurrentTurnIndex();
-    camManager.switchTo("ACTION_CAM", 1, [this, idx, d1, d2]()
-                        {
-        loadDice(players[idx]);
-
-        dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
-        dice->initializeThrowDice(d1, d2); });
+    camManager.switchTo("ACTION_CAM", 0.2, [this, idx, d1, d2](){
+        dice = new DiceView(d1,d2,players[idx], &camManager.getCamera("ACTION_CAM"));
+    });
+    waitFor([this](){
+        if (dice == nullptr) return false;
+        return dice->isDone();
+    });
+    delete dice;
+    dice = nullptr;
 }
 void GUI::renderSkillHand(const std::vector<SkillCard *> & /*hand*/) { /* TODO */ }
 void GUI::renderBankruptcy(const Player &player)
@@ -352,33 +367,60 @@ void GUI::renderLog(const std::vector<LogEntry> &entries, const std::string &)
     }
 }
 
-void GUI::renderAuction(const Property & /*property*/, int /*currentBid*/, const Player * /*highBidder*/)
-{
-    // TODO: tampilkan popup lelang
-}
-
-void GUI::renderMovement(const std::string &playerName, int steps, const std::string & /*landedTileName*/)
-{
-    PlayerView *pv = nullptr;
-
-    for (auto p : players)
+void GUI::renderAuctionStart(Property* property, Player *auctioner, Game* game) {
+    GameHUDView* g;
+    for (auto &view : views)
     {
-        if (p->getPlayer().getUsername() == playerName)
-        {
-            pv = p;
-            break;
-        }
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+            g = hud;
     }
-
-    if (pv == nullptr)
-        return;
-
-    std::string camKey = pv->getPlayerCamKey();
-
-    camManager.switchTo(camKey, 1, [pv, steps]()
-                        { pv->moveSpaces(steps); });
+    vector<PlayerProfileView*> activePlayerProfiles;
+    for (Player* player : game->getActivePlayers()) {
+        activePlayerProfiles.push_back(g->getPlayerProfile(player));
+    }
+    cout<<activePlayerProfiles.size()<<endl;
+    camManager.getCamera("TILE_CAM_1").movePosition(board->getTileFromIdx(auctioner->getPosition())->getPos());
+    camManager.getCamera("TILE_CAM_1").moveTargetPos(board->getTileFromIdx(auctioner->getPosition())->getPos());
+    camManager.getCamera("TILE_CAM_1").movePositionDelta(Vector3Transform({0,5.0f,-0.2f}, MatrixRotate({0,1,0}, (-board->getTileFromIdx(auctioner->getPosition())->getCardinality() + 1)*M_PI/2)));
+    camManager.switchTo("TILE_CAM_1", 0.4, [](){});
+    for (PlayerView* player : players) {
+        player->setVisible(false);
+    }
+    views.push_back(std::make_unique<AuctionMenuView>(property, game, auctioner, activePlayerProfiles));
+    auction = static_cast<AuctionMenuView*>(views.back().get());
 }
 
+void GUI::renderAuctionTurn(Player* currentPlayer, bool forceBid) {
+    auction->initiateAuctionTurn(currentPlayer, forceBid);
+}
+
+void GUI::renderAuctionUpdate(int currentBid, Player * highBidder) {
+    auction->updateAuction(highBidder, currentBid);
+    waitForAnimToEnd2D(auction);
+}
+
+void GUI::renderAuctionEnd(Player* winner) {
+    auction->endAuction(winner);
+    waitForAnimToEnd2D(auction);
+    auction = nullptr;
+}
+
+<<<<<<< HUD2
+void GUI::renderMovement(const std::string & playerName, int steps)
+{
+    auto it = find_if(players.begin(), players.end(), [playerName](PlayerView* p){
+        return p->getPlayer().getUsername() == playerName;
+    });
+    camManager.switchTo((*it)->getPlayerCamKey(), 0.2, [this, it, steps](){
+        (*it)->moveSpaces(steps);
+        
+    });
+    waitForCameraMovementToEnd(camManager.getCurrentCamera());
+    waitForAnimToEnd3D(*it);
+}
+
+
+=======
 void GUI::renderTeleport(const std::string &playerName, int targetIndex)
 {
     if (!board)
@@ -422,6 +464,7 @@ void GUI::renderTeleport(const std::string &playerName, int targetIndex)
 // ═══════════════════════════════════════════════════════════════════════════
 // Setup khusus raylib
 // ═══════════════════════════════════════════════════════════════════════════
+>>>>>>> HUD
 
 void GUI::loadPlayer(Player &player)
 {
@@ -439,7 +482,7 @@ void GUI::loadPlayer(Player &player)
 
 void GUI::loadDice(PlayerView *player)
 {
-    dice = new DiceView(player, &camManager.getCamera("ACTION_CAM"));
+    dice = new DiceView(0,0,player, &camManager.getCamera("ACTION_CAM"));
     if (dice && dice->getThrowButton())
         dice->getThrowButton()->render();
 }
@@ -732,6 +775,50 @@ std::string GUI::pollViews()
     return "NULL";
 }
 
+void GUI::waitFor(function<bool()> pred) {
+    while (!shouldExit()) {
+        update();
+        display();
+        getCommand();
+        if (pred()) {
+            return;
+        }
+    }
+} 
+
+void GUI::waitForAnimToEnd2D(View2D* view) {
+    while (!shouldExit()) {
+        update();
+        display();
+        getCommand();
+        if (!view->isAnimationActive()) {
+            return;
+        }
+    }
+}
+
+void GUI::waitForAnimToEnd3D(View3D* view) {
+    while (!shouldExit()) {
+        update();
+        display();
+        getCommand();
+        if (!view->isAnimationActive()) {
+            return;
+        }
+    }
+}
+
+void GUI::waitForCameraMovementToEnd(View3DCamera* view) {
+    while (!shouldExit()) {
+        update();
+        display();
+        getCommand();
+        if (!view->isMovementActive()) {
+            return;
+        }
+    }
+}
+
 void GUI::handleDisplayCommand(const std::vector<std::string> &tokens)
 {
     if (tokens.size() < 2)
@@ -753,10 +840,12 @@ void GUI::handleDisplayCommand(const std::vector<std::string> &tokens)
     }
     else if (sub == "THROW" && dice != nullptr)
     {
+        dice->initializeThrowDice();
+        dice->getThrowButton()->setActive(false);
     }
     else if (sub == "THROW_DONE" && dice != nullptr)
     {
-        dice->moveDiceOffScreen();
+        
     }
     else if (sub == "DRAW" && tokens.size() >= 3)
     {

@@ -71,6 +71,14 @@ void View3D::setTransform(const Matrix& m) {
     model.transform = transformation;
 }
 
+const bool View3D::isAnimationActive() const {
+    return count_if(animations.begin(), animations.end(), [](auto a){
+        if (a.second != nullptr) {
+            return a.second->isPlaying() && (!a.second->hasEnded());
+        }
+        return false;
+    }) > 0;
+}
 
 void View3D::transform(const Matrix& m) {
     transformation = m*transformation;

@@ -65,6 +65,17 @@ GameHUDView::GameHUDView()
 {
 }
 
+PlayerProfileView* GameHUDView::getPlayerProfile(Player* player) {
+    auto it = find_if(playerProfiles.begin(), playerProfiles.end(), [player](const PlayerProfileView p){
+        return p.getPlayer() == player;
+    });
+    if (it == playerProfiles.end()) {
+        return nullptr;
+    } else {
+        return &*it;
+    }
+}
+
 void GameHUDView::setGameModel(const Game *game)
 {
     this->gameModel = game;
@@ -81,7 +92,16 @@ void GameHUDView::setGameModel(const Game *game)
     {
         PlayerProfileView profile;
         profile.setPlayer(players[i]);
-
+        float wProfile = 250.0f;
+        float hProfile = 80.0f;
+        float margin = 20.0f;
+        Vector2 corners[4] = {
+            {wProfile / 2 + margin, hProfile / 2 + margin},                                       // TL
+            {GetScreenWidth() - wProfile / 2 - margin, hProfile / 2 + margin},                    // TR
+            {wProfile / 2 + margin, GetScreenHeight() - hProfile / 2 - margin},                   // BL
+            {GetScreenWidth() - wProfile / 2 - margin, GetScreenHeight() - hProfile / 2 - margin} // BR
+        };
+        profile.setPosition(corners[i]);
         profile.setHitboxDim({250, 80});
         profile.setActive(true);
 
@@ -210,16 +230,9 @@ void GameHUDView::render()
     const Player *currentPlayer = gameModel ? gameModel->getCurrentPlayer() : nullptr;
     const std::vector<Player *> *players = gameModel ? &gameModel->getPlayers() : nullptr;
 
-    Vector2 corners[4] = {
-        {wProfile / 2 + margin, hProfile / 2 + margin},                                       // TL
-        {GetScreenWidth() - wProfile / 2 - margin, hProfile / 2 + margin},                    // TR
-        {wProfile / 2 + margin, GetScreenHeight() - hProfile / 2 - margin},                   // BL
-        {GetScreenWidth() - wProfile / 2 - margin, GetScreenHeight() - hProfile / 2 - margin} // BR
-    };
 
     for (size_t i = 0; i < playerProfiles.size() && i < 4; ++i)
     {
-        playerProfiles[i].movePosition(corners[i]);
         playerProfiles[i].render();
 
         if (currentPlayer != nullptr && players != nullptr && i < players->size() && (*players)[i] == currentPlayer)

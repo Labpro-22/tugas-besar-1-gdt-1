@@ -370,7 +370,7 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
     bool rolledDouble = dice->isDouble();
     gui->renderDice(dice->getDie1(), dice->getDie2());
     game->setLastDiceTotal(total);
-    waitForResume(gui);
+    //waitForResume(gui);
 
     if (fromJailAttempt && player->isJailed())
     {
@@ -452,7 +452,7 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
     turnManager->markActed();
 
     std::string landedName = landed ? landed->getName() : "?";
-    gui->renderMovement(player->getUsername(), total, landedName);
+    gui->renderMovement(player->getUsername(), total);
     if (logger != nullptr)
     {
         std::string detail = "Lempar: " + std::to_string(dice->getDie1()) + "+" +
@@ -1274,7 +1274,7 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
                     {
                         gui->showMessage("Uang kamu tidak cukup untuk membeli properti ini.");
                     }
-                    gui->showMessage("Properti ini akan masuk ke sistem lelang.");
+                    //gui->showMessage("Properti ini akan masuk ke sistem lelang.");
                     if (auctionManager != nullptr)
                     {
                         auctionManager->runAuction(prop, player);

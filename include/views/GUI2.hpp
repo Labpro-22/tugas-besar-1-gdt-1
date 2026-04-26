@@ -9,6 +9,7 @@
 
 #include "views/viewElement/Entry.hpp"
 #include "views/viewElement/MenuView.hpp"
+#include "views/viewElement/AuctionMenuView.hpp"
 #include "views/viewElement/cards/CardPileView.hpp"
 #include "views/viewElement/board/BoardView.hpp"
 #include "views/viewElement/player/PlayerView.hpp"
@@ -37,6 +38,7 @@ private:
     std::vector<std::unique_ptr<View2D>> views;
     std::stack<Popup *> popupStack;
     MenuView *menu;
+    AuctionMenuView* auction;
     Entry *debuggingEntry;
 
     // ── 3D scene objects ───────────────────────────────────────────────────
@@ -79,8 +81,13 @@ private:
     std::queue<Popup *> delayedPopupQueue;
     bool isDelayingPopupAfterDice;
 
+    void waitForAnimToEnd2D(View2D* view);
+    void waitForAnimToEnd3D(View3D* view);
+    void waitForCameraMovementToEnd(View3DCamera* view);
+    void waitFor(function<bool()> );
     void setHudDiceAnimationFinished(bool finished);
     void loadPopupNow(Popup *popup);
+    void pumpPopupQueue();
     void updateDelayedPopups();
 
 public:
@@ -105,6 +112,7 @@ public:
     void showConfirm(const std::string &question) override;
     void showInputPrompt(const std::string &prompt) override;
     void showException(int code, const std::string &msg) override;
+    void waitForAnimationEnd() override;
     void showPauseMenu() override;
 
     // ── Render state game (kontrak sama persis dengan CLIGUI) ──────────────
@@ -115,8 +123,10 @@ public:
     void renderDice(int die1, int die2) override;
     void renderLog(const std::vector<LogEntry> &entries, const std::string &title) override;
     void renderSkillHand(const std::vector<SkillCard *> &hand) override;
-    void renderAuction(const Property &property, int currentBid,
-                       const Player *highBidder) override;
+    void renderAuctionStart(Property* property, Player *auctioner, Game* game) override;
+    void renderAuctionTurn(Player* currentPlayer, bool forceBid) override;
+    void renderAuctionUpdate(int currentBid, Player *highBidder) override;
+    void renderAuctionEnd(Player* winner) override;
     void renderBankruptcy(const Player &player) override;
     void renderWinner(const Player &winner) override;
     void renderMovement(const std::string &playerName, int steps,

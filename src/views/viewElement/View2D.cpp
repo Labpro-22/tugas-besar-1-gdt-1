@@ -53,6 +53,13 @@ View2DAnimation *View2D::getAnimation(string animKey) const {
         return nullptr;
     }
 }
+
+const bool View2D::isAnimationActive() const {
+    return count_if(animations.begin(), animations.end(), [](auto a){
+        return a.second->isPlaying() && (!a.second->hasEnded());
+    }) > 0;
+}
+
 void View2D::animationCheck()
 {
     vector<string> doneAnimations;

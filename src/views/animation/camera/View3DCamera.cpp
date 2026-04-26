@@ -66,6 +66,12 @@ void View3DCamera::resumeAllMovement() {
     }
 }
 
+const bool View3DCamera::isMovementActive() const {
+    return count_if(movements.begin(), movements.end(), [](auto a){
+        return a.second->isPlaying() && (!a.second->hasEnded());
+    }) > 0;
+}
+
 
 void View3DCamera::updateMovement() {
     vector<string> doneMovements;

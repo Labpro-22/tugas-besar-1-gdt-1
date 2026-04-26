@@ -27,7 +27,9 @@ private:
 
 public:
     GameHUDView();
-    
+    PlayerProfileView* getPlayerProfile(Player* player);
+
+
     void setGameModel(const Game *game);
     void updateProfileData();
     void setLogs(const std::vector<std::string> &entries);

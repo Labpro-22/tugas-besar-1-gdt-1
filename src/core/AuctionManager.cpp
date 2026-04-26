@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <iostream>
 
 AuctionManager::AuctionManager(Game* game, TransactionLogger* logger, IGUI* gui)
     : game(game), logger(logger), gui(gui) {}
@@ -64,21 +65,21 @@ bool AuctionManager::validateBid(const Player& player, int amount, int currentHi
 
 std::pair<AuctionAction, int> AuctionManager::collectBidOrPass(Player& player, int currentHighBid,
                                                                bool hasHighBidder, bool forceBid) {
-    gui->showMessage("Giliran lelang: " + player.getUsername());
+    //gui->showMessage("Giliran lelang: " + player.getUsername());
 
     std::string minimumLabel = hasHighBidder ? ("> " + Formatter::money(currentHighBid))
                                              : (">= " + Formatter::money(currentHighBid));
-    if (forceBid) {
-        gui->showInputPrompt("Masukkan BID <jumlah> (minimal " + minimumLabel + "). Kamu wajib menawar.");
-    } else {
-        gui->showInputPrompt("Masukkan PASS atau BID <jumlah> (minimal " + minimumLabel + ").");
-    }
+    
+    gui->renderAuctionTurn(&player, forceBid);
 
     std::string in;
     while (!gui->shouldExit()) {
         gui->update(); gui->display();
         std::string c = gui->getCommand();
-        if (!c.empty() && c != "NULL") { in = c; break; }
+        if (!c.empty() && c != "NULL") { 
+            std::cout<<in<<std::endl;
+            in = c; break; 
+        }
     }
     std::istringstream iss(in);
     std::string action;
@@ -129,9 +130,8 @@ void AuctionManager::finalizeAuction(Player* winner, Property* property, int bid
                             "LELANG",
                             "Menang " + property->getName() + " (" + property->getCode() +
                             ") seharga " + Formatter::money(bidAmount));
-    gui->showMessage("Lelang selesai.");
-    gui->showMessage("Pemenang lelang: " + winner->getUsername());
-    gui->showMessage("Harga akhir: " + Formatter::money(bidAmount));
+
+    gui->renderAuctionEnd(winner);
     gui->showMessage("Properti " + property->getName() + " (" + property->getCode() +
                      ") kini dimiliki " + winner->getUsername() + ".");
 }
@@ -146,12 +146,12 @@ Player* AuctionManager::runAuction(Property* property, Player* triggeringPlayer)
     int n = static_cast<int>(order.size());
     int consecutivePasses = 0;
 
-    gui->showMessage("Properti " + property->getName() + " (" + property->getCode() + ") akan dilelang.");
+    //gui->showMessage("Properti " + property->getName() + " (" + property->getCode() + ") akan dilelang.");
     if (triggeringPlayer != nullptr) {
-        gui->showMessage("Urutan lelang dimulai dari pemain setelah " +
-                         triggeringPlayer->getUsername() + ".");
+        // gui->showMessage("Urutan lelang dimulai dari pemain setelah " +
+        //                  triggeringPlayer->getUsername() + ".");
     }
-    gui->renderAuction(*property, currentBid, highBidder);
+    gui->renderAuctionStart(property, triggeringPlayer, game);
 
     int i = 0;
     while (!gui->shouldExit()) {
@@ -162,15 +162,15 @@ Player* AuctionManager::runAuction(Property* property, Player* triggeringPlayer)
         auto [act, amt] = collectBidOrPass(*p, currentBid, hasHighBidder, forceBid);
         if (act == AuctionAction::INVALID) {
             if (forceBid) {
-                gui->showMessage("Belum ada penawaran sama sekali. Kamu wajib memasukkan BID <jumlah>.");
+                //gui->showMessage("Belum ada penawaran sama sekali. Kamu wajib memasukkan BID.");
             } else {
-                gui->showMessage("Perintah lelang tidak valid. Gunakan PASS atau BID <jumlah>.");
+                //gui->showMessage("Perintah lelang tidak valid. Gunakan PASS atau BID <jumlah>.");
             }
             continue;
         }
 
         if (act == AuctionAction::PASS) {
-            gui->showMessage(p->getUsername() + " memilih PASS.");
+            //gui->showMessage(p->getUsername() + " memilih PASS.");
             ++consecutivePasses;
 
             if (highBidder != nullptr && consecutivePasses >= n - 1) {
@@ -185,9 +185,9 @@ Player* AuctionManager::runAuction(Property* property, Player* triggeringPlayer)
                             "LELANG",
                             property->getCode() + " BID " + Formatter::money(currentBid));
             }
-            gui->showMessage("Penawaran tertinggi: " + Formatter::money(currentBid) +
-                             " (" + highBidder->getUsername() + ")");
-            gui->renderAuction(*property, currentBid, highBidder);
+            // gui->showMessage("Penawaran tertinggi: " + Formatter::money(currentBid) +
+            //                  " (" + highBidder->getUsername() + ")");
+            gui->renderAuctionUpdate(currentBid, highBidder);
         } else {
             if (hasHighBidder) {
                 gui->showMessage("Bid ditolak.");

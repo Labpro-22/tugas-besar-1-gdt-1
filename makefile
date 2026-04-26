@@ -9,7 +9,9 @@ TARGET := $(BIN_DIR)/nimonspoli_cli
 ALL_SRCS := $(shell find $(SRC_DIR) -name '*.cpp' | sort)
 GUI_SRCS := \
 	$(SRC_DIR)/core/main.cpp \
+	$(SRC_DIR)/core/mainGUI.cpp \
 	$(SRC_DIR)/views/GUI.cpp \
+	$(SRC_DIR)/views/GUI2.cpp \
 	$(SRC_DIR)/views/GUITest.cpp \
 	$(SRC_DIR)/views/ThrowDice.cpp \
 	$(SRC_DIR)/views/ViewTesting.cpp \

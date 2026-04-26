@@ -146,14 +146,28 @@ void GUI::display()
 
     if (showResume)
     {
-        float w = 200, h = 56;
-        float x = GetScreenWidth() / 2 - w / 2;
-        float y = GetScreenHeight() - 120;
+        float w = 220;
+        float h = 60;
+
+        float x = GetScreenWidth() / 2.0f - w / 2;
+        float y = 40;
 
         resumeBtn.movePosition({x + w / 2, y + h / 2});
 
-        DrawRectangleRounded({x, y, w, h}, 0.5f, 8, Color{100, 180, 255, 255});
-        DrawText("RESUME", x + 50, y + 15, 20, WHITE);
+        DrawRectangleRounded({x + 3, y + 4, w, h}, 0.4f, 8, Fade(BLACK, 0.5f));
+        DrawRectangleRounded({x, y, w, h}, 0.4f, 8, Color{40, 120, 220, 255});
+        DrawRectangleRoundedLines({x, y, w, h}, 0.4f, 8, WHITE);
+
+        const char *text = "SKIP ANIMATION";
+        int fontSize = 22;
+
+        int textWidth = MeasureText(text, fontSize);
+
+        DrawText(text,
+                 x + (w - textWidth) / 2,
+                 y + (h - fontSize) / 2,
+                 fontSize,
+                 WHITE);
 
         resumeBtn.render();
     }

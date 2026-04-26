@@ -121,6 +121,7 @@ public:
     void renderWinner(const Player &winner) override;
     void renderMovement(const std::string &playerName, int steps,
                         const std::string &landedTileName) override;
+    void renderTeleport(const std::string &playerName, int targetIndex) override;
 
     // ── Setup khusus raylib (dipanggil engine saat inisialisasi game) ──────
     void loadPlayer(Player &player);

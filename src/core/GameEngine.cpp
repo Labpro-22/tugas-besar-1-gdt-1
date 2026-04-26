@@ -363,7 +363,8 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
     }
     else
     {
-        dice->rollRandom();
+        dice->setManual(1, 1);
+        // dice->rollRandom();
     }
 
     int total = dice->getTotal();
@@ -421,7 +422,9 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
             Board *board = game->getBoard();
             if (board != nullptr && board->getJailTile() != nullptr)
             {
-                player->setPosition(board->getJailTile()->getIndex());
+                int jailIdx = board->getJailTile()->getIndex();
+                player->setPosition(jailIdx);
+                gui->renderTeleport(player->getUsername(), jailIdx);
             }
             player->setStatus(PlayerStatus::JAILED);
             player->resetJailAttempts();
@@ -713,7 +716,9 @@ void GameEngine::handleChanceLanding(Player *player, ChanceTile * /*tile*/)
             RailroadTile *nearest = board->getNearestRailroad(player->getPosition());
             if (nearest != nullptr)
             {
-                player->setPosition(nearest->getIndex());
+                int idx = nearest->getIndex();
+                player->setPosition(idx);
+                gui->renderTeleport(player->getUsername(), idx);
                 if (logger != nullptr)
                 {
                     logger->log(game->getCurrentTurn(), player->getUsername(),
@@ -736,6 +741,7 @@ void GameEngine::handleChanceLanding(Player *player, ChanceTile * /*tile*/)
             const int boardSize = board->getSize() > 0 ? board->getSize() : 40;
             const int newPos = (player->getPosition() - 3 + boardSize) % boardSize;
             player->setPosition(newPos);
+            gui->renderTeleport(player->getUsername(), newPos);
             Tile *target = board->getTile(newPos);
             gui->showMessage(player->getUsername() + " mundur 3 petak.");
             if (target != nullptr)
@@ -760,7 +766,9 @@ void GameEngine::handleChanceLanding(Player *player, ChanceTile * /*tile*/)
         player->resetJailAttempts();
         if (board != nullptr && board->getJailTile() != nullptr)
         {
-            player->setPosition(board->getJailTile()->getIndex());
+            int jailIdx = board->getJailTile()->getIndex();
+            player->setPosition(jailIdx);
+            gui->renderTeleport(player->getUsername(), jailIdx);
         }
         if (logger != nullptr)
         {
@@ -1494,7 +1502,9 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
         player->setStatus(PlayerStatus::JAILED);
         if (game->getBoard() && game->getBoard()->getJailTile())
         {
-            player->setPosition(game->getBoard()->getJailTile()->getIndex());
+            int jailIdx = game->getBoard()->getJailTile()->getIndex();
+            player->setPosition(jailIdx);
+            gui->renderTeleport(player->getUsername(), jailIdx);
         }
         if (logger != nullptr)
         {

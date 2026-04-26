@@ -379,6 +379,46 @@ void GUI::renderMovement(const std::string &playerName, int steps, const std::st
                         { pv->moveSpaces(steps); });
 }
 
+void GUI::renderTeleport(const std::string &playerName, int targetIndex)
+{
+    if (!board)
+        return;
+
+    PlayerView *targetView = nullptr;
+    for (auto *pv : players)
+    {
+        if (pv->getPlayer().getUsername() == playerName)
+        {
+            targetView = pv;
+            break;
+        }
+    }
+    if (!targetView)
+        return;
+
+    JailTileView *jailTile = board->getJailTile();
+
+    if (jailTile && jailTile->getTile()->getIndex() == targetIndex)
+    {
+        targetView->sendPlayerToJail();
+    }
+    else
+    {
+        TileView *tile = board->getTileFromIdx(targetIndex);
+        if (!tile)
+            return;
+
+        targetView->teleportToTile(*tile);
+    }
+
+    camManager.switchTo(
+        targetView->getPlayerCamKey(),
+        0.5f,
+        []() {});
+        
+    showMessage(playerName + " dipindahkan ke tile " + std::to_string(targetIndex));
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Setup khusus raylib
 // ═══════════════════════════════════════════════════════════════════════════

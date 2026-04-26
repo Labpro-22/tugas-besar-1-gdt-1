@@ -1,5 +1,6 @@
 #include "CardView.hpp"
 #include "../Popup.hpp"
+#include "../../../models/Player/Player.hpp"
 #include "../../animation/camera/View3DCamera.hpp"
 
 

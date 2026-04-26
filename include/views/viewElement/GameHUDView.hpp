@@ -21,7 +21,9 @@ private:
 
 public:
     GameHUDView();
-    
+    PlayerProfileView* getPlayerProfile(Player* player);
+
+
     void setGameModel(const Game *game);
     void setDiceAnimationFinished(bool finished);
     void updateProfileData();

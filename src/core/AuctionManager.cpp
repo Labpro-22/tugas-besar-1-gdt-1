@@ -151,7 +151,7 @@ Player* AuctionManager::runAuction(Property* property, Player* triggeringPlayer)
         gui->showMessage("Urutan lelang dimulai dari pemain setelah " +
                          triggeringPlayer->getUsername() + ".");
     }
-    gui->renderAuction(*property, currentBid, highBidder);
+    gui->renderAuctionStart(property, triggeringPlayer, game);
 
     int i = 0;
     while (!gui->shouldExit()) {
@@ -187,7 +187,7 @@ Player* AuctionManager::runAuction(Property* property, Player* triggeringPlayer)
             }
             gui->showMessage("Penawaran tertinggi: " + Formatter::money(currentBid) +
                              " (" + highBidder->getUsername() + ")");
-            gui->renderAuction(*property, currentBid, highBidder);
+            gui->renderAuction(currentBid, highBidder);
         } else {
             if (hasHighBidder) {
                 gui->showMessage("Bid ditolak.");

@@ -11,7 +11,7 @@ private:
 
 public:
     PlayerProfileView(Player* player = nullptr);
-
+    Player* getPlayer() const;
     void render() override;
     void onHover() override;
     void onClicked() override;

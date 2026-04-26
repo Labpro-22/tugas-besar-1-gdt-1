@@ -337,7 +337,6 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
     }
     else
     {
-        gui->showMessage("Mengocok dadu...");
         dice->rollRandom();
     }
 

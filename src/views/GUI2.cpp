@@ -107,7 +107,6 @@ void GUI::update()
         exitRequested = true;
 
     camManager.updateCamMap();
-
     updateDice();
     updateDelayedPopups();
     updatePlayerProfilesLayout();
@@ -293,9 +292,24 @@ void GUI::renderLog(const std::vector<LogEntry> & /*entries*/, const std::string
     // TODO: tampilkan log di panel HUD
 }
 
-void GUI::renderAuction(const Property & /*property*/, int /*currentBid*/, const Player * /*highBidder*/)
-{
-    // TODO: tampilkan popup lelang
+void GUI::renderAuctionStart(Property* property, Player *auctioner, Game* game) {
+    disableAll();
+    GameHUDView* g;
+    for (auto &view : views)
+    {
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+            g = hud;
+    }
+    vector<PlayerProfileView*> activePlayerProfiles;
+    for (Player* player : game->getActivePlayers()) {
+        activePlayerProfiles.push_back(g->getPlayerProfile(player));
+    }
+    cout<<activePlayerProfiles.size()<<endl;
+    menu = new AuctionMenuView(property, game, auctioner, activePlayerProfiles);
+}
+
+void GUI::renderAuction(int currentBid, const Player * highBidder) {
+    
 }
 
 void GUI::renderMovement(const std::string & playerName, int steps)

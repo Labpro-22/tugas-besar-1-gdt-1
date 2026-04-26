@@ -21,6 +21,7 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/views/viewElement/Interactable.cpp
                                src/views/viewElement/Entry.cpp
                                src/views/viewElement/MenuView.cpp
+                               src/views/viewElement/AuctionMenuView.cpp
                                src/views/viewElement/GameHUDView.cpp
                                src/views/viewElement/board/TileView.cpp
                                src/views/viewElement/board/BoardView.cpp

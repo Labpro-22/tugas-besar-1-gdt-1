@@ -9,6 +9,7 @@
 
 #include "views/viewElement/Entry.hpp"
 #include "views/viewElement/MenuView.hpp"
+#include "views/viewElement/AuctionMenuView.hpp"
 #include "views/viewElement/cards/CardPileView.hpp"
 #include "views/viewElement/board/BoardView.hpp"
 #include "views/viewElement/player/PlayerView.hpp"
@@ -118,8 +119,8 @@ public:
     void renderDice(int die1, int die2) override;
     void renderLog(const std::vector<LogEntry> &entries, const std::string &title) override;
     void renderSkillHand(const std::vector<SkillCard *> &hand) override;
-    void renderAuction(const Property &property, int currentBid,
-                       const Player *highBidder) override;
+    void renderAuctionStart(Property* property, Player *auctioner, Game* game) override;
+    void renderAuction(int currentBid, const Player *highBidder) override;
     void renderBankruptcy(const Player &player) override;
     void renderWinner(const Player &winner) override;
     void renderMovement(const std::string &playerName, int steps) override;

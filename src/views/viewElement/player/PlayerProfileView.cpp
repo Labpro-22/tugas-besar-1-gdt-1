@@ -7,8 +7,13 @@ PlayerProfileView::PlayerProfileView(Player *player)
     setActive(true);
 }
 
+Player* PlayerProfileView::getPlayer() const {
+    return player;
+}
+
 void PlayerProfileView::render()
 {
+    animationCheck();
     if (!player)
         return;
 

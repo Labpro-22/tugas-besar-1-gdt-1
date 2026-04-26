@@ -68,24 +68,43 @@ std::string MessagePopup::catchCommand()
 
 void MessagePopup::render()
 {
-    // background popup
-    DrawRectangle(getRenderPos().x, getRenderPos().y,
-                  boundingDim.x, boundingDim.y,
-                  {40, 40, 40, 230});
+    pos = getScreenCenter();
 
-    // title
-    Vector2 textDim = MeasureTextEx(fontMap.at("Orbitron"), "Message", 28, 0);
-    DrawTextEx(fontMap.at("Orbitron"), "Message",
-               {pos.x - textDim.x / 2, pos.y - 90},
-               28, 0, WHITE);
+    float w = boundingDim.x;
+    float h = boundingDim.y;
 
-    // isi pesan
-    textDim = MeasureTextEx(fontMap.at("Orbitron"),
-                            message.c_str(), 22, 0);
-    DrawTextEx(fontMap.at("Orbitron"), message.c_str(),
-               {pos.x - textDim.x / 2, pos.y - 20},
-               22, 0, WHITE);
+    float x = pos.x - w / 2;
+    float y = pos.y - h / 2;
 
+    float headerH = 40;
+
+    DrawRectangle(x, y, w, h, Color{40, 40, 40, 230});
+    DrawRectangle(x, y, w, headerH, Color{60, 60, 60, 255});
+
+    const char* title = "MESSAGE";
+    int titleSize = 24;
+    int titleWidth = MeasureText(title, titleSize);
+
+    DrawText(title,
+             x + (w - titleWidth) / 2,
+             y + 8,
+             titleSize,
+             WHITE);
+
+    Vector2 textPos = {x + 20, y + headerH + 10};
+    Vector2 textArea = {w - 40, h - headerH - 80};
+
+    drawTextWrappedBox(
+        GetFontDefault(),
+        message,
+        textPos,
+        20,
+        1,
+        WHITE,
+        textArea
+    );
+
+    okButton.movePosition({pos.x, y + h - 40});
     okButton.render();
 }
 

@@ -43,7 +43,7 @@ Model getBoardModel(Board& board) {
     return LoadModelFromMesh(GenMeshPlane(boardSide, boardSide, 1, 1));
 }
 
-BoardView::BoardView(Board& board) : View3D({0,0.015,0}, getBoardModel(board), WHITE), board(board) {
+BoardView::BoardView(Board& board) : View3D({0,0.015,0}, getBoardModel(board), WHITE), board(board), goTile(nullptr), jailTile(nullptr) {
     RenderTexture2D texture = LoadRenderTexture(1500, 1500);
     int tilePerDirection = board.getAllTiles().size() / 4;
     float boardSide = (tilePerDirection - 1)*TileView::getTileDim().x + 2*TileView::getTileDim().y;
@@ -80,9 +80,11 @@ BoardView::BoardView(Board& board) : View3D({0,0.015,0}, getBoardModel(board), W
                                         isCorner, cardinality, "data/GUIAssets/luxurytax_icon.png");
             } else if (tile->getCode() == "GO") {
                 GoTile* gTile = static_cast<GoTile*>(tile);
-                tileView = new GoTileView(*gTile, isCorner, cardinality);
+                goTile = new GoTileView(*gTile, isCorner, cardinality);
+                tileView = goTile;
             } else if (tile->getCode() == "PEN") {
-                tileView = new JailTileView(*tile, isCorner, cardinality);
+                jailTile = new JailTileView(*tile, isCorner, cardinality);
+                tileView = jailTile;
             } else if (tile->getCode() == "BBP") {
                 tileView = new TileView(*tile, "FREE", "PARKING", isCorner, cardinality, "data/GUIAssets/freeparking_icon.png");
             } else if (tile->getCode() == "PPJ") {
@@ -132,6 +134,8 @@ TileView* BoardView::getNextTile(const int idx) const{
     }
 }
 
+
+
 TileView* BoardView::getNextTile(TileView& tile) const {
     int idx = tile.getTile()->getIndex();
     if (idx >= tiles.size()) {
@@ -141,12 +145,31 @@ TileView* BoardView::getNextTile(TileView& tile) const {
     }
 }
 
-TileView* BoardView::getGoTile() const {
-    return getTileFromIdx(board.getGoTile()->getIndex());
+TileView* BoardView::getPreviousTile(const int idx) const{
+    if (idx >= tiles.size()) {
+        return nullptr;
+    } else {
+        return tiles[((idx - 1) + tiles.size()) % tiles.size()];
+    }
 }
 
-TileView* BoardView::getJailTile() const {
-    return getTileFromIdx(board.getJailTile()->getIndex());
+
+
+TileView* BoardView::getPreviousTile(TileView& tile) const {
+    int idx = tile.getTile()->getIndex();
+    if (idx >= tiles.size()) {
+        return nullptr;
+    } else {
+        return tiles[((idx - 1) + tiles.size()) % tiles.size()];
+    }
+}
+
+GoTileView* BoardView::getGoTile() const {
+    return goTile;
+}
+
+JailTileView* BoardView::getJailTile() const {
+    return jailTile;
 }
 
 const float BoardView::getBoardSize() const {

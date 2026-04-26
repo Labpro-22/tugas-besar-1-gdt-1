@@ -69,6 +69,30 @@ void CameraMovement::setMoveToCameraAnimation(View3DCamera &destCamera, const fl
     };
 }
 
+void CameraMovement::setMoveToCameraAnimation(const Vector3& destCamPos, const Vector3& destCamTarget, const float duration)
+{
+    Vector3 startingPos = camera.getPos();
+    Vector3 startingTargetPos = camera.getTarget();
+    Vector3 startingUp = camera.up;
+
+    animationFunc = [destCamPos, destCamTarget, duration, startingPos, startingTargetPos, startingUp, this]()
+    {
+        if (frameProgress / fps >= duration)
+        {
+            camera.movePosition(destCamPos);
+            camera.moveTargetPos(destCamTarget);
+            ended = true;
+        }
+        else
+        {
+            camera.movePosition(
+                startingPos + (destCamPos - startingPos) * ((frameProgress / fps) / duration));
+            camera.moveTargetPos(
+                startingTargetPos + (destCamTarget - startingTargetPos) * ((frameProgress / fps) / duration));
+        }
+    };
+}
+
 void CameraMovement::setRotationOnSelfAnimation(const float deg, const Vector3 &axis, const float duration)
 {
     animationFunc = [deg, axis, duration, this]()

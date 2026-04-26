@@ -323,10 +323,27 @@ void GUI::renderAuction(const Property & /*property*/, int /*currentBid*/, const
     // TODO: tampilkan popup lelang
 }
 
-void GUI::renderMovement(const std::string & /*playerName*/, int /*steps*/, const std::string & /*landedTileName*/)
+void GUI::renderMovement(const std::string &playerName, int steps, const std::string & /*landedTileName*/)
 {
-    // TODO: animasi gerak pemain sudah ditangani PlayerView::moveSpaces();
-    //       fungsi ini bisa dipakai untuk overlay teks atau kamera tracking
+    PlayerView* pv = nullptr;
+
+    for (auto p : players)
+    {
+        if (p->getPlayer().getUsername() == playerName)
+        {
+            pv = p;
+            break;
+        }
+    }
+
+    if (pv == nullptr) return;
+
+    std::string camKey = pv->getPlayerCamKey();
+
+    camManager.switchTo(camKey, 1, [pv, steps]()
+    {
+        pv->moveSpaces(steps);
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -668,18 +685,10 @@ void GUI::handleDisplayCommand(const std::vector<std::string> &tokens)
     }
     else if (sub == "THROW" && dice != nullptr)
     {
-        dice->initializeThrowDice(6, 6);
-        dice->getThrowButton()->setActive(false);
     }
     else if (sub == "THROW_DONE" && dice != nullptr)
     {
         dice->moveDiceOffScreen();
-        PlayerView *movingPlayer = dice->getPlayer();
-        int moveVal = dice->getMoveValue();
-        std::string camKey = movingPlayer->getPlayerCamKey();
-
-        camManager.switchTo(camKey, 1, [movingPlayer, moveVal]()
-                            { movingPlayer->moveSpaces(moveVal); });
     }
     else if (sub == "DRAW" && tokens.size() >= 3)
     {

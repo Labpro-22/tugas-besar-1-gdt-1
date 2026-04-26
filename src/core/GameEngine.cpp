@@ -362,8 +362,8 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
     int total = dice->getTotal();
     bool rolledDouble = dice->isDouble();
     gui->renderDice(dice->getDie1(), dice->getDie2());
-    waitForResume(gui);
     game->setLastDiceTotal(total);
+    waitForResume(gui);
 
     if (fromJailAttempt && player->isJailed())
     {

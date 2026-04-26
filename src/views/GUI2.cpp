@@ -64,8 +64,7 @@ GUI::GUI(float fps, Board &board)
       camManager(CameraManager()),
       pendingCommand("NULL"),
       fps(fps),
-      exitRequested(false),
-    isDelayingPopupAfterDice(false)
+            exitRequested(false)
 {
     const float boardSize = this->board->getBoardSize();
 
@@ -109,7 +108,6 @@ void GUI::update()
     camManager.updateCamMap();
 
     updateDice();
-    updateDelayedPopups();
     updatePlayerProfilesLayout();
     updateViews();
     updatePopupStack();
@@ -264,8 +262,11 @@ void GUI::renderDice(int d1, int d2)
     if (dice != nullptr)
         delete dice;
 
-    isDelayingPopupAfterDice = true;
-    setHudDiceAnimationFinished(false);
+    for (auto &view : views)
+    {
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+            hud->setDiceAnimationFinished(false);
+    }
 
     int idx = cachedGame->getCurrentTurnIndex();
     dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
@@ -373,41 +374,20 @@ void GUI::unloadView(View2D *v)
         views.end());
 }
 
-void GUI::loadPopupNow(Popup *popup)
-{
-    disableAll();
-    views.push_back(std::unique_ptr<View2D>(popup));
-    popupStack.push(popup);
-}
-
-void GUI::pumpPopupQueue()
-{
-    if (isDelayingPopupAfterDice)
-        return;
-
-    if (!popupStack.empty())
-        return;
-
-    if (popupQueue.empty())
-        return;
-
-    Popup *popup = popupQueue.front();
-    popupQueue.pop();
-    loadPopupNow(popup);
-}
-
 void GUI::loadPopup(Popup *popup)
 {
     if (popup == nullptr)
         return;
 
-    if (!popupStack.empty() || isDelayingPopupAfterDice || !popupQueue.empty())
+    if (!popupStack.empty() || dice != nullptr || !delayedPopupQueue.empty())
     {
-        popupQueue.push(popup);
+        delayedPopupQueue.push(popup);
         return;
     }
 
-    loadPopupNow(popup);
+    disableAll();
+    views.push_back(std::unique_ptr<View2D>(popup));
+    popupStack.push(popup);
 }
 
 void GUI::enableAll()
@@ -432,10 +412,10 @@ void GUI::clearPopups()
 {
     while (!popupStack.empty())
         popupStack.pop();
-    while (!popupQueue.empty())
+    while (!delayedPopupQueue.empty())
     {
-        delete popupQueue.front();
-        popupQueue.pop();
+        delete delayedPopupQueue.front();
+        delayedPopupQueue.pop();
     }
 }
 
@@ -469,16 +449,12 @@ void GUI::updateDice()
     {
         delete dice;
         dice = nullptr;
-        setHudDiceAnimationFinished(true);
-    }
-}
 
-void GUI::setHudDiceAnimationFinished(bool finished)
-{
-    for (auto &view : views)
-    {
-        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
-            hud->setDiceAnimationFinished(finished);
+        for (auto &view : views)
+        {
+            if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+                hud->setDiceAnimationFinished(true);
+        }
     }
 }
 
@@ -510,19 +486,14 @@ void GUI::updatePopupStack()
             popupStack.top()->enable();
     }
 
-    pumpPopupQueue();
-}
-
-void GUI::updateDelayedPopups()
-{
-    if (!isDelayingPopupAfterDice)
-        return;
-
-    if (dice != nullptr)
-        return;
-
-    isDelayingPopupAfterDice = false;
-    pumpPopupQueue();
+    if (dice == nullptr && popupStack.empty() && !delayedPopupQueue.empty())
+    {
+        Popup *popup = delayedPopupQueue.front();
+        delayedPopupQueue.pop();
+        disableAll();
+        views.push_back(std::unique_ptr<View2D>(popup));
+        popupStack.push(popup);
+    }
 }
 
 void GUI::updatePlayerProfilesLayout()

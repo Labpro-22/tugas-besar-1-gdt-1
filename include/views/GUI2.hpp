@@ -73,14 +73,7 @@ private:
     void handleDisplayCommand(const std::vector<std::string> &tokens);
 
     // ── Popup delay after dice roll ─────────────────────────────────────────
-    std::queue<Popup *> popupQueue;
     std::queue<Popup *> delayedPopupQueue;
-    bool isDelayingPopupAfterDice;
-
-    void setHudDiceAnimationFinished(bool finished);
-    void loadPopupNow(Popup *popup);
-    void pumpPopupQueue();
-    void updateDelayedPopups();
 
 public:
     GUI(float fps, Board &board);

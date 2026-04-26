@@ -65,7 +65,6 @@ GUI::GUI(float fps, Board &board)
       pendingCommand("NULL"),
       fps(fps),
       exitRequested(false),
-      isDelayingPopupAfterDice(false),
       resumeBtn(
           {200, 56},
           true,

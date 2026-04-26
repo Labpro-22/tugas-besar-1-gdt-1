@@ -12,6 +12,7 @@ class CameraMovement : public ViewAnimation{
         void setLinearMoveAnimation(const Vector3& moveDest, const float duration);
         void setMoveSelfAnimation(const Vector3& moveDest, const float duration);
         void setMoveToCameraAnimation(View3DCamera& destCamera, const float duration);
+        void setMoveToCameraAnimation(const Vector3& destCamPos, const Vector3& destCamTarget, const float duration);
         void setRotationOnSelfAnimation(const float deg, const Vector3& axis, const float duration);
         void setRotationOnTargetAnimation(const float deg, const Vector3& axis, const float duration);
         

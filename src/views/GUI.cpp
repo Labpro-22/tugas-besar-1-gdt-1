@@ -18,6 +18,8 @@ GUI::GUI(float fps, Board &board) : menu(nullptr), board(new BoardView(board)),
                                              { boardCam->rotateAroundTarget(27 * (1 / this->fps), {0, 1, 0}); }, []() {}));
     camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize() * 1.25f, 0}, {0, 0, 0}, 45.0f));
     camManager.addCamera("ACTION_CAM", View3DCamera({-this->board->getBoardSize() * 0.8f, this->board->getBoardSize() * 0.6f, 0}, {0, 0, 0}, 45.0f));
+    camManager.addCamera("TILE_CAM_1", View3DCamera({0,0,0}, {0,0,0}, 45.0f));
+    camManager.addCamera("TILE_CAM_2", View3DCamera({0,0,0}, {0,0,0}, 45.0f));
 }
 
 bool GUI::shouldExit() const
@@ -184,7 +186,6 @@ void GUI::loadPlayer(Player &player)
 
     PlayerView *playerView = new PlayerView(player, board, color, &camManager);
     players.push_back(playerView);
-    players.back()->setVisible(false);
 
     PlayerProfileView *profile = new PlayerProfileView();
     profile->setPlayer(&player);
@@ -361,6 +362,28 @@ std::string GUI::getCommand()
                     loadSkillHand(players[stoi(tokens[2])]->getPlayer(), new LassoCard);
                 });
                 
+            } else if (tokens[1] == "BUILD") {
+                board->getTileFromIdx(stoi(tokens[2]))->buildHouse();
+            } else if (tokens[1] == "FOCUS_TILE") {
+                if (camManager.getCurrentCamera() != &camManager.getCamera("TILE_CAM_1")) {
+                    board->getTileFromIdx(stoi(tokens[2]))->setCamToTile(&camManager.getCamera("TILE_CAM_1"));
+                    camManager.switchTo("TILE_CAM_1", 0.2, [](){});
+                } else {
+                    board->getTileFromIdx(stoi(tokens[2]))->setCamToTile(&camManager.getCamera("TILE_CAM_2"));
+                    camManager.switchTo("TILE_CAM_2", 0.2, [](){});
+                }
+            } else if (tokens[1] == "SELL") {
+                board->getTileFromIdx(stoi(tokens[2]))->sellHouse();
+            } else if (tokens[1] == "MOVE_PLAYER" && tokens.size() >= 4) {
+                players[stoi(tokens[2])]->moveToTile(*board->getTileFromIdx(stoi(tokens[3])), true);
+            } else if (tokens[1] == "TELEPORT" && tokens.size() >= 4) {
+                camManager.switchTo(players[stoi(tokens[2])]->getPlayerCamKey(), 0.2, [this, tokens](){
+                    players[stoi(tokens[2])]->teleportToTile(*board->getTileFromIdx(stoi(tokens[3])));
+                });
+            } else if (tokens[1] == "JAIL" && tokens.size() >= 3) {
+                camManager.switchTo(players[stoi(tokens[2])]->getPlayerCamKey(), 0.2, [this, tokens](){
+                    players[stoi(tokens[2])]->sendPlayerToJail();
+                });
             }
 
             return "NULL";

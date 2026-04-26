@@ -25,8 +25,10 @@ public:
     string getPlayerCamKey();
     View3DCamera *getPlayerCamera();
     void setCurrentTile(TileView *currentTile);
-    void moveToTile(TileView &tile);
     void moveSpaces(int moveVal);
+    void moveToTile(TileView& tile, bool forward);
+    void teleportToTile(TileView& destTile);
+    void sendPlayerToJail();
     static void loadPlayerModel(string filePath);
     static void unloadGlobalPlayerModel();
 };

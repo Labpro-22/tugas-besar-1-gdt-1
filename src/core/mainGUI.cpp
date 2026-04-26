@@ -6,7 +6,7 @@
 
 static constexpr int SCREEN_W = 1280;
 static constexpr int SCREEN_H = 720;
-static constexpr int TARGET_FPS = 60;
+static constexpr int TARGET_FPS = 120;
 static const char *WINDOW_TITLE = "Monopoly";
 
 static void initLoad()

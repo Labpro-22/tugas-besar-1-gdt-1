@@ -35,6 +35,7 @@ class View3D {
         void setTransform(const Matrix& m);
         void transform(const Matrix& m);
         void addAnimation(string animKey, View3DAnimation* anim);
+        const bool isAnimationActive() const;
         View3DAnimation* getAnimation(string animKey) const;
         void animationCheck();
         virtual void render();

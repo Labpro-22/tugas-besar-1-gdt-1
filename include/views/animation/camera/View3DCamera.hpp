@@ -31,6 +31,7 @@ class View3DCamera : public Camera3D {
         void rotateAroundTarget(const float deg, const Vector3& axis);
         void addMovement(string moveKey, CameraMovement* movement);
         CameraMovement* getMovement(string moveKey);
+        const bool isMovementActive() const;
         void pauseAllMovement();
         void resumeAllMovement();
         void updateMovement();

@@ -32,6 +32,8 @@ public:
     virtual void showConfirm(const std::string& question) = 0;
     virtual void showInputPrompt(const std::string& prompt) = 0;
     virtual void showException(int code, const std::string& msg) = 0;
+    virtual void waitForAnimationEnd() = 0;
+
 
     // Render state game
     virtual void renderBoard(const Game& game) = 0;
@@ -44,5 +46,5 @@ public:
     virtual void renderAuction(const Property& property, int currentBid, const Player* highBidder) = 0;
     virtual void renderBankruptcy(const Player& player) = 0;
     virtual void renderWinner(const Player& winner) = 0;
-    virtual void renderMovement(const std::string& playerName, int steps, const std::string& landedTileName) = 0;
+    virtual void renderMovement(const std::string& playerName, int steps)= 0;
 };

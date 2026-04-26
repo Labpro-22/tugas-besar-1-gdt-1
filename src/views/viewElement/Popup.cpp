@@ -54,15 +54,15 @@ void MessagePopup::disable()
 void MessagePopup::interactionCheck()
 {
     okButton.interactionCheck();
-
-    if (okButton.catchCommand() == "OK_MESSAGE")
-    {
-        closeView = true;
-    }
 }
 
 std::string MessagePopup::catchCommand()
 {
+    if (okButton.catchCommand() == "OK_MESSAGE")
+    {
+        closeView = true;
+        return "OK_MESSAGE";
+    }
     return "NULL";
 }
 

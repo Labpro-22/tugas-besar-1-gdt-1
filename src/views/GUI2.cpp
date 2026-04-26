@@ -139,6 +139,18 @@ void GUI::display()
     EndDrawing();
 }
 
+void GUI::waitForAnimationEnd() {
+    while (!shouldExit()) {
+        update();
+        display();
+        std::string command = getCommand();
+        if (command == "ANIM_END") {
+            return;
+        }
+    }
+    return;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Navigasi view
 // ═══════════════════════════════════════════════════════════════════════════
@@ -261,28 +273,18 @@ void GUI::renderProperty(const Property & /*property*/) { /* TODO */ }
 void GUI::renderOwnedProperties(const Player & /*player*/) { /* TODO */ }
 void GUI::renderDice(int d1, int d2)
 {
-    if (dice != nullptr)
-        delete dice;
-
-    isDelayingPopupAfterDice = true;
-    setHudDiceAnimationFinished(false);
-
     int idx = cachedGame->getCurrentTurnIndex();
     camManager.switchTo("ACTION_CAM", 0.2, [this, idx, d1, d2](){
         CameraMovement* camWait = new CameraMovement(*camManager.getCurrentCamera(), 120, false, [](){}, [](){});
         camWait->setWait(0.4, [this, idx, d1, d2](){
-            dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
-            CameraMovement* camWait2 = new CameraMovement(*camManager.getCurrentCamera(), 120, false, [](){}, [](){});
-            camWait2->setWait(0.4, [this,d1,d2](){
-                dice->initializeThrowDice(d1,d2);
-            });
-            camWait2->start();
-            camManager.getCurrentCamera()->addMovement("WAIT2", camWait2);
+            dice = new DiceView(d1,d2,players[idx], &camManager.getCamera("ACTION_CAM"));
         });
         camWait->start();
         camManager.getCurrentCamera()->addMovement("WAIT", camWait);
     });
-    
+    waitForAnimationEnd();
+    delete dice;
+    dice = nullptr;
 }
 void GUI::renderSkillHand(const std::vector<SkillCard *> & /*hand*/) { /* TODO */ }
 void GUI::renderBankruptcy(const Player & /*player*/) { /* TODO */ }
@@ -298,15 +300,20 @@ void GUI::renderAuction(const Property & /*property*/, int /*currentBid*/, const
     // TODO: tampilkan popup lelang
 }
 
-void GUI::renderMovement(const std::string & /*playerName*/, int /*steps*/, const std::string & /*landedTileName*/)
+void GUI::renderMovement(const std::string & playerName, int steps)
 {
-    // TODO: animasi gerak pemain sudah ditangani PlayerView::moveSpaces();
-    //       fungsi ini bisa dipakai untuk overlay teks atau kamera tracking
+    auto it = find_if(players.begin(), players.end(), [playerName](PlayerView* p){
+        return p->getPlayer().getUsername() == playerName;
+    });
+    camManager.switchTo((*it)->getPlayerCamKey(), 0.2, [this, it, steps](){
+        (*it)->moveSpaces(steps);
+        
+    });
+    waitForCameraMovementToEnd(camManager.getCurrentCamera());
+    waitForAnimToEnd3D(*it);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Setup khusus raylib
-// ═══════════════════════════════════════════════════════════════════════════
+
 
 void GUI::loadPlayer(Player &player)
 {
@@ -324,7 +331,7 @@ void GUI::loadPlayer(Player &player)
 
 void GUI::loadDice(PlayerView *player)
 {
-    dice = new DiceView(player, &camManager.getCamera("ACTION_CAM"));
+    dice = new DiceView(0,0,player, &camManager.getCamera("ACTION_CAM"));
     if (dice && dice->getThrowButton())
         dice->getThrowButton()->render();
 }
@@ -482,7 +489,6 @@ void GUI::updateDice()
     {
         delete dice;
         dice = nullptr;
-        setHudDiceAnimationFinished(true);
     }
 }
 
@@ -636,6 +642,36 @@ std::string GUI::pollViews()
     return "NULL";
 }
 
+void GUI::waitForAnimToEnd2D(View2D* view) {
+    while (!shouldExit()) {
+        update();
+        display();
+        if (!view->isAnimationActive()) {
+            return;
+        }
+    }
+}
+
+void GUI::waitForAnimToEnd3D(View3D* view) {
+    while (!shouldExit()) {
+        update();
+        display();
+        if (!view->isAnimationActive()) {
+            return;
+        }
+    }
+}
+
+void GUI::waitForCameraMovementToEnd(View3DCamera* view) {
+    while (!shouldExit()) {
+        update();
+        display();
+        if (!view->isMovementActive()) {
+            return;
+        }
+    }
+}
+
 void GUI::handleDisplayCommand(const std::vector<std::string> &tokens)
 {
     if (tokens.size() < 2)
@@ -657,18 +693,12 @@ void GUI::handleDisplayCommand(const std::vector<std::string> &tokens)
     }
     else if (sub == "THROW" && dice != nullptr)
     {
-        dice->initializeThrowDice(6, 6);
+        dice->initializeThrowDice();
         dice->getThrowButton()->setActive(false);
     }
     else if (sub == "THROW_DONE" && dice != nullptr)
     {
-        dice->moveDiceOffScreen();
-        PlayerView *movingPlayer = dice->getPlayer();
-        int moveVal = dice->getMoveValue();
-        std::string camKey = movingPlayer->getPlayerCamKey();
-
-        camManager.switchTo(camKey, 1, [movingPlayer, moveVal]()
-                            { movingPlayer->moveSpaces(moveVal); });
+        pendingCommand = "ANIM_END";
     }
     else if (sub == "DRAW" && tokens.size() >= 3)
     {

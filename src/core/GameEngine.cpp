@@ -421,7 +421,7 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
     turnManager->markActed();
 
     std::string landedName = landed ? landed->getName() : "?";
-    gui->renderMovement(player->getUsername(), total, landedName);
+    gui->renderMovement(player->getUsername(), total);
     if (logger != nullptr)
     {
         std::string detail = "Lempar: " + std::to_string(dice->getDie1()) + "+" +

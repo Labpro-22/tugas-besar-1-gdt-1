@@ -33,6 +33,7 @@ private:
     void handleDropCard(Player* player, SkillCard* drawnCard);
     void decrementFestivalDurations();
     std::string waitForInput(const std::string& prompt);
+    
 
 public:
     TurnManager(Game* game, DiceManager* dice, IGUI* gui, TransactionLogger* logger = nullptr);

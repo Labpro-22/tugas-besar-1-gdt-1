@@ -11,6 +11,8 @@
 #include "utils/data/TransactionLogger.hpp"
 #include "models/CardAndDeck/SkillCard.hpp"
 
+
+
 TurnManager::TurnManager(Game* game, DiceManager* dice, IGUI* gui, TransactionLogger* logger)
     : game(game), dice(dice), gui(gui), logger(logger),
       phase(TurnPhase::START), hasActed(false), shieldActive(false) {}

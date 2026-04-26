@@ -104,7 +104,7 @@ void GameHUDView::updateProfileData()
                         currentPlayer->getConsecutiveDoubles() == 0;
     }
 
-    showEndTurnButton = canEndTurnNow && diceAnimationFinished;
+    showEndTurnButton = canEndTurnNow;
 }
 
 void GameHUDView::interactionCheck()

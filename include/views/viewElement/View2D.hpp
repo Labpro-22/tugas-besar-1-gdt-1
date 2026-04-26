@@ -62,6 +62,7 @@ class View2D {
         void setRender(function<void()> renderFunc);
         void addAnimation(std::string animKey, View2DAnimation* anim);
         View2DAnimation* getAnimation(std::string animKey) const;
+        const bool isAnimationActive() const;
         void animationCheck();
         virtual void enable() {};
         virtual void disable() {};

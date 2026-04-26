@@ -77,6 +77,9 @@ private:
     std::queue<Popup *> delayedPopupQueue;
     bool isDelayingPopupAfterDice;
 
+    void waitForAnimToEnd2D(View2D* view);
+    void waitForAnimToEnd3D(View3D* view);
+    void waitForCameraMovementToEnd(View3DCamera* view);
     void setHudDiceAnimationFinished(bool finished);
     void loadPopupNow(Popup *popup);
     void pumpPopupQueue();
@@ -104,6 +107,7 @@ public:
     void showConfirm(const std::string &question) override;
     void showInputPrompt(const std::string &prompt) override;
     void showException(int code, const std::string &msg) override;
+    void waitForAnimationEnd() override;
 
     // ── Render state game (kontrak sama persis dengan CLIGUI) ──────────────
     void renderBoard(const Game &game) override;
@@ -117,8 +121,7 @@ public:
                        const Player *highBidder) override;
     void renderBankruptcy(const Player &player) override;
     void renderWinner(const Player &winner) override;
-    void renderMovement(const std::string &playerName, int steps,
-                        const std::string &landedTileName) override;
+    void renderMovement(const std::string &playerName, int steps) override;
 
     // ── Setup khusus raylib (dipanggil engine saat inisialisasi game) ──────
     void loadPlayer(Player &player);

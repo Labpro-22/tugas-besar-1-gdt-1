@@ -152,6 +152,9 @@ CommandResult CommandProcessor::process(const std::string& command, Player* play
             game->setGameOver(true);
             return CommandResult::GAME_OVER;
         }
+        if (cmd == "OK_MESSAGE") {
+            return CommandResult::CONTINUE;
+        }
 
         gui->showMessage("Perintah tidak dikenal: " + cmd);
         gui->showMessage("Ketik HELP untuk melihat daftar perintah yang tersedia.");

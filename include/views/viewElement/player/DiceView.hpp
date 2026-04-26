@@ -18,13 +18,13 @@ class DiceView : public PhysicsEngine {
         bool done;
         static map<pair<int,int>, pair<Vector3, Vector3>> rollMap;
     public :
-        DiceView(PlayerView* player, View3DCamera* diceCam);
+        DiceView(int dice1, int dice2, PlayerView* player, View3DCamera* diceCam);
         ~DiceView();
         Interactable* getThrowButton();
         int getMoveValue();
         PlayerView* getPlayer();
         bool isDone();
-        void initializeThrowDice(int dice1, int dice2);
+        void initializeThrowDice();
         void moveDiceOffScreen();
         void showDiceOnCam();
         void update();

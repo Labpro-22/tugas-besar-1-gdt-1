@@ -1,16 +1,22 @@
 #include "views/viewElement/GameHUDView.hpp"
 #include "core/Game.hpp"
 
-namespace {
+namespace
+{
     Color playerColor(size_t index)
     {
         switch (index)
         {
-            case 0: return RED;
-            case 1: return BLUE;
-            case 2: return GREEN;
-            case 3: return YELLOW;
-            default: return LIGHTGRAY;
+        case 0:
+            return RED;
+        case 1:
+            return BLUE;
+        case 2:
+            return GREEN;
+        case 3:
+            return YELLOW;
+        default:
+            return LIGHTGRAY;
         }
     }
 }
@@ -48,7 +54,14 @@ GameHUDView::GameHUDView()
           [this]()
           {
               showEndTurnButton = false;
-          })
+          }),
+      pauseBtn(
+          {50, 50},
+          true,
+          false,
+          "PAUSE",
+          []() {},
+          []() {})
 {
 }
 
@@ -66,6 +79,7 @@ PlayerProfileView* GameHUDView::getPlayerProfile(Player* player) {
 void GameHUDView::setGameModel(const Game *game)
 {
     this->gameModel = game;
+    inventoryPopup.reset();
 
     playerProfiles.clear();
 
@@ -120,10 +134,30 @@ void GameHUDView::updateProfileData()
     showEndTurnButton = canEndTurnNow;
 }
 
+void GameHUDView::setLogs(const std::vector<std::string> &entries)
+{
+    logs = entries;
+
+    if ((int)logs.size() > maxLogs)
+        logs.erase(logs.begin(), logs.end() - maxLogs);
+}
+
 void GameHUDView::interactionCheck()
 {
+    if (inventoryPopup)
+    {
+        inventoryPopup->interactionCheck();
+        if (inventoryPopup->closed())
+        {
+            inventoryPopup.reset();
+        }
+        return;
+    }
+
     rollDiceBtn.interactionCheck();
     switchCamBtn.interactionCheck();
+    pauseBtn.interactionCheck();
+
     if (showEndTurnButton)
     {
         endTurnBtn.interactionCheck();
@@ -131,13 +165,33 @@ void GameHUDView::interactionCheck()
 
     for (auto &p : playerProfiles)
     {
-        p.onHover();
-        p.onClicked();
+        p.interactionCheck();
+
+        std::string cmd = p.catchCommand();
+        if (cmd != "NULL")
+        {
+            Player *clickedPlayer = p.getPlayer();
+            Player *currentPlayer = gameModel ? gameModel->getCurrentPlayer() : nullptr;
+
+            if (clickedPlayer != nullptr && clickedPlayer == currentPlayer)
+            {
+                inventoryPopup = std::make_unique<PlayerInventoryPopup>(clickedPlayer);
+                inventoryPopup->enable();
+                break;
+            }
+        }
     }
 }
 
 std::string GameHUDView::catchCommand()
 {
+    if (inventoryPopup)
+    {
+        std::string popupCmd = inventoryPopup->catchCommand();
+        if (popupCmd != "NULL")
+            return popupCmd;
+    }
+
     std::string cmd;
 
     cmd = switchCamBtn.catchCommand();
@@ -149,6 +203,10 @@ std::string GameHUDView::catchCommand()
         return cmd;
 
     cmd = endTurnBtn.catchCommand();
+    if (cmd != "NULL")
+        return cmd;
+
+    cmd = pauseBtn.catchCommand();
     if (cmd != "NULL")
         return cmd;
 
@@ -239,6 +297,70 @@ void GameHUDView::render()
 
     rollDiceBtn.render();
 
+    float logW = GetScreenWidth() * 0.7f;
+    float logH = 160;
+    float logX = (GetScreenWidth() - logW) / 2.0f;
+    float logY = GetScreenHeight() - logH - 20;
+
+    float headerH = 30;
+
+    // background
+    DrawRectangle(logX, logY, logW, logH, Color{30, 30, 30, 200});
+
+    // header
+    DrawRectangle(logX, logY, logW, headerH, Color{50, 50, 50, 220});
+
+    // title
+    DrawText("LOG", logX + 12, logY + 6, 18, WHITE);
+
+    // text setup
+    Vector2 textPos = {logX + 12, logY + headerH + 8};
+    Vector2 textArea = {logW - 24, logH - headerH - 12};
+
+    std::string fullText;
+    for (const auto &log : logs)
+    {
+        fullText += log + "\n";
+    }
+
+    // clip hanya area isi
+    BeginScissorMode(
+        (int)logX,
+        (int)(logY + headerH),
+        (int)logW,
+        (int)(logH - headerH));
+
+    drawTextWrappedBox(
+        fontMap["Orbitron"],
+        fullText,
+        textPos,
+        16,
+        1,
+        LIGHTGRAY,
+        textArea);
+
+    EndScissorMode();
+
+    // ===== PAUSE BUTTON =====
+    Rectangle profileBox = playerProfiles[0].getHitbox();
+
+    float size = 44;
+    float px = profileBox.x + profileBox.width + 10;
+    float py = profileBox.y;
+
+    pauseBtn.movePosition({px + size / 2, py + size / 2});
+
+    DrawRectangleRounded({px, py, size, size}, 0.3f, 6, Color{50, 50, 50, 200});
+
+    float barW = 6;
+    float barH = 20;
+    float gap = 4;
+
+    DrawRectangle(px + size / 2 - gap - barW, py + size / 2 - barH / 2, barW, barH, WHITE);
+    DrawRectangle(px + size / 2 + gap, py + size / 2 - barH / 2, barW, barH, WHITE);
+
+    pauseBtn.render();
+
     if (showEndTurnButton)
     {
         float y3 = y2 + h + spacing;
@@ -258,5 +380,10 @@ void GameHUDView::render()
                  WHITE);
 
         endTurnBtn.render();
+    }
+
+    if (inventoryPopup)
+    {
+        inventoryPopup->render();
     }
 }

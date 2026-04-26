@@ -113,6 +113,7 @@ public:
     void showInputPrompt(const std::string &prompt) override;
     void showException(int code, const std::string &msg) override;
     void waitForAnimationEnd() override;
+    void showPauseMenu() override;
 
     // ── Render state game (kontrak sama persis dengan CLIGUI) ──────────────
     void renderBoard(const Game &game) override;
@@ -128,7 +129,9 @@ public:
     void renderAuctionEnd(Player* winner) override;
     void renderBankruptcy(const Player &player) override;
     void renderWinner(const Player &winner) override;
-    void renderMovement(const std::string &playerName, int steps) override;
+    void renderMovement(const std::string &playerName, int steps,
+                        const std::string &landedTileName) override;
+    void renderTeleport(const std::string &playerName, int targetIndex) override;
 
     // ── Setup khusus raylib (dipanggil engine saat inisialisasi game) ──────
     void loadPlayer(Player &player);

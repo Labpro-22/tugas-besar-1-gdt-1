@@ -79,3 +79,11 @@ const Vector2 getScreenCenter();
 const Vector2 getScreenDim();
 
 void drawTextLinesWrapped(Font font, const string text, Vector2 centerPos, float fontsize, float spacing, Color textColor, Vector2 boundingDim);
+void drawTextWrappedBox(
+    Font font,
+    const std::string &text,
+    Vector2 pos,
+    float fontSize,
+    float spacing,
+    Color color,
+    Vector2 boxDim);

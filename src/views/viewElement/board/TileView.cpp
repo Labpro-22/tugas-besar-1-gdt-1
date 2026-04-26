@@ -439,13 +439,13 @@ void StreetTileView::buildHouse() {
         Vector3 baseTranslation = {tileDim.y/2 - (modelBB.max.x - modelBB.min.x)*scale*0.5f, 0,
                                    tileDim.y/2 - (modelBB.max.x - modelBB.min.x)*scale*0.5f};
         if (houses.size() == 2) {
-            baseTranslation -= {tileDim.y*0.2f, 0 ,0};
+            baseTranslation -= Vector3{tileDim.y*0.2f, 0 ,0};
         } else if (houses.size() == 3) {
-            baseTranslation -= {0, 0 , tileDim.y*0.2f};
+            baseTranslation -= Vector3{0, 0 , tileDim.y*0.2f};
         } else if (houses.size() == 4) {
-            baseTranslation -= {tileDim.y*0.2f, 0 , tileDim.y*0.2f};
+            baseTranslation -= Vector3{tileDim.y*0.2f, 0 , tileDim.y*0.2f};
         } else if (houses.size() == 5) {
-            baseTranslation -= {tileDim.y*0.1f, 0 , tileDim.y*0.1f};
+            baseTranslation -= Vector3{tileDim.y*0.1f, 0 , tileDim.y*0.1f};
         }
         moveTranslation = Vector3Transform(baseTranslation, MatrixRotate({0,1,0}, (-cardinality + 1)*M_PI/2));
     }

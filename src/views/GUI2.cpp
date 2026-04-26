@@ -214,9 +214,9 @@ void GUI::showMessage(const std::string &message)
     loadPopup(new MessagePopup(message));
 }
 
-void GUI::showConfirm(const std::string & /*question*/)
+void GUI::showConfirm(const std::string &question)
 {
-    // TODO: popup konfirmasi ya/tidak
+    loadPopup(new ConfirmPopup(question));
 }
 
 void GUI::showInputPrompt(const std::string &prompt)
@@ -325,7 +325,7 @@ void GUI::renderAuction(const Property & /*property*/, int /*currentBid*/, const
 
 void GUI::renderMovement(const std::string &playerName, int steps, const std::string & /*landedTileName*/)
 {
-    PlayerView* pv = nullptr;
+    PlayerView *pv = nullptr;
 
     for (auto p : players)
     {
@@ -336,14 +336,13 @@ void GUI::renderMovement(const std::string &playerName, int steps, const std::st
         }
     }
 
-    if (pv == nullptr) return;
+    if (pv == nullptr)
+        return;
 
     std::string camKey = pv->getPlayerCamKey();
 
     camManager.switchTo(camKey, 1, [pv, steps]()
-    {
-        pv->moveSpaces(steps);
-    });
+                        { pv->moveSpaces(steps); });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

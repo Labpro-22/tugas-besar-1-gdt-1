@@ -306,14 +306,18 @@ std::string GameEngine::normalizeInput(std::string s)
 
 bool GameEngine::askYesNo(IGUI *gui, const std::string &prompt)
 {
+    gui->showConfirm(prompt);
+
     while (!gui->shouldExit())
     {
-        std::string ans = normalizeInput(waitForInput(gui, prompt));
-        if (ans == "Y" || ans == "YA" || ans == "YES")
+        gui->update();
+        gui->display();
+
+        std::string cmd = gui->getCommand();
+        if (cmd == "YES")
             return true;
-        if (ans == "N" || ans == "TIDAK" || ans == "NO")
+        if (cmd == "NO")
             return false;
-        gui->showMessage("Masukan tidak valid. Gunakan y/n.");
     }
     return false;
 }
@@ -472,16 +476,7 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
 
     if (player->hasPendingFestival())
     {
-        if (rolledDouble)
-        {
-            gui->showMessage("Selesaikan dulu efek Festival dengan FESTIVAL <kode_properti>.");
-            gui->showMessage("Setelah itu, gunakan LEMPAR_DADU atau ATUR_DADU <x> <y> untuk lemparan bonus.");
-        }
-        else
-        {
-            gui->showMessage("Selesaikan dulu efek Festival dengan FESTIVAL <kode_properti>.");
-            gui->showMessage("Setelah itu, gunakan perintah lain atau AKHIRI_GILIRAN.");
-        }
+        gui->showMessage("Selesaikan dulu efek Festival");
     }
     else if (rolledDouble)
     {
@@ -507,13 +502,10 @@ CommandResult GameEngine::resolveRoll(Player *player, bool manual, int d1, int d
         {
             gui->showMessage("Dadu menunjukkan double. Kamu mendapat lemparan bonus.");
         }
-        gui->showMessage("Gunakan LEMPAR_DADU atau ATUR_DADU <x> <y> untuk lemparan berikutnya.");
     }
     else
     {
         gui->showMessage("Aksi lempar dadu selesai.");
-        gui->showMessage("Gunakan perintah lain atau AKHIRI_GILIRAN.");
-        gui->showMessage("Ketik HELP untuk melihat daftar perintah yang tersedia.");
     }
 
     return CommandResult::CONTINUE;
@@ -614,9 +606,6 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player *player)
 
         if (choice == "3")
         {
-            gui->showMessage("Gunakan LEMPAR_DADU atau ATUR_DADU <x> <y> untuk mencoba keluar dari Penjara.");
-            gui->showMessage("Perintah informasi yang tetap tersedia: HELP, CETAK_PAPAN, CETAK_AKTA <kode>, CETAK_PROPERTI, CETAK_LOG [n], SIMPAN <file>, EXIT.");
-
             while (!gui->shouldExit())
             {
                 std::string raw = waitForInput(gui, "Perintah penjara:");
@@ -650,7 +639,6 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player *player)
                 {
                     if (tokens.size() < 3)
                     {
-                        gui->showMessage("Format: ATUR_DADU <d1> <d2>");
                         continue;
                     }
                     int d1 = 0, d2 = 0;
@@ -681,8 +669,6 @@ CommandResult GameEngine::handleJailedPlayerTurn(Player *player)
                     }
                     continue;
                 }
-
-                gui->showMessage("Saat mencoba keluar dari Penjara, gunakan LEMPAR_DADU atau ATUR_DADU <x> <y>.");
             }
         }
 
@@ -1205,7 +1191,7 @@ void GameEngine::handleTileLanding(Player *player, Tile *tile)
                     player->clearPendingDiscount();
                 }
                 if (player->canAfford(price) &&
-                    askYesNo(gui, "Apakah kamu ingin membeli properti ini seharga " + Formatter::money(price) + "? (y/n):"))
+                    askYesNo(gui, "Apakah kamu ingin membeli properti ini seharga " + Formatter::money(price) + "?"))
                 {
                     player->deductMoney(price);
                     prop->setOwner(player);

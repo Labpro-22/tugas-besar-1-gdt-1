@@ -53,6 +53,22 @@ public:
     void render() override;
 };
 
+class ConfirmPopup : public IndefinitePopup {
+private:
+    std::string question;
+    Interactable yesButton;
+    Interactable noButton;
+
+public:
+    ConfirmPopup(const std::string& question);
+
+    void enable() override;
+    void disable() override;
+    void interactionCheck() override;
+    std::string catchCommand() override;
+    void render() override;
+};
+
 class LoadConfirmPopup : public IndefinitePopup {
 private:
     std::string title;

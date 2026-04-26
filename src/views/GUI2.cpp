@@ -275,12 +275,7 @@ void GUI::renderDice(int d1, int d2)
 {
     int idx = cachedGame->getCurrentTurnIndex();
     camManager.switchTo("ACTION_CAM", 0.2, [this, idx, d1, d2](){
-        CameraMovement* camWait = new CameraMovement(*camManager.getCurrentCamera(), 120, false, [](){}, [](){});
-        camWait->setWait(0.4, [this, idx, d1, d2](){
-            dice = new DiceView(d1,d2,players[idx], &camManager.getCamera("ACTION_CAM"));
-        });
-        camWait->start();
-        camManager.getCurrentCamera()->addMovement("WAIT", camWait);
+        dice = new DiceView(d1,d2,players[idx], &camManager.getCamera("ACTION_CAM"));
     });
     waitForAnimationEnd();
     delete dice;

@@ -263,8 +263,21 @@ void GUI::renderDice(int d1, int d2)
         delete dice;
 
     int idx = cachedGame->getCurrentTurnIndex();
-    dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
-    dice->initializeThrowDice(d1, d2);
+    camManager.switchTo("ACTION_CAM", 0.2, [this, idx, d1, d2](){
+        CameraMovement* camWait = new CameraMovement(*camManager.getCurrentCamera(), 120, false, [](){}, [](){});
+        camWait->setWait(0.4, [this, idx, d1, d2](){
+            dice = new DiceView(players[idx], &camManager.getCamera("ACTION_CAM"));
+            CameraMovement* camWait2 = new CameraMovement(*camManager.getCurrentCamera(), 120, false, [](){}, [](){});
+            camWait2->setWait(0.4, [this,d1,d2](){
+                dice->initializeThrowDice(d1,d2);
+            });
+            camWait2->start();
+            camManager.getCurrentCamera()->addMovement("WAIT2", camWait2);
+        });
+        camWait->start();
+        camManager.getCurrentCamera()->addMovement("WAIT", camWait);
+    });
+    
 }
 void GUI::renderSkillHand(const std::vector<SkillCard *> & /*hand*/) { /* TODO */ }
 void GUI::renderBankruptcy(const Player & /*player*/) { /* TODO */ }

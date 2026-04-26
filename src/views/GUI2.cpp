@@ -241,6 +241,11 @@ void GUI::showException(int code, const std::string &msg)
     loadPopup(new ExceptionPopup(code, msg));
 }
 
+void GUI::showPauseMenu()
+{
+    loadPopup(new PausePopup());
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Input — getCommand
 // Prioritas: pendingCommand → popup aktif → views

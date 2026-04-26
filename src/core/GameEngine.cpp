@@ -1138,6 +1138,40 @@ void GameEngine::processPlayerTurn(Player *player)
         if (cmd.empty() || cmd == "NULL")
             continue;
 
+        std::cout << cmd << std::endl;
+        if (cmd == "PAUSE")
+        {
+            gui->showPauseMenu();
+            continue;
+        }
+        if (cmd == "PAUSE_RESUME")
+        {
+            continue;
+        }
+        if (cmd == "PAUSE_SAVE")
+        {
+            std::string path = waitForInput(gui, "Masukkan nama file save:");
+
+            if (!path.empty())
+            {
+                try
+                {
+                    saveLoadManager->save(path);
+                    gui->showMessage("Game berhasil disimpan ke " + path);
+                }
+                catch (...)
+                {
+                    gui->showMessage("Gagal menyimpan game.");
+                }
+            }
+            continue;
+        }
+        if (cmd == "PAUSE_EXIT")
+        {
+            game->setGameOver(true);
+            return;
+        }
+
         CommandResult res = commandProcessor->process(cmd, player);
         if (res == CommandResult::END_TURN)
             break;

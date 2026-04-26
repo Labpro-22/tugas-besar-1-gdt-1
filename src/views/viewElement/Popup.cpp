@@ -81,7 +81,7 @@ void MessagePopup::render()
     DrawRectangle(x, y, w, h, Color{40, 40, 40, 230});
     DrawRectangle(x, y, w, headerH, Color{60, 60, 60, 255});
 
-    const char* title = "MESSAGE";
+    const char *title = "MESSAGE";
     int titleSize = 24;
     int titleWidth = MeasureText(title, titleSize);
 
@@ -101,8 +101,7 @@ void MessagePopup::render()
         20,
         1,
         WHITE,
-        textArea
-    );
+        textArea);
 
     okButton.movePosition({pos.x, y + h - 40});
     okButton.render();
@@ -181,7 +180,7 @@ void InputPopup::render()
     submitButton.render();
 }
 
-ConfirmPopup::ConfirmPopup(const std::string& question)
+ConfirmPopup::ConfirmPopup(const std::string &question)
     : IndefinitePopup(View2D(getScreenCenter(), {600, 220}, []() {})),
       question(question)
 {
@@ -232,10 +231,12 @@ std::string ConfirmPopup::catchCommand()
     std::string cmd;
 
     cmd = yesButton.catchCommand();
-    if (cmd != "NULL") return cmd;
+    if (cmd != "NULL")
+        return cmd;
 
     cmd = noButton.catchCommand();
-    if (cmd != "NULL") return cmd;
+    if (cmd != "NULL")
+        return cmd;
 
     return "NULL";
 }
@@ -439,7 +440,7 @@ BankruptcyPopup::BankruptcyPopup(const std::string &playerName)
     okButton.movePosition(center + Vector2{0, 70});
 
     okButton.setRender([this]()
-    {
+                       {
         DrawRectangle(okButton.getRenderPos().x, okButton.getRenderPos().y,
                       okButton.getRenderWidth(), okButton.getRenderHeight(),
                       okButton.getRenderColor(RED));
@@ -448,8 +449,7 @@ BankruptcyPopup::BankruptcyPopup(const std::string &playerName)
 
         DrawTextEx(fontMap.at("Orbitron"), "OK",
                    {okButton.getX() - dim.x / 2, okButton.getY() - 14},
-                   28, 0, WHITE);
-    });
+                   28, 0, WHITE); });
 }
 
 void BankruptcyPopup::enable()
@@ -505,7 +505,7 @@ WinnerPopup::WinnerPopup(const std::string &playerName)
     okButton.movePosition(center + Vector2{0, 70});
 
     okButton.setRender([this]()
-    {
+                       {
         DrawRectangle(okButton.getRenderPos().x, okButton.getRenderPos().y,
                       okButton.getRenderWidth(), okButton.getRenderHeight(),
                       okButton.getRenderColor(GOLD));
@@ -514,8 +514,7 @@ WinnerPopup::WinnerPopup(const std::string &playerName)
 
         DrawTextEx(fontMap.at("Orbitron"), "OK",
                    {okButton.getX() - dim.x / 2, okButton.getY() - 14},
-                   28, 0, BLACK);
-    });
+                   28, 0, BLACK); });
 }
 
 void WinnerPopup::enable()
@@ -563,4 +562,108 @@ void WinnerPopup::render()
                24, 0, WHITE);
 
     okButton.render();
+}
+
+PausePopup::PausePopup()
+    : IndefinitePopup(View2D(getScreenCenter(), {420, 300}, []() {})),
+      resumeBtn({200, 50}, true, false, "PAUSE_RESUME", []() {}, []() {}), saveBtn({200, 50}, true, false, "PAUSE_SAVE", []() {}, []() {}), exitBtn({200, 50}, true, false, "PAUSE_EXIT", []() {}, []() {})
+{
+    Vector2 center = pos;
+    float gap = 60;
+
+    resumeBtn.movePosition(center + Vector2{0, -gap});
+    saveBtn.movePosition(center);
+    exitBtn.movePosition(center + Vector2{0, gap});
+}
+
+void PausePopup::enable()
+{
+    resumeBtn.enable();
+    saveBtn.enable();
+    exitBtn.enable();
+}
+
+void PausePopup::disable()
+{
+    resumeBtn.disable();
+    saveBtn.disable();
+    exitBtn.disable();
+}
+
+void PausePopup::interactionCheck()
+{
+    resumeBtn.interactionCheck();
+    saveBtn.interactionCheck();
+    exitBtn.interactionCheck();
+
+    if (resumeBtn.catchCommand() == "PAUSE_RESUME")
+        closeView = true;
+}
+
+std::string PausePopup::catchCommand()
+{
+    if (saveBtn.catchCommand() == "PAUSE_SAVE")
+        return "PAUSE_SAVE";
+
+    if (exitBtn.catchCommand() == "PAUSE_EXIT")
+        return "PAUSE_EXIT";
+
+    return "NULL";
+}
+
+void PausePopup::render()
+{
+    pos = getScreenCenter();
+
+    float w = boundingDim.x;
+    float h = boundingDim.y;
+
+    float x = pos.x - w / 2;
+    float y = pos.y - h / 2;
+
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.5f));
+    DrawRectangle(x, y, w, h, Color{40, 40, 40, 240});
+
+    const char *title = "PAUSED";
+    int fontSize = 26;
+    int textWidth = MeasureText(title, fontSize);
+
+    DrawText(title,
+             x + (w - textWidth) / 2,
+             y + 20,
+             fontSize,
+             WHITE);
+
+    Vector2 center = pos;
+
+    resumeBtn.movePosition(center + Vector2{0, -40});
+    saveBtn.movePosition(center + Vector2{0, 30});
+    exitBtn.movePosition(center + Vector2{0, 100});
+
+    auto drawBtn = [&](Interactable &btn, const char *text, Color color)
+    {
+        float bx = btn.getRenderPos().x;
+        float by = btn.getRenderPos().y;
+        float bw = btn.getRenderWidth();
+        float bh = btn.getRenderHeight();
+
+        DrawRectangleRounded({bx, by, bw, bh}, 0.4f, 8, color);
+
+        int fs = 20;
+        int tw = MeasureText(text, fs);
+
+        DrawText(text,
+                 bx + (bw - tw) / 2,
+                 by + (bh - fs) / 2,
+                 fs,
+                 WHITE);
+    };
+
+    drawBtn(resumeBtn, "RESUME", Color{40, 120, 220, 255});
+    drawBtn(saveBtn, "SAVE", Color{40, 160, 100, 255});
+    drawBtn(exitBtn, "EXIT", Color{180, 60, 60, 255});
+
+    resumeBtn.render();
+    saveBtn.render();
+    exitBtn.render();
 }

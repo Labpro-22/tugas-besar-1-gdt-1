@@ -77,6 +77,11 @@ private:
 
     // ── Popup delay after dice roll ─────────────────────────────────────────
     std::queue<Popup *> delayedPopupQueue;
+    bool isDelayingPopupAfterDice;
+
+    void setHudDiceAnimationFinished(bool finished);
+    void loadPopupNow(Popup *popup);
+    void updateDelayedPopups();
 
 public:
     GUI(float fps, Board &board);
@@ -100,6 +105,7 @@ public:
     void showConfirm(const std::string &question) override;
     void showInputPrompt(const std::string &prompt) override;
     void showException(int code, const std::string &msg) override;
+    void showPauseMenu() override;
 
     // ── Render state game (kontrak sama persis dengan CLIGUI) ──────────────
     void renderBoard(const Game &game) override;

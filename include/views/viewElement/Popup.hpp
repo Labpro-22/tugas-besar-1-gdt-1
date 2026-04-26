@@ -135,3 +135,20 @@ public:
     std::string catchCommand() override;
     void render() override;
 };
+
+class PausePopup : public IndefinitePopup
+{
+private:
+    Interactable resumeBtn;
+    Interactable saveBtn;
+    Interactable exitBtn;
+
+public:
+    PausePopup();
+
+    void enable() override;
+    void disable() override;
+    void interactionCheck() override;
+    std::string catchCommand() override;
+    void render() override;
+};

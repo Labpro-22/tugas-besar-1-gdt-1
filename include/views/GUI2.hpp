@@ -129,8 +129,7 @@ public:
     void renderAuctionEnd(Player* winner) override;
     void renderBankruptcy(const Player &player) override;
     void renderWinner(const Player &winner) override;
-    void renderMovement(const std::string &playerName, int steps,
-                        const std::string &landedTileName) override;
+    void renderMovement(const std::string &playerName, int steps) override;
     void renderTeleport(const std::string &playerName, int targetIndex) override;
 
     // ── Setup khusus raylib (dipanggil engine saat inisialisasi game) ──────

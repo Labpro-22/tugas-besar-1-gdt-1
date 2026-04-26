@@ -6,7 +6,8 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(raylib)
+include_directories(C:/Users/mhps-null/Downloads/raylib-6.0_win64_mingw-w64/raylib-6.0_win64_mingw-w64/include)
+link_directories(C:/Users/mhps-null/Downloads/raylib-6.0_win64_mingw-w64/raylib-6.0_win64_mingw-w64/lib)
 
 add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/core/mainGUI.cpp
@@ -16,14 +17,14 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
                                src/core/CommandProcessor.cpp
                                src/core/SaveLoadManager.cpp
                                src/core/TurnManager.cpp
-                               src/views/GUI2.cpp
+                               src/views/GUI.cpp
                                src/views/viewElement/View2D.cpp
                                src/views/viewElement/View3D.cpp
                                src/views/viewElement/Popup.cpp
                                src/views/viewElement/Interactable.cpp
                                src/views/viewElement/Entry.cpp
-                               src/views/viewElement/MenuView.cpp
                                src/views/viewElement/AuctionMenuView.cpp
+                               src/views/viewElement/MenuView.cpp
                                src/views/viewElement/GameHUDView.cpp
                                src/views/viewElement/property/PropertyPopup.cpp
                                src/views/viewElement/board/TileView.cpp
@@ -103,6 +104,9 @@ add_executable(${PROJECT_NAME} src/core/Game.cpp
 
 target_link_libraries(${PROJECT_NAME}
     raylib
+    opengl32
+    gdi32
+    winmm
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)

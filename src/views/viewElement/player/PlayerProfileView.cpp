@@ -55,16 +55,6 @@ void PlayerProfileView::setPlayer(Player *p)
     this->player = p;
 }
 
-Player* PlayerProfileView::getPlayer()
-{
-    return player;
-}
-
-const Player* PlayerProfileView::getPlayer() const
-{
-    return player;
-}
-
 void PlayerProfileView::onHover()
 {
     DrawRectangleLinesEx(getHitbox(), 6, Fade(playerColor, 0.5f));

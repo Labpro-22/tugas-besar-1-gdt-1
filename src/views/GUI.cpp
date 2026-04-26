@@ -1,76 +1,249 @@
-#include "views/GUI.hpp"
+#include "views/GUI2.hpp"
 #include "views/viewElement/GameHUDView.hpp"
 #include "core/Game.hpp"
-#include "models/CardAndDeck/LassoCard.hpp"
 
-#include <iostream>
 #include <sstream>
-#include <vector>
+#include <iostream>
 
-
-GUI::GUI(float fps, Board &board) : menu(nullptr), board(new BoardView(board)),
-                                    debuggingEntry(nullptr), dice(nullptr), chancePile(nullptr), communityChestPile(nullptr),
-                                    pendingCommand("NULL"), fps(fps), camManager(CameraManager()), exitRequested(false)
+namespace
 {
-    camManager.addCamera("BOARD_CAM", View3DCamera({this->board->getBoardSize() * 1.1f, 10.0f, 0}, {0, 0, 0}, 45.0f));
+
+    std::vector<std::string> tokenize(const std::string &raw)
+    {
+        std::vector<std::string> tokens;
+        std::stringstream ss(raw);
+        std::string word;
+        while (std::getline(ss, word, ' '))
+            if (!word.empty())
+                tokens.push_back(word);
+        return tokens;
+    }
+
+    std::string join(const std::vector<std::string> &tokens, size_t from = 0)
+    {
+        std::string result;
+        for (size_t i = from; i < tokens.size(); ++i)
+        {
+            if (i > from)
+                result += ' ';
+            result += tokens[i];
+        }
+        return result;
+    }
+
+    Color playerColor(size_t index)
+    {
+        switch (index)
+        {
+        case 0:
+            return RED;
+        case 1:
+            return BLUE;
+        case 2:
+            return GREEN;
+        case 3:
+            return YELLOW;
+        default:
+            return LIGHTGRAY;
+        }
+    }
+
+} // namespace
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Constructor
+// ═══════════════════════════════════════════════════════════════════════════
+
+GUI::GUI(float fps, Board &board)
+    : menu(nullptr),
+      auction(nullptr),
+      board(new BoardView(board)),
+      debuggingEntry(nullptr),
+      dice(nullptr),
+      chancePile(nullptr),
+      communityChestPile(nullptr),
+      camManager(CameraManager()),
+      pendingCommand("NULL"),
+      fps(fps),
+      exitRequested(false),
+      resumeBtn(
+          {200, 56},
+          true,
+          false,
+          "RESUME",
+          []() {},
+          []() {}),
+      showResume(false)
+{
+    const float boardSize = this->board->getBoardSize();
+
+    // Kamera utama — berputar mengelilingi board
+    camManager.addCamera("BOARD_CAM",
+                         View3DCamera({boardSize * 1.1f, 10.0f, 0.0f}, {0, 0, 0}, 45.0f));
+
     View3DCamera *boardCam = camManager.getCurrentCamera();
     boardCam->addMovement("ROTATE_INDEFINITE",
-                          new CameraMovement(*camManager.getCurrentCamera(), 120, true, [boardCam, this]()
-                                             { boardCam->rotateAroundTarget(27 * (1 / this->fps), {0, 1, 0}); }, []() {}));
-    camManager.addCamera("TOP_VIEW", View3DCamera({-1.0f, this->board->getBoardSize() * 1.25f, 0}, {0, 0, 0}, 45.0f));
-    camManager.addCamera("ACTION_CAM", View3DCamera({-this->board->getBoardSize() * 0.8f, this->board->getBoardSize() * 0.6f, 0}, {0, 0, 0}, 45.0f));
+                          new CameraMovement(*boardCam, 120, true, [boardCam, this]()
+                                             { boardCam->rotateAroundTarget(27.0f * (1.0f / this->fps), {0, 1, 0}); }, []() {}));
+
+    // Kamera top-down untuk overview
+    camManager.addCamera("TOP_VIEW",
+                         View3DCamera({-1.0f, boardSize * 1.25f, 0.0f}, {0, 0, 0}, 45.0f));
+
+    // Kamera aksi untuk giliran pemain
+    camManager.addCamera("ACTION_CAM",
+                         View3DCamera({-boardSize * 0.8f, boardSize * 0.6f, 0.0f}, {0, 0, 0}, 45.0f));
     camManager.addCamera("TILE_CAM_1", View3DCamera({0,0,0}, {0,0,0}, 45.0f));
     camManager.addCamera("TILE_CAM_2", View3DCamera({0,0,0}, {0,0,0}, 45.0f));
+    
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Lifecycle
+// ═══════════════════════════════════════════════════════════════════════════
 
 bool GUI::shouldExit() const
 {
     return exitRequested;
 }
 
-void GUI::requestExit()
+void GUI::update()
 {
-    exitRequested = true;
+    if (IsKeyPressed(KEY_F11))
+    {
+        ToggleFullscreen();
+    }
+
+    if (showResume)
+    {
+        resumeBtn.interactionCheck();
+    }
+
+    if (WindowShouldClose())
+        exitRequested = true;
+
+    camManager.updateCamMap();
+    updateDice();
+    updatePlayerProfilesLayout();
+    updateViews();
+    updatePopupStack();
+}
+
+void GUI::display()
+{
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    BeginMode3D(camManager.mount());
+    DrawGrid(40, 1);
+    board->render();
+    for (PlayerView *p : players)
+        p->render();
+    if (chancePile)
+        chancePile->render();
+    if (communityChestPile)
+        communityChestPile->render();
+    if (dice)
+        dice->render();
+    EndMode3D();
+
+    if (showResume)
+    {
+        float w = 220;
+        float h = 60;
+
+        float x = GetScreenWidth() / 2.0f - w / 2;
+        float y = 40;
+
+        resumeBtn.movePosition({x + w / 2, y + h / 2});
+
+        DrawRectangleRounded({x + 3, y + 4, w, h}, 0.4f, 8, Fade(BLACK, 0.5f));
+        DrawRectangleRounded({x, y, w, h}, 0.4f, 8, Color{40, 120, 220, 255});
+        DrawRectangleRoundedLines({x, y, w, h}, 0.4f, 8, WHITE);
+
+        const char *text = "SKIP ANIMATION";
+        int fontSize = 22;
+
+        int textWidth = MeasureText(text, fontSize);
+
+        DrawText(text,
+                 x + (w - textWidth) / 2,
+                 y + (h - fontSize) / 2,
+                 fontSize,
+                 WHITE);
+
+        resumeBtn.render();
+    }
+
+    for (auto &view : views)
+        view->render();
+    DrawFPS(10,10);
+    EndDrawing();
+}
+
+void GUI::waitForAnimationEnd() {
+    while (!shouldExit()) {
+        update();
+        display();
+        std::string command = getCommand();
+        if (command == "ANIM_END") {
+            return;
+        }
+    }
+    return;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Navigasi view
+// ═══════════════════════════════════════════════════════════════════════════
+
+void GUI::loadMainMenu()
+{
+    pendingCommand = "NULL";
+    unloadView(menu);
+
+    views.push_back(std::make_unique<MainMenuView>());
+    menu = static_cast<MainMenuView *>(views.back().get());
 }
 
 void GUI::loadGameView()
 {
-    while (!popupStack.empty())
-    {
-        delete popupStack.top();
-        popupStack.pop();
-    }
-
-    for (auto v : views)
-        delete v;
-    views.clear();
-
-    for (auto p : playerProfiles)
-        delete p;
-    playerProfiles.clear();
-
-    for (auto p : players)
-        delete p;
-    players.clear();
-
+    clearPopups();
+    clearViews();
+    clearPlayers();
     menu = nullptr;
 
-    views.insert(new GameHUDView());
+    auto hud = std::make_unique<GameHUDView>();
+
+    if (this->cachedGame != nullptr)
+        hud->setGameModel(this->cachedGame);
+
+    views.push_back(std::move(hud));
 }
 
 void GUI::loadFinishMenu()
 {
-    // TODO: muat menu akhir permainan
+    // TODO: tampilkan layar akhir permainan
 }
+
+void GUI::enterGame()
+{
+    if (menu != nullptr)
+        menu->getAnimation("START_GAME")->start();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Popup / prompt
+// ═══════════════════════════════════════════════════════════════════════════
 
 void GUI::showMessage(const std::string &message)
 {
     loadPopup(new MessagePopup(message));
 }
 
-void GUI::showConfirm(const std::string & /*question*/)
+void GUI::showConfirm(const std::string &question)
 {
-    // TODO: tampilkan popup konfirmasi ya/tidak
+    loadPopup(new ConfirmPopup(question));
 }
 
 void GUI::showInputPrompt(const std::string &prompt)
@@ -78,473 +251,604 @@ void GUI::showInputPrompt(const std::string &prompt)
     loadPopup(new InputPopup(prompt));
 }
 
+void GUI::showException(int code, const std::string &msg)
+{
+    loadPopup(new ExceptionPopup(code, msg));
+}
+
+void GUI::showPauseMenu()
+{
+    loadPopup(new PausePopup());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Input — getCommand
+// Prioritas: pendingCommand → popup aktif → views
+// ═══════════════════════════════════════════════════════════════════════════
+
+std::string GUI::getCommand()
+{
+    if (showResume)
+    {
+        std::string cmd = resumeBtn.catchCommand();
+        if (cmd != "NULL")
+            return cmd;
+    }
+
+    if (hasPendingCommand())
+        return consumePendingCommand();
+
+    if (!popupStack.empty())
+        return pollPopup();
+
+    return pollViews();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Render — semua stub; diisi saat fitur GUI siap
+// ═══════════════════════════════════════════════════════════════════════════
+
 void GUI::renderBoard(const Game &game)
 {
-    Board *b = game.getBoard();
-    if (b == nullptr)
-        return;
+    this->cachedGame = &game;
+
+    for (auto &view : views)
+    {
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+            hud->setGameModel(this->cachedGame);
+    }
 
     if (board == nullptr)
     {
-        board = new BoardView(*b);
+        Board *b = game.getBoard();
+        if (b != nullptr)
+            board = new BoardView(*b);
     }
 }
 
-void GUI::renderPlayer(const Player & /*player*/)
+void GUI::renderPlayer(const Player &player)
 {
-    // TODO
-}
-
-void GUI::renderProperty(const Property & /*property*/)
-{
-    // TODO
-}
-
-void GUI::renderOwnedProperties(const Player & /*player*/)
-{
-    // TODO
-}
-
-void GUI::renderDice(int /*die1*/, int /*die2*/)
-{
-    // TODO
-}
-
-void GUI::renderLog(const std::vector<LogEntry> & /*entries*/, const std::string & /*title*/)
-{
-    // TODO
-}
-
-void GUI::renderSkillHand(const std::vector<SkillCard *> & /*hand*/)
-{
-    // TODO
-}
-
-void GUI::renderAuction(const Property & /*property*/, int /*currentBid*/, const Player * /*highBidder*/)
-{
-    // TODO
-}
-
-void GUI::renderBankruptcy(const Player & /*player*/)
-{
-    // TODO
-}
-
-void GUI::renderWinner(const Player & /*winner*/)
-{
-    // TODO
-}
-
-void GUI::unloadView(View2D *p)
-{
-    if (p != nullptr)
+    for (auto *pv : players)
     {
-        views.erase(p);
-        delete p;
+        if (&(pv->getPlayer()) == &player)
+            return;
+    }
+
+    PlayerView *view = new PlayerView(
+        const_cast<Player &>(player),
+        board,
+        playerColor(players.size()),
+        &camManager);
+
+    players.push_back(view);
+}
+
+void GUI::renderProperty(const Property & /*property*/) { /* TODO */ }
+void GUI::renderOwnedProperties(const Player & /*player*/) { /* TODO */ }
+void GUI::renderDice(int d1, int d2)
+{
+    int idx = cachedGame->getCurrentTurnIndex();
+    camManager.switchTo("ACTION_CAM", 0.2, [this, idx, d1, d2](){
+        dice = new DiceView(d1,d2,players[idx], &camManager.getCamera("ACTION_CAM"));
+    });
+    waitFor([this](){
+        if (dice == nullptr) return false;
+        return dice->isDone();
+    });
+    delete dice;
+    dice = nullptr;
+}
+void GUI::renderSkillHand(const std::vector<SkillCard *> & /*hand*/) { /* TODO */ }
+void GUI::renderBankruptcy(const Player &player)
+{
+    loadPopup(new BankruptcyPopup(player.getUsername()));
+}
+
+void GUI::renderWinner(const Player &player)
+{
+    loadPopup(new WinnerPopup(player.getUsername()));
+}
+
+void GUI::renderLog(const std::vector<LogEntry> &entries, const std::string &)
+{
+    std::vector<std::string> texts;
+
+    for (const auto &e : entries)
+    {
+        texts.push_back(e.toString());
+    }
+
+    for (auto &view : views)
+    {
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+        {
+            hud->setLogs(texts);
+        }
     }
 }
 
-void GUI::loadMainMenu()
-{
-    unloadView(menu);
-    menu = new MainMenuView();
-    views.insert(menu);
+void GUI::renderAuctionStart(Property* property, Player *auctioner, Game* game) {
+    GameHUDView* g;
+    for (auto &view : views)
+    {
+        if (auto *hud = dynamic_cast<GameHUDView *>(view.get()))
+            g = hud;
+    }
+    vector<PlayerProfileView*> activePlayerProfiles;
+    for (Player* player : game->getActivePlayers()) {
+        activePlayerProfiles.push_back(g->getPlayerProfile(player));
+    }
+    cout<<activePlayerProfiles.size()<<endl;
+    camManager.getCamera("TILE_CAM_1").movePosition(board->getTileFromIdx(auctioner->getPosition())->getPos());
+    camManager.getCamera("TILE_CAM_1").moveTargetPos(board->getTileFromIdx(auctioner->getPosition())->getPos());
+    camManager.getCamera("TILE_CAM_1").movePositionDelta(Vector3Transform({0,5.0f,-0.2f}, MatrixRotate({0,1,0}, (-board->getTileFromIdx(auctioner->getPosition())->getCardinality() + 1)*M_PI/2)));
+    camManager.switchTo("TILE_CAM_1", 0.4, [](){});
+    for (PlayerView* player : players) {
+        player->setVisible(false);
+    }
+    views.push_back(std::make_unique<AuctionMenuView>(property, game, auctioner, activePlayerProfiles));
+    auction = static_cast<AuctionMenuView*>(views.back().get());
 }
 
-void GUI::enterGame()
-{
-    cout << "Entered Game" << endl;
-    (menu->getAnimation("START_GAME"))->start();
+void GUI::renderAuctionTurn(Player* currentPlayer, bool forceBid) {
+    auction->initiateAuctionTurn(currentPlayer, forceBid);
 }
 
-void GUI::loadPopup(Popup *popup)
-{
-    disableAll();
-    popupStack.push(popup);
-    views.insert(popup);
+void GUI::renderAuctionUpdate(int currentBid, Player * highBidder) {
+    auction->updateAuction(highBidder, currentBid);
+    waitForAnimToEnd2D(auction);
 }
+
+void GUI::renderAuctionEnd(Player* winner) {
+    auction->endAuction(winner);
+    waitForAnimToEnd2D(auction);
+    auction = nullptr;
+}
+
+void GUI::renderMovement(const std::string & playerName, int steps)
+{
+    auto it = find_if(players.begin(), players.end(), [playerName](PlayerView* p){
+        return p->getPlayer().getUsername() == playerName;
+    });
+    camManager.switchTo((*it)->getPlayerCamKey(), 0.2, [this, it, steps](){
+        (*it)->moveSpaces(steps);
+        
+    });
+    waitForCameraMovementToEnd(camManager.getCurrentCamera());
+    waitForAnimToEnd3D(*it);
+}
+
+
+void GUI::renderTeleport(const std::string &playerName, int targetIndex)
+{
+    if (!board)
+        return;
+
+    PlayerView *targetView = nullptr;
+    for (auto *pv : players)
+    {
+        if (pv->getPlayer().getUsername() == playerName)
+        {
+            targetView = pv;
+            break;
+        }
+    }
+    if (!targetView)
+        return;
+
+    JailTileView *jailTile = board->getJailTile();
+
+    if (jailTile && jailTile->getTile()->getIndex() == targetIndex)
+    {
+        targetView->sendPlayerToJail();
+    }
+    else
+    {
+        TileView *tile = board->getTileFromIdx(targetIndex);
+        if (!tile)
+            return;
+
+        targetView->teleportToTile(*tile);
+    }
+
+    camManager.switchTo(
+        targetView->getPlayerCamKey(),
+        0.5f,
+        []() {});
+        
+    showMessage(playerName + " dipindahkan ke tile " + std::to_string(targetIndex));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Setup khusus raylib
+// ═══════════════════════════════════════════════════════════════════════════
 
 void GUI::loadPlayer(Player &player)
 {
-    Color color;
-    switch (playerProfiles.size())
-    {
-    case 0:
-        color = RED;
-        break;
-    case 1:
-        color = BLUE;
-        break;
-    case 2:
-        color = GREEN;
-        break;
-    case 3:
-        color = YELLOW;
-        break;
-    default:
-        color = LIGHTGRAY;
-    }
+    Color color = playerColor(playerProfiles.size());
 
-    PlayerView *playerView = new PlayerView(player, board, color, &camManager);
-    players.push_back(playerView);
-
-    PlayerProfileView *profile = new PlayerProfileView();
+    auto profile = std::make_unique<PlayerProfileView>();
     profile->setPlayer(&player);
     profile->setColor(color);
-
     profile->setHitboxDim({250, 80});
-
-    float screenW = GetScreenWidth();
-    float screenH = GetScreenHeight();
-
-    float w = 250.0f;
-    float h = 80.0f;
-    float margin = 20.0f;
-
-    int idx = playerProfiles.size();
-
     profile->setActive(true);
 
-    playerProfiles.push_back(profile);
-    views.insert(profile);
+    views.push_back(std::move(profile));
+    playerProfiles.push_back(static_cast<PlayerProfileView *>(views.back().get()));
 }
 
 void GUI::loadDice(PlayerView *player)
 {
-    dice = new DiceView(player, &camManager.getCamera("ACTION_CAM"));
-    views.insert(dice->getThrowButton());
+    dice = new DiceView(0,0,player, &camManager.getCamera("ACTION_CAM"));
+    if (dice && dice->getThrowButton())
+        dice->getThrowButton()->render();
 }
 
-void GUI::loadCardPiles(CardDeck<Card>& chancePile, CardDeck<Card>& comChestPile) {
-    Vector2 cardDim = (Vector2){7.6f, 4.275f}*(board->getBoardSize()/30.0f);
-    Vector3 cardPos = {-cardDim.x/2 - board->getBoardSize()*0.015f, 0.015, -cardDim.x/2 - board->getBoardSize()*0.015f};
-    this->chancePile = new CardPileView(chancePile, cardPos, cardDim);
-    this->communityChestPile = new CardPileView(comChestPile, {cardPos.x*-1, cardPos.y, cardPos.z*-1}, cardDim*-1);
-}
-
-void GUI::loadSkillHand(Player& player, Card* incomingCard) {
-    skillCard = new SkillHandView(player, camManager.getCurrentCamera(), incomingCard);
-    views.insert(skillCard);
-}
-
-
-std::string GUI::getCommand()
+void GUI::loadCardPiles(CardDeck<Card> &chanceDeck, CardDeck<Card> &comChestDeck)
 {
-    if (pendingCommand != "NULL")
+    const float boardSize = board->getBoardSize();
+    const Vector2 cardDim = (Vector2){7.6f, 4.275f} * (boardSize / 30.0f);
+    const Vector3 cardPos = {
+        -cardDim.x / 2.0f - boardSize * 0.015f,
+        0.015f,
+        -cardDim.x / 2.0f - boardSize * 0.015f};
+
+    chancePile = new CardPileView(chanceDeck, cardPos, cardDim);
+    communityChestPile = new CardPileView(comChestDeck,
+                                          {-cardPos.x, cardPos.y, -cardPos.z},
+                                          {-cardDim.x, -cardDim.y});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Testing
+// ═══════════════════════════════════════════════════════════════════════════
+
+void GUI::loadDebuggingEntry()
+{
+    Entry *raw = nullptr;
+
+    auto entry = std::make_unique<Entry>(
+        Vector2{800, 50}, "Enter Command", 30, "Orbitron",
+        [&raw]()
+        {
+            raw->setGameCommand(raw->getEntryText());
+        });
+
+    raw = entry.get();
+
+    debuggingEntry = raw;
+
+    raw->movePosition({raw->getRenderWidth(),
+                       raw->getRenderHeight() / 2.0f});
+
+    views.push_back(std::move(entry));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Private — helpers internal
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── View management ────────────────────────────────────────────────────────
+
+void GUI::unloadView(View2D *v)
+{
+    views.erase(
+        std::remove_if(views.begin(), views.end(),
+                       [v](const std::unique_ptr<View2D> &ptr)
+                       {
+                           return ptr.get() == v;
+                       }),
+        views.end());
+}
+
+void GUI::loadPopup(Popup *popup)
+{
+    if (popup == nullptr)
+        return;
+
+    if (!popupStack.empty() || dice != nullptr || !delayedPopupQueue.empty())
     {
-        std::string temp = pendingCommand;
-        pendingCommand = "NULL";
-        return temp;
+        delayedPopupQueue.push(popup);
+        return;
     }
+
+    disableAll();
+    views.push_back(std::unique_ptr<View2D>(popup));
+    popupStack.push(popup);
+}
+
+void GUI::enableAll()
+{
+    for (auto &v : views)
+        v->enable();
+}
+
+void GUI::disableAll()
+{
+    for (auto &v : views)
+        if (v)
+            v->disable();
+}
+
+void GUI::clearViews()
+{
+    views.clear();
+}
+
+void GUI::clearPopups()
+{
+    while (!popupStack.empty())
+        popupStack.pop();
+    while (!delayedPopupQueue.empty())
+    {
+        delete delayedPopupQueue.front();
+        delayedPopupQueue.pop();
+    }
+}
+
+void GUI::clearPlayers()
+{
+    for (PlayerView *p : players)
+        delete p;
+    for (PlayerProfileView *p : playerProfiles)
+        delete p;
+    players.clear();
+    playerProfiles.clear();
+}
+
+// ── Update helpers ─────────────────────────────────────────────────────────
+
+void GUI::setResumeVisible(bool v)
+{
+    showResume = v;
+    resumeBtn.setActive(v);
+}
+
+void GUI::updateDice()
+{
+    if (dice == nullptr)
+        return;
+
+    std::string diceCmd = dice->getThrowButton()->catchCommand();
+    if (diceCmd != "NULL")
+    {
+        auto tokens = tokenize(diceCmd);
+        if (!tokens.empty() && tokens[0] == "DISPLAY")
+            handleDisplayCommand(tokens);
+    }
+
+    dice->update();
+    if (dice->isDone())
+    {
+        delete dice;
+        dice = nullptr;
+    }
+}
+
+void GUI::updateViews()
+{
+    views.erase(
+        std::remove_if(views.begin(), views.end(),
+                       [](const std::unique_ptr<View2D> &v)
+                       {
+                           if (v->closed())
+                               return true;
+                           return false;
+                       }),
+        views.end());
 
     if (!popupStack.empty())
     {
-        std::string raw = popupStack.top()->catchCommand();
-
-        if (raw != "NULL")
-        {
-            Popup *p = popupStack.top();
-            views.erase(p);
-            delete p;
-            popupStack.pop();
-
-            std::stringstream ss(raw);
-            std::string item;
-            std::vector<std::string> tokens;
-
-            while (getline(ss, item, ' '))
-            {
-                tokens.push_back(item);
-            }
-
-            return tokens.empty() ? "NULL" : raw;
-        }
-
-        return "NULL";
+        popupStack.top()->interactionCheck();
+        return;
     }
 
-    for (View2D *view : views)
+    for (auto &v : views)
+    {
+        v->interactionCheck();
+    }
+
+    if (menu != nullptr && menu->closed())
+        menu = nullptr;
+}
+
+void GUI::updatePopupStack()
+{
+    while (!popupStack.empty() && popupStack.top()->closed())
+    {
+        popupStack.pop();
+        if (popupStack.empty())
+            enableAll();
+        else
+            popupStack.top()->enable();
+    }
+
+    if (dice == nullptr && popupStack.empty() && !delayedPopupQueue.empty())
+    {
+        Popup *popup = delayedPopupQueue.front();
+        delayedPopupQueue.pop();
+        disableAll();
+        popup->enable();
+        views.push_back(std::unique_ptr<View2D>(popup));
+        popupStack.push(popup);
+    }
+}
+
+void GUI::updatePlayerProfilesLayout()
+{
+    const float screenW = static_cast<float>(GetScreenWidth());
+    const float screenH = static_cast<float>(GetScreenHeight());
+    const float w = 250.0f, h = 80.0f, margin = 20.0f;
+
+    const Vector2 corners[4] = {
+        {w / 2.0f + margin, h / 2.0f + margin},
+        {screenW - w / 2.0f - margin, h / 2.0f + margin},
+        {w / 2.0f + margin, screenH - h / 2.0f - margin},
+        {screenW - w / 2.0f - margin, screenH - h / 2.0f - margin},
+    };
+
+    for (size_t i = 0; i < playerProfiles.size() && i < 4; ++i)
+        playerProfiles[i]->setPosition(corners[i]);
+}
+
+// ── getCommand helpers ─────────────────────────────────────────────────────
+
+bool GUI::hasPendingCommand() const
+{
+    return pendingCommand != "NULL";
+}
+
+std::string GUI::consumePendingCommand()
+{
+    std::string cmd = pendingCommand;
+    pendingCommand = "NULL";
+    return cmd;
+}
+
+std::string GUI::pollPopup()
+{
+    if (popupStack.empty())
+        return "NULL";
+
+    std::string raw = popupStack.top()->catchCommand();
+    if (raw == "NULL")
+        return "NULL";
+
+    View2D *p = popupStack.top();
+    popupStack.pop();
+
+    unloadView(p);
+
+    if (popupStack.empty())
+        enableAll();
+    else
+        popupStack.top()->enable();
+
+    return raw;
+}
+
+std::string GUI::pollViews()
+{
+    for (auto &view : views)
     {
         std::string raw = view->catchCommand();
         if (raw == "NULL")
             continue;
 
-        std::stringstream ss(raw);
-        std::string item;
-        std::vector<std::string> tokens;
-
-        while (getline(ss, item, ' '))
-        {
-            tokens.push_back(item);
-        }
-
-        // DEBUG
-        std::cout << "[VIEW CMD RAW] " << raw << std::endl;
-        std::cout << "[TOKENS] size=" << tokens.size() << " -> ";
-        for (size_t i = 0; i < tokens.size(); ++i)
-        {
-            std::cout << "[" << i << "]='" << tokens[i] << "' ";
-        }
-        std::cout << std::endl;
-
+        auto tokens = tokenize(raw);
         if (tokens.empty())
-            return "NULL";
+            continue;
 
-        // HANDLE NEW GAME
-        if (tokens[0] == "NEW_GAME")
+        const std::string &cmd = tokens[0];
+
+        if (cmd == "NEW_GAME")
         {
             auto popup = new LoadConfirmPopup("Masukkan path config:", "config/default");
-
             popup->setOnSubmit([this](const std::string &path)
-                               { this->pendingCommand = "NEW_GAME " + path; });
-
+                               { pendingCommand = "NEW_GAME " + path; });
             loadPopup(popup);
             return "NULL";
         }
 
-        // HANDLE LOAD GAME
-        if (tokens[0] == "LOAD_GAME")
+        if (cmd == "LOAD_GAME")
         {
             auto popup = new LoadConfirmPopup("Masukkan save file:", "saves/save1");
-
             popup->setOnSubmit([this](const std::string &path)
-                               { this->pendingCommand = "LOAD_GAME " + path; });
-
+                               { pendingCommand = "LOAD_GAME " + path; });
             loadPopup(popup);
             return "NULL";
         }
 
-        // HANDLE INTERNAL GUI
-        if (tokens[0] == "DISPLAY")
+        if (cmd == "DISPLAY")
         {
-            if (tokens[1] == "TOP_VIEW")
-            {
-                camManager.switchTo("TOP_VIEW", 1, []() {});
-            }
-            else if (tokens[1] == "ACTION_CAM")
-            {
-                camManager.switchTo("ACTION_CAM", 1, []() {});
-            }
-            else if (tokens[1] == "BOARD_CAM")
-            {
-                camManager.switchTo("BOARD_CAM", 1, []() {});
-            }
-            else if (tokens[1] == "ROLL_DICE")
-            {
-                camManager.switchTo("ACTION_CAM", 1, [this, tokens]()
-                                    { loadDice(players[stoi(tokens[2])]); });
-            }
-            else if (tokens[1] == "THROW")
-            {
-                // call GameEngine buat dapetin angka dadu
-                dice->initializeThrowDice(6, 6);
-                dice->getThrowButton()->setActive(false);
-            }
-            else if (tokens[1] == "THROW_DONE")
-            {
-                dice->moveDiceOffScreen();
-                PlayerView *movingPlayer = dice->getPlayer();
-                int moveVal = dice->getMoveValue();
-                camManager.switchTo(dice->getPlayer()->getPlayerCamKey(), 1, [this, movingPlayer, moveVal](){
-                    movingPlayer->moveSpaces(moveVal);
-                });
-            } else if (tokens[1] == "DRAW") {
-                camManager.switchTo("ACTION_CAM", 1, [this, tokens](){
-                    if (tokens[2] == "CC") {
-                        // reshuffle deck
-                        communityChestPile->drawCard();
-                    } else if (tokens[2] == "CH") {
-                        // reshuffle deck
-                        chancePile->drawCard();
-                    }
-                });
-            } else if (tokens[1] == "HAND") {
-                camManager.switchTo("ACTION_CAM", 1, [this, tokens](){
-                    loadSkillHand(players[stoi(tokens[2])]->getPlayer(), new LassoCard);
-                });
-                
-            } else if (tokens[1] == "BUILD") {
-                board->getTileFromIdx(stoi(tokens[2]))->buildHouse();
-            } else if (tokens[1] == "FOCUS_TILE") {
-                if (camManager.getCurrentCamera() != &camManager.getCamera("TILE_CAM_1")) {
-                    board->getTileFromIdx(stoi(tokens[2]))->setCamToTile(&camManager.getCamera("TILE_CAM_1"));
-                    camManager.switchTo("TILE_CAM_1", 0.2, [](){});
-                } else {
-                    board->getTileFromIdx(stoi(tokens[2]))->setCamToTile(&camManager.getCamera("TILE_CAM_2"));
-                    camManager.switchTo("TILE_CAM_2", 0.2, [](){});
-                }
-            } else if (tokens[1] == "SELL") {
-                board->getTileFromIdx(stoi(tokens[2]))->sellHouse();
-            } else if (tokens[1] == "MOVE_PLAYER" && tokens.size() >= 4) {
-                players[stoi(tokens[2])]->moveToTile(*board->getTileFromIdx(stoi(tokens[3])), true);
-            } else if (tokens[1] == "TELEPORT" && tokens.size() >= 4) {
-                camManager.switchTo(players[stoi(tokens[2])]->getPlayerCamKey(), 0.2, [this, tokens](){
-                    players[stoi(tokens[2])]->teleportToTile(*board->getTileFromIdx(stoi(tokens[3])));
-                });
-            } else if (tokens[1] == "JAIL" && tokens.size() >= 3) {
-                camManager.switchTo(players[stoi(tokens[2])]->getPlayerCamKey(), 0.2, [this, tokens](){
-                    players[stoi(tokens[2])]->sendPlayerToJail();
-                });
-            }
-
+            handleDisplayCommand(tokens);
             return "NULL";
         }
 
-        // RETURN KE ENGINE
+        // Teruskan mentah ke engine
         return raw;
     }
 
     return "NULL";
 }
 
-void GUI::enableAll()
-{
-    for (View2D *view : views)
-    {
-        view->enable();
+void GUI::waitFor(function<bool()> pred) {
+    while (!shouldExit()) {
+        update();
+        display();
+        getCommand();
+        if (pred()) {
+            return;
+        }
+    }
+} 
+
+void GUI::waitForAnimToEnd2D(View2D* view) {
+    while (!shouldExit()) {
+        update();
+        display();
+        getCommand();
+        if (!view->isAnimationActive()) {
+            return;
+        }
     }
 }
 
-void GUI::disableAll()
-{
-    for (View2D *view : views)
-    {
-        if (view != nullptr)
-            view->disable();
+void GUI::waitForAnimToEnd3D(View3D* view) {
+    while (!shouldExit()) {
+        update();
+        display();
+        getCommand();
+        if (!view->isAnimationActive()) {
+            return;
+        }
     }
 }
 
-void GUI::updatePlayerProfilesLayout()
-{
-    float screenW = GetScreenWidth();
-    float screenH = GetScreenHeight();
-
-    float w = 250.0f;
-    float h = 80.0f;
-    float margin = 20.0f;
-
-    for (int i = 0; i < playerProfiles.size(); i++)
-    {
-        Vector2 pos;
-
-        switch (i)
-        {
-        case 0:
-            pos = {w / 2 + margin, h / 2 + margin};
-            break;
-        case 1:
-            pos = {screenW - w / 2 - margin, h / 2 + margin};
-            break;
-        case 2:
-            pos = {w / 2 + margin, screenH - h / 2 - margin};
-            break;
-        case 3:
-            pos = {screenW - w / 2 - margin, screenH - h / 2 - margin};
-            break;
+void GUI::waitForCameraMovementToEnd(View3DCamera* view) {
+    while (!shouldExit()) {
+        update();
+        display();
+        getCommand();
+        if (!view->isMovementActive()) {
+            return;
         }
-
-        playerProfiles[i]->setPosition(pos);
     }
 }
 
-void GUI::update()
+void GUI::handleDisplayCommand(const std::vector<std::string> &tokens)
 {
-    camManager.updateCamMap();
-    if (dice != nullptr)
+    if (tokens.size() < 2)
+        return;
+    const std::string &sub = tokens[1];
+
+    if (sub == "TOP_VIEW")
+        camManager.switchTo("TOP_VIEW", 1, []() {});
+    else if (sub == "ACTION_CAM")
+        camManager.switchTo("ACTION_CAM", 1, []() {});
+    else if (sub == "BOARD_CAM")
+        camManager.switchTo("BOARD_CAM", 1, []() {});
+
+    else if (sub == "ROLL_DICE" && tokens.size() >= 3)
     {
-        dice->update();
-        if (dice->isDone())
-        {
-            delete dice;
-            dice = nullptr;
-        }
+        int idx = std::stoi(tokens[2]);
+        camManager.switchTo("ACTION_CAM", 1, [this, idx]()
+                            { loadDice(players[idx]); });
     }
-
-    updatePlayerProfilesLayout();
-    if (dice != nullptr) {
-        dice->update();
-        if (dice->isDone()) {
-            delete dice;
-            dice = nullptr;
-        }
-    }
-    
-    set<View2D*> closedViews;
-    for (View2D* view : views) {
-        if (view->closed()) {
-            closedViews.insert(view);
-        }
-        else
-        {
-            view->interactionCheck();
-        }
-    }
-
-    if (menu != nullptr)
+    else if (sub == "THROW" && dice != nullptr)
     {
-        if (menu->closed())
-        {
-            menu = nullptr;
-        }
+        dice->initializeThrowDice();
+        dice->getThrowButton()->setActive(false);
     }
-
-    if (skillCard != nullptr) {
-        if (skillCard->closed()) {
-            skillCard = nullptr;
-        }
-    }
-
-    if (!popupStack.empty())
+    else if (sub == "THROW_DONE" && dice != nullptr)
     {
-        while (popupStack.top()->closed())
-        {
-            popupStack.pop();
-            if (popupStack.empty())
-            {
-                enableAll();
-                break;
-            }
-            else
-            {
-                popupStack.top()->enable();
-            }
-        }
+        
     }
-
-    for (View2D *view : closedViews)
+    else if (sub == "DRAW" && tokens.size() >= 3)
     {
-        views.erase(view);
-        delete view;
-        view = nullptr;
+        if (tokens[2] == "CC")
+            communityChestPile->drawCard();
+        else if (tokens[2] == "CH")
+            chancePile->drawCard();
     }
-}
-
-void GUI::display()
-{
-    BeginMode3D(camManager.mount());
-    DrawGrid(40,1);
-    board->render();
-    for (PlayerView *player : players)
-    {
-        player->render();
-    }
-    if (chancePile != nullptr)
-        chancePile->render();
-    if (communityChestPile != nullptr)
-        communityChestPile->render();
-    if (dice != nullptr)
-        dice->render();
-    EndMode3D();
-    for (View2D *view : views)
-    {
-        view->render();
-    }
-}
-
-void GUI::loadDebuggingEntry()
-{
-    debuggingEntry = new Entry({800, 50}, "Enter Command", 30, "Orbitron", [this]()
-                               { this->debuggingEntry->setGameCommand(this->debuggingEntry->getEntryText()); });
-    debuggingEntry->movePosition({debuggingEntry->getRenderWidth(), debuggingEntry->getRenderHeight() / 2});
-    views.insert(debuggingEntry);
 }

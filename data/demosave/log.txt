@@ -1,0 +1,48 @@
+NIMONSPOLI_LOG 2
+COUNT 46
+ENTRY 1|1|KARTU|Mendapat kartu skill: TeleportCard
+ENTRY 1|1|DADU|Lempar: 6+6=12 (double) -> mendarat di PLN (PLN)
+ENTRY 1|1|UTILITAS|PLN (PLN) kini milik 1 (otomatis)
+ENTRY 1|1|DOUBLE|Giliran tambahan ke-1
+ENTRY 1|1|DADU|Lempar: 6+6=12 (double) -> mendarat di MANADO (MND)
+ENTRY 1|1|BELI|Beli MANADO (MND) seharga M240
+ENTRY 1|1|DOUBLE|Giliran tambahan ke-2
+ENTRY 1|1|DADU|Lempar: 5+1=6 -> mendarat di Pergi ke Penjara (PPJ)
+ENTRY 1|1|PENJARA|Mendarat di Pergi ke Penjara -> masuk Penjara
+ENTRY 1|2|KARTU|Mendapat kartu skill: DemolitionCard
+ENTRY 1|2|DADU|Lempar: 1+3=4 -> mendarat di Pajak Penghasilan (PPH)
+ENTRY 1|2|PAJAK|PPH flat M150
+ENTRY 1|3|KARTU|Mendapat kartu skill: ShieldCard
+ENTRY 1|3|DADU|Lempar: 4+3=7 -> mendarat di Festival (FES)
+ENTRY 1|3|FESTIVAL|Mendarat di Festival\, tetapi tidak punya properti
+ENTRY 1|4|KARTU|Mendapat kartu skill: DiscountCard
+ENTRY 1|4|DADU|Lempar: 2+3=5 -> mendarat di STASIUN_GAMBIR (GBR)
+ENTRY 1|4|RAILROAD|STASIUN_GAMBIR (GBR) kini milik 4 (otomatis)
+ENTRY 3|1|KARTU|Mendapat kartu skill: MoveCard
+ENTRY 3|1|DADU|Lempar: 1+2=3 -> gagal keluar dari Penjara (1/3)
+ENTRY 3|2|KARTU|Mendapat kartu skill: LassoCard
+ENTRY 3|2|DADU|Lempar: 3+2=5 -> mendarat di BEKASI (BKS)
+ENTRY 3|2|BELI|Beli BEKASI (BKS) seharga M120
+ENTRY 3|3|DADU|Lempar: 4+6=10 -> mendarat di Dana Umum (DNU)
+ENTRY 3|3|KARTU|Dana Umum: Biaya dokter. Bayar M700.
+ENTRY 3|3|DANA_UMUM|Bayar biaya dokter M700
+ENTRY 3|4|DADU|Lempar: 6+1=7 -> mendarat di PLN (PLN)
+ENTRY 3|4|SEWA|Bayar M28 ke 1 (PLN\, Utility)
+ENTRY 5|1|DADU|Lempar: 2+1=3 -> gagal keluar dari Penjara (2/3)
+ENTRY 5|2|DADU|Lempar: 5+3=8 -> mendarat di Dana Umum (DNU)
+ENTRY 5|2|KARTU|Dana Umum: Anda mau nyaleg. Bayar M200 kepada setiap pemain.
+ENTRY 5|2|DANA_UMUM|Bayar biaya kampanye M200 ke 1
+ENTRY 5|2|DANA_UMUM|Bayar biaya kampanye M200 ke 3
+ENTRY 5|2|DANA_UMUM|Bayar biaya kampanye M200 ke 4
+ENTRY 5|3|DADU|Lempar: 5+3=8 -> mendarat di STASIUN_TUGU (TUG)
+ENTRY 5|3|RAILROAD|STASIUN_TUGU (TUG) kini milik 3 (otomatis)
+ENTRY 5|4|DADU|Lempar: 3+6=9 -> mendarat di MAKASSAR (MKS)
+ENTRY 5|4|BELI|Beli MAKASSAR (MKS) seharga M220
+ENTRY 7|1|DADU|Lempar: 2+1=3 -> gagal keluar dari Penjara (3/3)
+ENTRY 7|2|DADU|Lempar: 2+1=3 -> mendarat di Bebas Parkir (BBP)
+ENTRY 7|3|DADU|Lempar: 1+5=6 -> mendarat di BANDUNG (BDG)
+ENTRY 7|3|BELI|Beli BANDUNG (BDG) seharga M300
+ENTRY 7|4|DADU|Lempar: 3+2=5 -> mendarat di PALEMBANG (PLB)
+ENTRY 7|4|BELI|Beli PALEMBANG (PLB) seharga M260
+ENTRY 9|1|PENJARA|Bayar denda M50 dan bebas dari Penjara
+ENTRY 9|1|SIMPAN|Game disimpan ke demosave

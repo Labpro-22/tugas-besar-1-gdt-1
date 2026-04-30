@@ -18,8 +18,42 @@
 #include <deque>
 #include <utility>
 
-// Forward-declare the board cell helper class (defined in CLIGUI.cpp)
-class CellInfo;
+class CellInfo {
+private:
+    std::string code;
+    std::string colorTagStr;
+    TileColor   color;
+    std::string ownerTag;
+    std::string building;
+    std::string players;
+    bool        jailCell;
+    int         jailInmates;
+    int         jailVisiting;
+public:
+    CellInfo()
+        : color(TileColor::DEFAULT), jailCell(false),
+          jailInmates(0), jailVisiting(0) {}
+
+    void setCode(const std::string& v)      { code = v; }
+    void setColorTag(const std::string& v)  { colorTagStr = v; }
+    void setColor(TileColor v)              { color = v; }
+    void setOwnerTag(const std::string& v)  { ownerTag = v; }
+    void setBuilding(const std::string& v)  { building = v; }
+    void appendPlayer(const std::string& v) { players += v; }
+    void setJailCell(bool v)                { jailCell = v; }
+    void setJailInmates(int v)              { jailInmates = v; }
+    void setJailVisiting(int v)             { jailVisiting = v; }
+
+    const std::string& getCode()      const { return code; }
+    const std::string& getColorTag()  const { return colorTagStr; }
+    TileColor          getColor()     const { return color; }
+    const std::string& getOwnerTag()  const { return ownerTag; }
+    const std::string& getBuilding()  const { return building; }
+    const std::string& getPlayers()   const { return players; }
+    bool               isJailCell()   const { return jailCell; }
+    int                getJailInmates()  const { return jailInmates; }
+    int                getJailVisiting() const { return jailVisiting; }
+};
 
 class CLIGUI : public IGUI {
 private:
